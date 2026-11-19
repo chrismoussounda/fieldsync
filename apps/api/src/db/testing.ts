@@ -12,7 +12,7 @@ export async function createTestDb(): Promise<Kysely<Database>> {
 
 // Starting PGlite takes seconds, so a test file shares one database and empties it between tests.
 export async function emptyTestDb(db: Kysely<Database>): Promise<void> {
-	await sql`truncate orgs, entities, changes, received_ops, conflicts`.execute(
+	await sql`truncate orgs, entities, changes, received_ops, conflicts, users, devices, refresh_tokens`.execute(
 		db,
 	);
 }
