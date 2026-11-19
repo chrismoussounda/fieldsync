@@ -8,9 +8,18 @@ import { type SimServer, World } from "./world.ts";
 function fakeServer(): SimServer {
 	const server = new FakeServer();
 	return {
-		push: (_device, request) => server.push(request),
-		pull: (_device, request) => server.pull(request),
-		entity: (_device, request) => server.entity(request),
+		push: (_device, request, now) => {
+			server.time = now;
+			return server.push(request);
+		},
+		pull: (_device, request, now) => {
+			server.time = now;
+			return server.pull(request);
+		},
+		entity: (_device, request, now) => {
+			server.time = now;
+			return server.entity(request);
+		},
 		entities: async () => server.entities,
 	};
 }

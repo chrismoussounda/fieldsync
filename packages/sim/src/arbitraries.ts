@@ -8,7 +8,7 @@ export type Scenario = { skews: number[]; actions: Action[] };
 export function scenario({
 	maxDevices = 5,
 	entities = 4,
-	maxSkewMs = 60 * 60 * 1000,
+	maxSkewMs = 2 * 24 * 60 * 60 * 1000,
 	maxActions = 200,
 } = {}): fc.Arbitrary<Scenario> {
 	const device = fc.nat({ max: maxDevices - 1 });
@@ -59,6 +59,14 @@ export function scenario({
 			arbitrary: fc.record({
 				kind: fc.constant("wait" as const),
 				ms: fc.nat({ max: 60_000 }),
+			}),
+		},
+		{
+			weight: 1,
+			arbitrary: fc.record({
+				kind: fc.constant("jump" as const),
+				device,
+				ms: fc.integer({ min: -maxSkewMs, max: maxSkewMs }),
 			}),
 		},
 		{
