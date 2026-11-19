@@ -8,3 +8,4 @@ export type {
 	PushResponse,
 	RejectReason,
 } from "./push.ts";
+export { PROTOCOL_VERSION } from "./version.ts";

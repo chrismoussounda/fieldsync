@@ -205,3 +205,25 @@ operation was rejected, and each device's clock only moved forward.
 fast-check generates 500 scenarios per run against an in-memory server, and 50
 against the real push and pull handlers on Postgres. When a run fails, it
 shrinks the scenario to a short one that still fails.
+
+## HTTP
+
+| Method | Path                       | Body or query                | Returns            |
+| ------ | -------------------------- | ---------------------------- | ------------------ |
+| POST   | `/sync/push`               | `{ ops }`, at most 100       | `PushResponse`     |
+| GET    | `/sync/pull`               | `cursor`, `limit` (1 to 500) | `PullResponse`     |
+| GET    | `/sync/entities/:type/:id` |                              | `EntityResponse`   |
+| GET    | `/healthz`                 |                              | process is up      |
+| GET    | `/readyz`                  |                              | database reachable |
+
+Every `/sync` request carries `X-Protocol-Version` and a bearer token.
+
+| Status | `error`                | Meaning                                   |
+| ------ | ---------------------- | ----------------------------------------- |
+| 400    | `BAD_REQUEST`          | Malformed body, query or path             |
+| 401    | `UNAUTHORIZED`         | Missing or invalid token                  |
+| 426    | `UNSUPPORTED_PROTOCOL` | The app must update before syncing again  |
+| 500    | `INTERNAL`             | Logged on the server; no details returned |
+
+Bodies are limited to 1 MB. A rejected operation inside a push is not an HTTP
+error: the request succeeds and the result says why.

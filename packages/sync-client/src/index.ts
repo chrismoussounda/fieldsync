@@ -6,6 +6,7 @@ export {
 	type SyncClientOptions,
 	type Transport,
 } from "./client.ts";
+export { HttpError, HttpTransport, type HttpTransportOptions } from "./http.ts";
 export {
 	applyChange,
 	MemoryStorage,
