@@ -257,7 +257,7 @@ is locked out at once, not when its access token expires.
 ## Roles
 
 The server checks every pushed operation against the record as it stores it,
-and rejects it with `FORBIDDEN` otherwise.
+and rejects what the user's role may not do with `FORBIDDEN`.
 
 | Action                                 | Technician    | Dispatcher | Admin |
 | -------------------------------------- | ------------- | ---------- | ----- |
