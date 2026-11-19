@@ -1,1 +1,6 @@
-export { type EntityState, type MergeResult, merge } from "./merge.ts";
+export {
+	type EntityState,
+	isDeleted,
+	type MergeResult,
+	merge,
+} from "./merge.ts";
