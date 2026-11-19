@@ -1,6 +1,8 @@
 import { type EntityState, isDeleted } from "@fieldsync/merge";
 
-export const WORK_ORDER = "work_order";
+import { PRIORITIES } from "@fieldsync/work-orders";
+
+export { WORK_ORDER } from "@fieldsync/work-orders";
 
 export type Order = {
 	id: string;
@@ -38,14 +40,14 @@ export function toOrder(id: string, state: EntityState): Order | null {
 	};
 }
 
-const PRIORITY = ["urgent", "normal", "low"];
+const rank = (p: string) => (PRIORITIES as readonly string[]).indexOf(p);
 
 /** Unfinished first, then by priority and due date. */
 export function byUrgency(a: Order, b: Order): number {
 	const finished = (o: Order) => (o.status === "done" ? 1 : 0);
 	return (
 		finished(a) - finished(b) ||
-		PRIORITY.indexOf(a.priority) - PRIORITY.indexOf(b.priority) ||
+		rank(a.priority) - rank(b.priority) ||
 		(a.dueDate ?? "9").localeCompare(b.dueDate ?? "9")
 	);
 }
