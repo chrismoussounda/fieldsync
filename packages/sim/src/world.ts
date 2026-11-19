@@ -1,6 +1,8 @@
 import { Clock } from "@fieldsync/hlc";
-import type { EntityState } from "@fieldsync/merge";
 import type {
+	EntityRequest,
+	EntityResponse,
+	EntityState,
 	PullRequest,
 	PullResponse,
 	PushRequest,
@@ -23,6 +25,11 @@ export interface SimServer {
 		request: PullRequest,
 		now: number,
 	): Promise<PullResponse>;
+	entity(
+		deviceId: string,
+		request: EntityRequest,
+		now: number,
+	): Promise<EntityResponse>;
 	/** Every record, keyed `type:id` like the client storage. */
 	entities(): Promise<Map<string, EntityState>>;
 }
@@ -80,6 +87,11 @@ class SimTransport implements Transport {
 		);
 		if (this.#takeFault() !== "none") throw new NetworkError("response lost");
 		return response;
+	}
+
+	async entity(request: EntityRequest): Promise<EntityResponse> {
+		this.#check();
+		return this.world.server.entity(this.deviceId, request, this.world.time);
 	}
 
 	#check(): void {

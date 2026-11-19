@@ -1,6 +1,9 @@
-import { type EntityState, merge } from "@fieldsync/merge";
+import { merge } from "@fieldsync/merge";
 import {
 	type Change,
+	type EntityRequest,
+	type EntityResponse,
+	type EntityState,
 	type OpResult,
 	OpSchema,
 	type PullRequest,
@@ -57,6 +60,15 @@ export class FakeServer implements Transport {
 			return result;
 		});
 		return { results, serverTime: 0 };
+	}
+
+	async entity({
+		entityType,
+		entityId,
+	}: EntityRequest): Promise<EntityResponse> {
+		if (this.offline) throw new Error("offline");
+		const entity = this.entities.get(`${entityType}:${entityId}`) ?? null;
+		return { entity: structuredClone(entity), serverTime: 0 };
 	}
 
 	async pull({ cursor, limit }: PullRequest): Promise<PullResponse> {

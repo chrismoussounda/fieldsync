@@ -10,6 +10,7 @@ function fakeServer(): SimServer {
 	return {
 		push: (_device, request) => server.push(request),
 		pull: (_device, request) => server.pull(request),
+		entity: (_device, request) => server.entity(request),
 		entities: async () => server.entities,
 	};
 }

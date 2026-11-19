@@ -1,5 +1,5 @@
-import { type EntityState, merge } from "@fieldsync/merge";
-import type { Change, Op, OpResult } from "@fieldsync/protocol";
+import { merge } from "@fieldsync/merge";
+import type { Change, EntityState, Op, OpResult } from "@fieldsync/protocol";
 
 export type OutboxEntry =
 	| { op: Op; status: "pending" | "inflight" }
@@ -16,6 +16,12 @@ export interface SyncStorage {
 	getCursor(): Promise<number>;
 	/** Merges pulled changes and stores the new cursor, atomically. */
 	applyRemote(changes: Change[], nextCursor: number): Promise<void>;
+	/** Replaces a record with the server's copy plus the operations not yet accepted. */
+	rebuildEntity(
+		type: string,
+		id: string,
+		snapshot: EntityState | null,
+	): Promise<void>;
 }
 
 export function applyChange(
@@ -24,6 +30,16 @@ export function applyChange(
 ): EntityState {
 	const op: Op = { ...change, base: {}, clientVersion: "" };
 	return merge(state, op, { detectConflicts: false }).state;
+}
+
+export function replay(
+	snapshot: EntityState | null,
+	ops: Op[],
+): EntityState | null {
+	let state = snapshot;
+	for (const op of ops)
+		state = merge(state, op, { detectConflicts: false }).state;
+	return state;
 }
 
 export class MemoryStorage implements SyncStorage {
@@ -86,6 +102,24 @@ export class MemoryStorage implements SyncStorage {
 			this.entities.set(k, applyChange(this.entities.get(k) ?? null, change));
 		}
 		this.cursor = nextCursor;
+	}
+
+	async rebuildEntity(
+		type: string,
+		id: string,
+		snapshot: EntityState | null,
+	): Promise<void> {
+		const ops = this.outbox
+			.filter(
+				(e) =>
+					e.status !== "dead" &&
+					e.op.entityType === type &&
+					e.op.entityId === id,
+			)
+			.map((e) => e.op);
+		const state = replay(snapshot, ops);
+		if (state) this.entities.set(key(type, id), state);
+		else this.entities.delete(key(type, id));
 	}
 }
 

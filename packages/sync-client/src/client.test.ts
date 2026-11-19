@@ -80,6 +80,30 @@ describe("push", () => {
 		expect(server.pushes).toHaveLength(1);
 	});
 
+	it("rebuilds the record from the server after a rejection", async () => {
+		const server = new FakeServer();
+		const phone = device(PHONE, server);
+		await phone.edit({ status: "assigned" });
+		const rejected = await phone.edit({ notes: "forged" });
+		await phone.edit({ priority: "urgent" });
+		server.reject.add(rejected.opId);
+		await phone.client.syncOnce();
+
+		expect(phone.order()?.fields).toEqual({
+			status: "assigned",
+			priority: "urgent",
+		});
+	});
+
+	it("forgets a record whose creation was rejected", async () => {
+		const server = new FakeServer();
+		const phone = device(PHONE, server);
+		const create = await phone.edit({ status: "assigned" });
+		server.reject.add(create.opId);
+		await phone.client.syncOnce();
+		expect(phone.order()).toBeUndefined();
+	});
+
 	it("puts operations back when the network fails, and resends them later", async () => {
 		const server = new FakeServer();
 		const phone = device(PHONE, server);

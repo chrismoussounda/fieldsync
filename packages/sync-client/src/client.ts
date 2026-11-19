@@ -1,6 +1,8 @@
 import type { Clock } from "@fieldsync/hlc";
 import { merge } from "@fieldsync/merge";
 import type {
+	EntityRequest,
+	EntityResponse,
 	Op,
 	PullRequest,
 	PullResponse,
@@ -12,6 +14,7 @@ import type { SyncStorage } from "./storage.ts";
 export interface Transport {
 	push(request: PushRequest): Promise<PushResponse>;
 	pull(request: PullRequest): Promise<PullResponse>;
+	entity(request: EntityRequest): Promise<EntityResponse>;
 }
 
 export type SyncClientOptions = {
@@ -88,7 +91,18 @@ export class SyncClient {
 				throw error;
 			}
 			await storage.resolveOps(response.results);
+			for (const result of response.results) {
+				if (result.status !== "rejected") continue;
+				const op = batch.find((o) => o.opId === result.opId);
+				if (op) await this.#rebuild(op);
+			}
 		}
+	}
+
+	async #rebuild({ entityType, entityId }: Op): Promise<void> {
+		const { storage, transport } = this.#options;
+		const { entity } = await transport.entity({ entityType, entityId });
+		await storage.rebuildEntity(entityType, entityId, entity);
 	}
 
 	async #pull(): Promise<void> {
