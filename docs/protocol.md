@@ -125,3 +125,21 @@ locks that row first. Writers in one organisation run one at a time, so
 numbers are handed out in commit order and a cursor can never skip a change.
 The cost is one writer per organisation at a time, which is fine at this
 scale.
+
+## Pull
+
+A device asks for the changes after its cursor, the `seq` of the last change it
+applied:
+
+```
+cursor, limit (at most 500)  →  changes, nextCursor, hasMore, serverTime
+```
+
+Changes come in `seq` order. The device applies them with the merge function
+(conflict detection off), stores `nextCursor`, and asks again while `hasMore`
+is true. Its own changes come back too and merge as no-ops.
+
+An integration test on a real Postgres runs 20 devices pushing at once while
+another device pulls in a loop, and checks the puller receives every change
+exactly once. The same test fails when the counter is replaced by a Postgres
+sequence.
