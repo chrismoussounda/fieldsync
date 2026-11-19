@@ -16,6 +16,7 @@
 	},
 	"devDependencies": {
 		"@electric-sql/pglite": "^0.5.17",
+		"@testcontainers/postgresql": "^12.2.2",
 		"@types/node": "^22.20.5",
 		"@types/pg": "^8.23.1",
 		"kysely-pglite-dialect": "^1.4.0"
