@@ -1,0 +1,15 @@
+# Local Postgres for development.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: fieldsync
+      POSTGRES_PASSWORD: fieldsync
+      POSTGRES_DB: fieldsync
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres:/var/lib/postgresql/data
+
+volumes:
+  postgres:

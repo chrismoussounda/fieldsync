@@ -130,6 +130,22 @@ describe("auth routes", () => {
 	});
 });
 
+describe("user routes", () => {
+	it("list the org's members for any signed-in user", async () => {
+		const { accessToken } = await signIn("tech@example.com", PHONE);
+		const response = await app.inject({
+			url: "/users",
+			headers: { authorization: `Bearer ${accessToken}` },
+		});
+		expect(response.json().users.map((u: { role: string }) => u.role)).toEqual([
+			"admin",
+			"dispatcher",
+			"technician",
+		]);
+		expect(response.json().users[0]).not.toHaveProperty("password_hash");
+	});
+});
+
 describe("device routes", () => {
 	it("are for admins only", async () => {
 		const { accessToken } = await signIn("dispatch@example.com", OFFICE);

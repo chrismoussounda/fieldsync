@@ -16,6 +16,7 @@ import {
 	type Principal,
 	refresh,
 } from "../auth/session.ts";
+import { listUsers } from "../auth/users.ts";
 import type { Database } from "../db/schema.ts";
 import { ApiError } from "../errors.ts";
 import { handleGetEntity } from "../sync/entity.ts";
@@ -110,14 +111,18 @@ export function buildServer({
 		});
 	};
 
-	app.register(async (devices) => {
-		secure(devices);
+	app.register(async (account) => {
+		secure(account);
 
-		devices.get("/devices", async (request) => ({
+		account.get("/users", async (request) => ({
+			users: await listUsers(db, request.auth),
+		}));
+
+		account.get("/devices", async (request) => ({
 			devices: await listDevices(db, request.auth),
 		}));
 
-		devices.post("/devices/:id/revoke", async (request, reply) => {
+		account.post("/devices/:id/revoke", async (request, reply) => {
 			const { id } = DeviceParams.parse(request.params);
 			await revokeDevice(db, request.auth, id, now());
 			return reply.code(204).send();

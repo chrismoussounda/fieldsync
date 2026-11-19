@@ -20,7 +20,8 @@ type OutboxRow = {
 	reason?: string;
 };
 
-type MetaRow = { key: "cursor"; value: number };
+// Small values kept next to the sync state: cursor, device id, clock, session.
+type MetaRow = { key: string; value: unknown };
 
 export class LocalDb extends Dexie {
 	entities!: Table<EntityRow, [string, string]>;
@@ -34,6 +35,14 @@ export class LocalDb extends Dexie {
 			outbox: "++seq, &opId, status, [entityType+entityId]",
 			meta: "key",
 		});
+	}
+
+	async getMeta<T>(key: string): Promise<T | undefined> {
+		return (await this.meta.get(key))?.value as T | undefined;
+	}
+
+	async setMeta(key: string, value: unknown): Promise<void> {
+		await this.meta.put({ key, value });
 	}
 }
 
@@ -94,7 +103,7 @@ export class DexieStorage implements SyncStorage {
 	}
 
 	async getCursor(): Promise<number> {
-		return (await this.#db.meta.get("cursor"))?.value ?? 0;
+		return (await this.#db.getMeta<number>("cursor")) ?? 0;
 	}
 
 	applyRemote(changes: Change[], nextCursor: number): Promise<void> {
