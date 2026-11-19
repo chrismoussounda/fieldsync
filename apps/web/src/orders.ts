@@ -1,0 +1,51 @@
+import { type EntityState, isDeleted } from "@fieldsync/merge";
+
+export const WORK_ORDER = "work_order";
+
+export type Order = {
+	id: string;
+	title: string;
+	address: string;
+	priority: string;
+	status: string;
+	assigneeId: string | null;
+	dueDate: string | null;
+	notes: string;
+};
+
+export const STATUS_LABELS: Record<string, string> = {
+	open: "Open",
+	assigned: "Assigned",
+	in_progress: "In progress",
+	done: "Done",
+	cancelled: "Cancelled",
+};
+
+/** Reads a stored record as a work order; null once it is deleted. */
+export function toOrder(id: string, state: EntityState): Order | null {
+	if (isDeleted(state)) return null;
+	const f = state.fields;
+	const text = (v: unknown) => (typeof v === "string" ? v : "");
+	return {
+		id,
+		title: text(f.title) || "Untitled",
+		address: text(f.address),
+		priority: text(f.priority) || "normal",
+		status: text(f.status) || "open",
+		assigneeId: text(f.assigneeId) || null,
+		dueDate: text(f.dueDate) || null,
+		notes: text(f.notes),
+	};
+}
+
+const PRIORITY = ["urgent", "normal", "low"];
+
+/** Unfinished first, then by priority and due date. */
+export function byUrgency(a: Order, b: Order): number {
+	const finished = (o: Order) => (o.status === "done" ? 1 : 0);
+	return (
+		finished(a) - finished(b) ||
+		PRIORITY.indexOf(a.priority) - PRIORITY.indexOf(b.priority) ||
+		(a.dueDate ?? "9").localeCompare(b.dueDate ?? "9")
+	);
+}

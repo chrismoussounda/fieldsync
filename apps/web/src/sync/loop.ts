@@ -85,8 +85,10 @@ export class SyncLoop {
 			await this.#client.syncOnce();
 			this.#set({ state: "idle", lastSyncedAt: this.#now() });
 		} catch (error) {
-			// A failed fetch means no network; an HTTP error means the server answered.
-			const state = error instanceof HttpError ? "error" : "offline";
+			// No network, or a gateway that cannot reach the server, is just offline.
+			const unreachable =
+				!(error instanceof HttpError) || [502, 503, 504].includes(error.status);
+			const state = unreachable ? "offline" : "error";
 			this.#set({ ...this.#status, state });
 		} finally {
 			await this.#saveClock(this.#client.clockState());

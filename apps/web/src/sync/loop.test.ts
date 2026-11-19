@@ -74,6 +74,16 @@ describe("SyncLoop", () => {
 		expect(pulls()).toBe(2);
 	});
 
+	it("treats a gateway that cannot reach the server as offline", async () => {
+		const { loop, server } = setup();
+		server.push = async () => {
+			throw new HttpError(502, undefined);
+		};
+		await loop.mutate(edit);
+		await loop.run();
+		expect(loop.status().state).toBe("offline");
+	});
+
 	it("reports a refusal from the server as an error", async () => {
 		const { loop, server } = setup();
 		server.push = async () => {
