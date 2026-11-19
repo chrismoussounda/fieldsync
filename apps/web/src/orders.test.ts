@@ -1,6 +1,7 @@
 import type { EntityState } from "@fieldsync/merge";
+import { FIELDS, PROGRESS_FIELDS } from "@fieldsync/work-orders";
 import { describe, expect, it } from "vitest";
-import { byUrgency, type Order, toOrder } from "./orders.ts";
+import { byUrgency, type Order, patchOf, toDraft, toOrder } from "./orders.ts";
 
 const HLC = "0000000000001-0000-0a1b2c3d";
 
@@ -19,6 +20,7 @@ describe("toOrder", () => {
 		expect(toOrder("o1", state({ title: "Fix pump" }))).toEqual({
 			id: "o1",
 			title: "Fix pump",
+			description: "",
 			address: "",
 			priority: "normal",
 			status: "open",
@@ -38,6 +40,7 @@ describe("byUrgency", () => {
 		const order = (id: string, o: Partial<Order>): Order => ({
 			id,
 			title: id,
+			description: "",
 			address: "",
 			priority: "normal",
 			status: "assigned",
@@ -58,5 +61,31 @@ describe("byUrgency", () => {
 			"later",
 			"done",
 		]);
+	});
+});
+
+describe("patchOf", () => {
+	const before = toDraft(
+		state({ title: "Fix pump", status: "assigned", notes: "" }),
+	);
+
+	it("sends only the fields that changed", () => {
+		const after = { ...before, status: "done", notes: "  Valve replaced " };
+		expect(patchOf(before, after, new Set(FIELDS))).toEqual({
+			status: "done",
+			notes: "Valve replaced",
+		});
+	});
+
+	it("clears a field emptied by the user", () => {
+		const after = { ...before, title: " " };
+		expect(patchOf(before, after, new Set(FIELDS))).toEqual({ title: null });
+	});
+
+	it("leaves out fields the user may not change", () => {
+		const after = { ...before, title: "Other", status: "done" };
+		expect(patchOf(before, after, new Set(PROGRESS_FIELDS))).toEqual({
+			status: "done",
+		});
 	});
 });

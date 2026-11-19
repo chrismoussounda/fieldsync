@@ -1,5 +1,7 @@
+import { canManage } from "@fieldsync/work-orders";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useState } from "react";
+import { ROUTES } from "../app/route.ts";
 import type { Member } from "../app/workspace.ts";
 import type { User } from "../auth/session.ts";
 import { byUrgency, STATUS_LABELS, toOrder, WORK_ORDER } from "../orders.ts";
@@ -27,14 +29,17 @@ export function Orders({ db, user }: { db: LocalDb; user: User }) {
 		<section>
 			<div className="toolbar">
 				<h2>Work orders</h2>
-				<label className="toggle">
-					<input
-						type="checkbox"
-						checked={mineOnly}
-						onChange={(e) => setMineOnly(e.target.checked)}
-					/>
-					Mine only
-				</label>
+				<div className="actions">
+					<label className="toggle">
+						<input
+							type="checkbox"
+							checked={mineOnly}
+							onChange={(e) => setMineOnly(e.target.checked)}
+						/>
+						Mine only
+					</label>
+					{canManage(user.role) && <a href={ROUTES.new}>New work order</a>}
+				</div>
 			</div>
 			{orders.length === 0 && (
 				<p className="muted empty">
@@ -43,28 +48,30 @@ export function Orders({ db, user }: { db: LocalDb; user: User }) {
 			)}
 			<ul className="orders">
 				{orders.map((o) => (
-					<li key={o.id} className="card order">
-						<div className="order-head">
-							<strong>{o.title}</strong>
-							<span className={`chip status-${o.status}`}>
-								{STATUS_LABELS[o.status] ?? o.status}
-							</span>
-						</div>
-						{o.address && <p className="muted">{o.address}</p>}
-						<p className="meta">
-							{o.priority === "urgent" && (
-								<span className="chip urgent">Urgent</span>
-							)}
-							{o.dueDate && <span>Due {o.dueDate}</span>}
-							<span>
-								{o.assigneeId
-									? (names.get(o.assigneeId) ?? "Assigned")
-									: "Unassigned"}
-							</span>
-							{waiting.has(o.id) && (
-								<span className="chip waiting">Not synced</span>
-							)}
-						</p>
+					<li key={o.id}>
+						<a href={ROUTES.order(o.id)} className="card order">
+							<div className="order-head">
+								<strong>{o.title}</strong>
+								<span className={`chip status-${o.status}`}>
+									{STATUS_LABELS[o.status] ?? o.status}
+								</span>
+							</div>
+							{o.address && <p className="muted">{o.address}</p>}
+							<p className="meta">
+								{o.priority === "urgent" && (
+									<span className="chip urgent">Urgent</span>
+								)}
+								{o.dueDate && <span>Due {o.dueDate}</span>}
+								<span>
+									{o.assigneeId
+										? (names.get(o.assigneeId) ?? "Assigned")
+										: "Unassigned"}
+								</span>
+								{waiting.has(o.id) && (
+									<span className="chip waiting">Not synced</span>
+								)}
+							</p>
+						</a>
 					</li>
 				))}
 			</ul>

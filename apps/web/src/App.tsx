@@ -1,8 +1,10 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { useRoute } from "./app/route.ts";
 import { startSync } from "./app/workspace.ts";
 import type { Session, User } from "./auth/session.ts";
 import { Login } from "./screens/Login.tsx";
+import { OrderDetail } from "./screens/OrderDetail.tsx";
 import { Orders } from "./screens/Orders.tsx";
 import { SyncBadge } from "./screens/SyncBadge.tsx";
 import type { SyncLoop } from "./sync/loop.ts";
@@ -22,6 +24,7 @@ export function App({ db, session }: Props) {
 
 function SignedIn({ db, session, user }: Props & { user: User }) {
 	const [loop, setLoop] = useState<SyncLoop | null>(null);
+	const route = useRoute();
 	const pending =
 		useLiveQuery(
 			() => db.outbox.where("status").anyOf("pending", "inflight").count(),
@@ -53,7 +56,16 @@ function SignedIn({ db, session, user }: Props & { user: User }) {
 				<SignOut session={session} pending={pending} />
 			</header>
 			<main className="page">
-				<Orders db={db} user={user} />
+				{route.name === "list" || !loop ? (
+					<Orders db={db} user={user} />
+				) : (
+					<OrderDetail
+						db={db}
+						loop={loop}
+						user={user}
+						id={route.name === "order" ? route.id : null}
+					/>
+				)}
 			</main>
 		</>
 	);
