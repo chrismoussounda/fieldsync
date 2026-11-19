@@ -213,17 +213,43 @@ shrinks the scenario to a short one that still fails.
 | POST   | `/sync/push`               | `{ ops }`, at most 100       | `PushResponse`     |
 | GET    | `/sync/pull`               | `cursor`, `limit` (1 to 500) | `PullResponse`     |
 | GET    | `/sync/entities/:type/:id` |                              | `EntityResponse`   |
+| POST   | `/auth/login`              | email, password, device      | session            |
+| POST   | `/auth/refresh`            | `refreshToken`               | session            |
+| GET    | `/devices`                 |                              | the org's devices  |
+| POST   | `/devices/:id/revoke`      |                              | 204                |
 | GET    | `/healthz`                 |                              | process is up      |
 | GET    | `/readyz`                  |                              | database reachable |
 
-Every `/sync` request carries `X-Protocol-Version` and a bearer token.
+Every `/sync` request carries `X-Protocol-Version` and a bearer token. The
+version is checked first, so an outdated app is told to update even when
+signed out.
 
 | Status | `error`                | Meaning                                   |
 | ------ | ---------------------- | ----------------------------------------- |
 | 400    | `BAD_REQUEST`          | Malformed body, query or path             |
 | 401    | `UNAUTHORIZED`         | Missing or invalid token                  |
+| 401    | `DEVICE_REVOKED`       | An admin locked this device out           |
+| 403    | `FORBIDDEN`            | The role may not do this                  |
+| 404    | `NOT_FOUND`            | No such device in the org                 |
+| 409    | `DEVICE_TAKEN`         | Device id or its clock node already used  |
 | 426    | `UNSUPPORTED_PROTOCOL` | The app must update before syncing again  |
 | 500    | `INTERNAL`             | Logged on the server; no details returned |
 
 Bodies are limited to 1 MB. A rejected operation inside a push is not an HTTP
 error: the request succeeds and the result says why.
+
+## Auth
+
+Passwords are hashed with argon2id. Login registers the device: its id is
+generated on the device, and the first 8 characters break clock ties, so they
+must be unique within the org.
+
+A session is a 15-minute access token (a signed JWT) and a 30-day refresh token,
+stored only as a SHA-256 hash. Each refresh uses up the token and returns a new
+one in the same family. A used token coming back means it may have been copied:
+the whole family is revoked. The exception is a retry within 60 seconds, which
+is a device that never received the answer on a bad network.
+
+An expired access token never blocks local writes: changes wait in the outbox
+until the app refreshes. Every request checks the device, so a revoked device
+is locked out at once, not when its access token expires.
