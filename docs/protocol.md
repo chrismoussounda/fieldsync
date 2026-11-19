@@ -253,3 +253,24 @@ is a device that never received the answer on a bad network.
 An expired access token never blocks local writes: changes wait in the outbox
 until the app refreshes. Every request checks the device, so a revoked device
 is locked out at once, not when its access token expires.
+
+## Roles
+
+The server checks every pushed operation against the record as it stores it,
+and rejects what the user's role may not do with `FORBIDDEN`.
+
+| Action                                 | Technician    | Dispatcher | Admin |
+| -------------------------------------- | ------------- | ---------- | ----- |
+| Create, delete or restore a work order | no            | yes        | yes   |
+| Plan the job                           | no            | yes        | yes   |
+| Report progress                        | assigned only | yes        | yes   |
+| List and revoke devices                | no            | no         | yes   |
+
+Planning fields are title, description, address, priority, assignee and due
+date; progress fields are status and notes.
+
+Fields outside these lists, and other kinds of record, are refused for every
+role. A technician who edits an order offline while it is reassigned to someone
+else gets the edit rejected on sync, and the device rebuilds the order from the
+server. Every device still pulls the whole org: limiting what each one receives
+comes later.

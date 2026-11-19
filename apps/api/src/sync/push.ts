@@ -14,11 +14,16 @@ import type { Database } from "../db/schema.ts";
 
 export type Auth = { orgId: string; deviceId: string };
 
+/** Whether the device's user may apply an operation to the record as it is now. */
+export type Authorize = (op: Op, current: EntityState | null) => boolean;
+
+export type PushOptions = { authorize: Authorize; now?: () => number };
+
 export function handlePush(
 	db: Kysely<Database>,
 	auth: Auth,
 	body: PushRequest,
-	now: () => number = Date.now,
+	{ authorize, now = Date.now }: PushOptions,
 ): Promise<PushResponse> {
 	return db.transaction().execute(async (tx) => {
 		// One writer per org at a time: change numbers are then handed out in
@@ -32,7 +37,7 @@ export function handlePush(
 
 		const results: OpResult[] = [];
 		for (const raw of body.ops) {
-			results.push(await pushOne(tx, auth, raw, now()));
+			results.push(await pushOne(tx, auth, authorize, raw, now()));
 		}
 		return { results, serverTime: now() };
 	});
@@ -41,6 +46,7 @@ export function handlePush(
 async function pushOne(
 	tx: Transaction<Database>,
 	auth: Auth,
+	authorize: Authorize,
 	raw: unknown,
 	now: number,
 ): Promise<OpResult> {
@@ -62,7 +68,9 @@ async function pushOne(
 			: prior.result;
 	}
 
-	const denied = check(auth, op, now);
+	const current = await load(tx, auth, op);
+	const denied =
+		check(auth, op, now) ?? (authorize(op, current) ? null : "FORBIDDEN");
 	if (denied) {
 		const result: OpResult = {
 			opId: op.opId,
@@ -74,7 +82,7 @@ async function pushOne(
 		return result;
 	}
 
-	const { state, won, conflicts } = merge(await load(tx, auth, op), op);
+	const { state, won, conflicts } = merge(current, op);
 	const seq = await nextSeq(tx, auth);
 	await save(tx, auth, op, state, seq);
 	await tx

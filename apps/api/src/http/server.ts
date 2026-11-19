@@ -8,6 +8,7 @@ import Fastify, {
 import { type Kysely, sql } from "kysely";
 import { z } from "zod";
 import { listDevices, revokeDevice } from "../auth/devices.ts";
+import { mayWrite } from "../auth/policy.ts";
 import {
 	type AuthConfig,
 	authenticate,
@@ -134,7 +135,10 @@ export function buildServer({
 			secure(sync);
 
 			sync.post("/push", async (request) =>
-				handlePush(db, request.auth, PushBody.parse(request.body), now),
+				handlePush(db, request.auth, PushBody.parse(request.body), {
+					authorize: (op, current) => mayWrite(request.auth, op, current),
+					now,
+				}),
 			);
 
 			sync.get("/pull", async (request) =>

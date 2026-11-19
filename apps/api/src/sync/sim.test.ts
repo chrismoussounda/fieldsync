@@ -8,6 +8,7 @@ import { createTestDb, emptyTestDb } from "../db/testing.ts";
 import { handleGetEntity } from "./entity.ts";
 import { handlePull } from "./pull.ts";
 import { handlePush } from "./push.ts";
+import { allowAll } from "./testing.ts";
 
 const ORG = "00000000-0000-4000-8000-000000000001";
 
@@ -21,7 +22,10 @@ afterAll(() => db.destroy());
 
 const server: SimServer = {
 	push: (deviceId, request, now) =>
-		handlePush(db, { orgId: ORG, deviceId }, request, () => now),
+		handlePush(db, { orgId: ORG, deviceId }, request, {
+			authorize: allowAll,
+			now: () => now,
+		}),
 	pull: (deviceId, request, now) =>
 		handlePull(db, { orgId: ORG, deviceId }, request, () => now),
 	entity: (deviceId, request, now) =>
