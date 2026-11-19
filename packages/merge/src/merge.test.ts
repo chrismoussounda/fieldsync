@@ -23,6 +23,7 @@ describe("upsert", () => {
 				restoredHlc: null,
 			},
 			won: { status: "assigned", priority: "normal" },
+			conflicts: [],
 		});
 	});
 
@@ -122,5 +123,78 @@ describe("restore", () => {
 		expect(apply(create, restore, remove)).toEqual(
 			apply(create, remove, restore),
 		);
+	});
+});
+
+describe("conflicts", () => {
+	const create = op(PHONE, 1, { patch: { status: "assigned" } });
+	const seen = { status: create.hlc };
+
+	it("reports nothing when the user saw the value they replaced", () => {
+		const edit = op(OFFICE, 2, { patch: { status: "cancelled" }, base: seen });
+		expect(merge(apply(create), edit).conflicts).toEqual([]);
+	});
+
+	it("reports an edit that overrides one the user never saw", () => {
+		const office = op(OFFICE, 2, {
+			patch: { status: "cancelled" },
+			base: seen,
+		});
+		const phone = op(PHONE, 3, { patch: { status: "completed" }, base: seen });
+		expect(merge(apply(create, office), phone).conflicts).toEqual([
+			{
+				opId: phone.opId,
+				field: "status",
+				reason: "concurrent_edit",
+				winner: { value: "completed", hlc: phone.hlc },
+				loser: { value: "cancelled", hlc: office.hlc },
+			},
+		]);
+	});
+
+	it("reports an edit that loses to one the user never saw", () => {
+		const office = op(OFFICE, 3, {
+			patch: { status: "cancelled" },
+			base: seen,
+		});
+		const phone = op(PHONE, 2, { patch: { status: "completed" }, base: seen });
+		expect(merge(apply(create, office), phone).conflicts).toMatchObject([
+			{ winner: { value: "cancelled" }, loser: { value: "completed" } },
+		]);
+	});
+
+	it("ignores a device's own writes arriving out of order", () => {
+		const second = op(PHONE, 3, { patch: { status: "completed" }, base: seen });
+		const first = op(PHONE, 2, {
+			patch: { status: "in_progress" },
+			base: seen,
+		});
+		expect(merge(apply(create, second), first).conflicts).toEqual([]);
+	});
+
+	it("reports an edit to an entity another device deleted", () => {
+		const remove = op(OFFICE, 2, { kind: "delete" });
+		const edit = op(PHONE, 3, { patch: { status: "completed" }, base: seen });
+		expect(merge(apply(create, remove), edit).conflicts).toEqual([
+			{
+				opId: edit.opId,
+				field: "status",
+				reason: "edit_on_deleted",
+				winner: { value: null, hlc: remove.hlc },
+				loser: { value: "completed", hlc: edit.hlc },
+			},
+		]);
+	});
+
+	it("reports nothing when detection is off", () => {
+		const office = op(OFFICE, 2, {
+			patch: { status: "cancelled" },
+			base: seen,
+		});
+		const phone = op(PHONE, 3, { patch: { status: "completed" }, base: seen });
+		const result = merge(apply(create, office), phone, {
+			detectConflicts: false,
+		});
+		expect(result.conflicts).toEqual([]);
 	});
 });
