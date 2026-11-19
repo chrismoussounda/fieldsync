@@ -1,4 +1,4 @@
-import { Clock, decode } from "@fieldsync/hlc";
+import { decode, MAX_DRIFT_MS } from "@fieldsync/hlc";
 import { describe, expect, it } from "vitest";
 import { PUSH_BATCH, SyncClient } from "./client.ts";
 import { MemoryStorage } from "./storage.ts";
@@ -15,7 +15,7 @@ function device(deviceId: string, server: FakeServer, start = 1_000) {
 	const client = new SyncClient({
 		deviceId,
 		clientVersion: "0.1.0",
-		clock: new Clock(deviceId.slice(0, 8), () => time),
+		now: () => time,
 		storage,
 		transport: server,
 		newId: () =>
@@ -78,6 +78,30 @@ describe("push", () => {
 			{ op, status: "dead", reason: "FORBIDDEN" },
 		]);
 		expect(server.pushes).toHaveLength(1);
+	});
+
+	it("rebuilds the record from the server after a rejection", async () => {
+		const server = new FakeServer();
+		const phone = device(PHONE, server);
+		await phone.edit({ status: "assigned" });
+		const rejected = await phone.edit({ notes: "forged" });
+		await phone.edit({ priority: "urgent" });
+		server.reject.add(rejected.opId);
+		await phone.client.syncOnce();
+
+		expect(phone.order()?.fields).toEqual({
+			status: "assigned",
+			priority: "urgent",
+		});
+	});
+
+	it("forgets a record whose creation was rejected", async () => {
+		const server = new FakeServer();
+		const phone = device(PHONE, server);
+		const create = await phone.edit({ status: "assigned" });
+		server.reject.add(create.opId);
+		await phone.client.syncOnce();
+		expect(phone.order()).toBeUndefined();
 	});
 
 	it("puts operations back when the network fails, and resends them later", async () => {
@@ -155,5 +179,48 @@ describe("pull", () => {
 
 		const local = await phone.edit({ notes: "later" });
 		expect(local.hlc > remote.hlc).toBe(true);
+	});
+});
+
+describe("clock drift", () => {
+	const TWO_DAYS = 2 * MAX_DRIFT_MS;
+
+	it("re-sends operations stamped more than a day ahead", async () => {
+		const server = new FakeServer();
+		const phone = device(PHONE, server, TWO_DAYS);
+		await phone.edit({ status: "assigned" });
+		await phone.client.syncOnce();
+
+		const [change] = server.changes;
+		expect(phone.storage.outbox).toEqual([]);
+		expect(change?.patch).toEqual({ status: "assigned" });
+		expect(decode(change?.hlc ?? "").wall).toBeLessThanOrEqual(
+			server.time + MAX_DRIFT_MS,
+		);
+		expect(phone.order()).toEqual(server.entities.get(`work_order:${ORDER}`));
+	});
+
+	it("keeps re-sent edits in order, and later edits after them", async () => {
+		const server = new FakeServer();
+		const phone = device(PHONE, server, TWO_DAYS);
+		await phone.edit({ status: "assigned" });
+		await phone.edit({ status: "in_progress" });
+		await phone.client.syncOnce();
+		expect(phone.order()?.fields).toEqual({ status: "in_progress" });
+
+		await phone.edit({ status: "completed" });
+		await phone.client.syncOnce();
+		expect(server.entities.get(`work_order:${ORDER}`)?.fields).toEqual({
+			status: "completed",
+		});
+	});
+
+	it("corrects its clock from the server's time", async () => {
+		const server = new FakeServer();
+		server.time = 50_000;
+		const phone = device(PHONE, server, 1_000);
+		await phone.client.syncOnce();
+		const op = await phone.edit({ status: "assigned" });
+		expect(decode(op.hlc).wall).toBe(50_000);
 	});
 });

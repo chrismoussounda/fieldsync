@@ -137,6 +137,23 @@ describe("receive", () => {
 	});
 });
 
+describe("rewind", () => {
+	it("moves the clock back so the next stamp follows the given one", () => {
+		const clock = new Clock(NODE, fakeTime(9_000).now);
+		clock.tick();
+		const to = encode({ wall: 5_000, counter: 0, node: NODE });
+		clock.rewind(to);
+		expect(decode(clock.state()).wall).toBe(5_000);
+	});
+
+	it("never moves the clock forward", () => {
+		const clock = new Clock(NODE, fakeTime(1_000).now);
+		const before = clock.tick();
+		clock.rewind(encode({ wall: 5_000, counter: 0, node: NODE }));
+		expect(clock.state()).toBe(before);
+	});
+});
+
 describe("state", () => {
 	it("lets a restarted clock continue after its last stamp", () => {
 		const first = new Clock(NODE, fakeTime(5_000).now);

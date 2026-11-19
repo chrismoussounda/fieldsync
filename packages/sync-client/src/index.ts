@@ -10,5 +10,6 @@ export {
 	applyChange,
 	MemoryStorage,
 	type OutboxEntry,
+	replay,
 	type SyncStorage,
 } from "./storage.ts";

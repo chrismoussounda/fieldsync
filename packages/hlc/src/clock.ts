@@ -43,6 +43,12 @@ export class Clock {
 		this.#set(wall, counter);
 	}
 
+	/** Moves the clock back to `to` if it is ahead of it. Only safe once the stamps above `to` were all rejected. */
+	rewind(to: string): void {
+		if (encode(this.#last) <= to) return;
+		this.#last = { ...decode(to), node: this.#node };
+	}
+
 	state(): string {
 		return encode(this.#last);
 	}

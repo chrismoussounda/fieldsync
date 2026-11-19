@@ -1,14 +1,7 @@
 import { decode } from "@fieldsync/hlc";
-import type { Conflict, Op } from "@fieldsync/protocol";
+import type { Conflict, EntityState, Op } from "@fieldsync/protocol";
 
-export type EntityState = {
-	fields: Op["patch"];
-	// Per field, the clock of the write that last won.
-	clocks: Record<string, string>;
-	createdHlc: string;
-	deletedHlc: string | null;
-	restoredHlc: string | null;
-};
+export type { EntityState };
 
 export type MergeResult = {
 	state: EntityState;

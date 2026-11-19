@@ -1,3 +1,4 @@
+export type { EntityRequest, EntityResponse, EntityState } from "./entity.ts";
 export { type Op, OpSchema } from "./op.ts";
 export type { Change, PullRequest, PullResponse } from "./pull.ts";
 export type {

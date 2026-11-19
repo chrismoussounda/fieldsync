@@ -154,20 +154,42 @@ database: it talks to storage and to the network through two interfaces,
   `base` from the clocks of the fields being replaced, merges it into the local
   record, and queues it in the outbox, in one atomic write.
 - **Push** sends pending operations oldest first, in batches of 100. Applied and
-  duplicate operations leave the outbox; rejected ones stay as dead, with their
-  reason, and are not resent. If the request fails, the batch goes back to
-  pending.
+  duplicate operations leave the outbox. If the request fails, the batch goes
+  back to pending.
 - **Pull** applies changes after the stored cursor through the same merge
   function, moves the clock past every remote stamp, and stores the new cursor
   in the same write.
 
 A sync is a push followed by a pull.
 
+### Clock correction
+
+Every response carries `serverTime`. The client keeps the difference between
+server time and device time, and stamps with the corrected time, so a phone
+with a wrong clock still produces sensible stamps after its first contact.
+
+### Rejections
+
+- **`CLOCK_DRIFT`:** the operation was stamped before the device knew the
+  server's time. The client pulls its clock back to the drift limit (corrected
+  time plus 24 hours) and re-issues every pending operation stamped beyond it,
+  in order, with a new `opId`. Every stamp the server ever accepted is below
+  that limit, so the re-issued operations still sort after the device's
+  earlier edits. The cost: the device's stamps can stay up to 24 hours ahead
+  until real time catches up.
+- **Any other reason:** the operation stays in the outbox as dead, with its
+  reason, and is never resent.
+
+In both cases the client fetches the server's copy of each affected record and
+rebuilds it from that copy plus the operations still pending, so the device
+never keeps an edit the server refused.
+
 ## Proof: the simulation
 
 `packages/sim` plays random scenarios with 2 to 5 devices. Each device runs the
-real `SyncClient` with a clock skewed by up to an hour, and talks to the server
-through a transport that can:
+real `SyncClient` with a clock wrong by up to two days in either direction,
+which can also jump during the run, and talks to the server through a
+transport that can:
 
 - be offline;
 - lose a response after the server applied the request, so the device retries

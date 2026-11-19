@@ -1,6 +1,7 @@
-import { Clock } from "@fieldsync/hlc";
-import type { EntityState } from "@fieldsync/merge";
 import type {
+	EntityRequest,
+	EntityResponse,
+	EntityState,
 	PullRequest,
 	PullResponse,
 	PushRequest,
@@ -23,6 +24,11 @@ export interface SimServer {
 		request: PullRequest,
 		now: number,
 	): Promise<PullResponse>;
+	entity(
+		deviceId: string,
+		request: EntityRequest,
+		now: number,
+	): Promise<EntityResponse>;
 	/** Every record, keyed `type:id` like the client storage. */
 	entities(): Promise<Map<string, EntityState>>;
 }
@@ -41,6 +47,7 @@ export type Action =
 	| { kind: "sync"; device: number; fault: Fault }
 	| { kind: "network"; device: number; online: boolean }
 	| { kind: "wait"; ms: number }
+	| { kind: "jump"; device: number; ms: number }
 	| { kind: "deliver"; index: number };
 
 export class NetworkError extends Error {}
@@ -82,6 +89,11 @@ class SimTransport implements Transport {
 		return response;
 	}
 
+	async entity(request: EntityRequest): Promise<EntityResponse> {
+		this.#check();
+		return this.world.server.entity(this.deviceId, request, this.world.time);
+	}
+
 	#check(): void {
 		if (!this.online) throw new NetworkError("offline");
 	}
@@ -95,6 +107,7 @@ class SimTransport implements Transport {
 
 export type Device = {
 	id: string;
+	skew: number;
 	client: SyncClient;
 	storage: MemoryStorage;
 	transport: SimTransport;
@@ -122,13 +135,21 @@ export class World {
 			const client = new SyncClient({
 				deviceId: id,
 				clientVersion: "sim",
-				clock: new Clock(node, () => this.time + skew),
+				now: () => this.time + device.skew,
 				storage,
 				transport,
 				newId: () =>
 					`${node}-0000-7000-8000-${(++ops).toString(16).padStart(12, "0")}`,
 			});
-			return { id, client, storage, transport, lastHlc: "" };
+			const device: Device = {
+				id,
+				skew,
+				client,
+				storage,
+				transport,
+				lastHlc: "",
+			};
+			return device;
 		});
 	}
 
@@ -145,6 +166,9 @@ export class World {
 				return;
 			case "wait":
 				this.time += action.ms;
+				return;
+			case "jump":
+				this.#device(action.device).skew += action.ms;
 				return;
 			case "deliver": {
 				if (this.delayed.length === 0) return;
@@ -204,6 +228,9 @@ export class World {
 			if (!(error instanceof NetworkError)) throw error;
 		}
 		device.transport.fault = "none";
+		// Re-stamping after a drift rejection is the one time the clock goes back.
+		const clock = device.client.clockState();
+		if (clock < device.lastHlc) device.lastHlc = clock;
 	}
 
 	#hasPending(): boolean {
