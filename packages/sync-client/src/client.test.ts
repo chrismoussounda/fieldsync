@@ -220,6 +220,7 @@ describe("clock drift", () => {
 		server.time = 50_000;
 		const phone = device(PHONE, server, 1_000);
 		await phone.client.syncOnce();
+		expect(phone.client.clockOffset()).toBe(49_000);
 		const op = await phone.edit({ status: "assigned" });
 		expect(decode(op.hlc).wall).toBe(50_000);
 	});
