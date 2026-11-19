@@ -1,5 +1,5 @@
-import type { Conflict, EntityState } from "@fieldsync/merge";
-import type { Op } from "@fieldsync/protocol";
+import type { EntityState } from "@fieldsync/merge";
+import type { Conflict, Op, OpResult } from "@fieldsync/protocol";
 import type { ColumnType, Generated, JSONColumnType } from "kysely";
 
 // Postgres returns bigint as a string.
@@ -40,7 +40,7 @@ export type Database = {
 		org_id: string;
 		op_id: string;
 		device_id: string;
-		result: JSONColumnType<Record<string, unknown>>;
+		result: JSONColumnType<OpResult>;
 		received_at: CreatedAt;
 	};
 	conflicts: {

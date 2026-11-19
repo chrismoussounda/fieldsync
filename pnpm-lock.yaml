@@ -23,6 +23,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@fieldsync/hlc':
+        specifier: workspace:^
+        version: link:../../packages/hlc
       '@fieldsync/merge':
         specifier: workspace:^
         version: link:../../packages/merge

@@ -1,5 +1,5 @@
 import { decode } from "@fieldsync/hlc";
-import type { Op } from "@fieldsync/protocol";
+import type { Conflict, Op } from "@fieldsync/protocol";
 
 export type EntityState = {
 	fields: Op["patch"];
@@ -8,16 +8,6 @@ export type EntityState = {
 	createdHlc: string;
 	deletedHlc: string | null;
 	restoredHlc: string | null;
-};
-
-type Value = Op["patch"][string];
-
-export type Conflict = {
-	opId: string;
-	field: string;
-	reason: "concurrent_edit" | "edit_on_deleted";
-	winner: { value: Value | null; hlc: string };
-	loser: { value: Value | null; hlc: string };
 };
 
 export type MergeResult = {
