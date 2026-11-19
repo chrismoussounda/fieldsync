@@ -84,3 +84,44 @@ conflict when:
 A device's own operations arriving late or out of order are not conflicts.
 Only the server records conflicts; devices merge pulled changes with detection
 off.
+
+## Server storage
+
+| Table          | Role                                                             |
+| -------------- | ---------------------------------------------------------------- |
+| `orgs`         | One row per organisation, with its change counter `seq`          |
+| `entities`     | Current state of each record: fields, clocks, delete and restore |
+| `changes`      | Append-only log, numbered by `seq`; this is what devices pull    |
+| `received_ops` | The result given for each operation, replayed on a retry         |
+| `conflicts`    | Every conflict the merge reported                                |
+
+## Push
+
+A device sends its pending operations in a batch. The server handles the batch
+in one transaction, so it is applied entirely or not at all. For each
+operation it:
+
+1. validates the shape (`INVALID_OP` if it fails);
+2. returns the stored result if the operation was already received
+   (`duplicate`), so retries are safe;
+3. checks that the device is the one that signed in (`FORBIDDEN`) and that the
+   clock is not more than 24 hours ahead (`CLOCK_DRIFT`);
+4. merges it into the record, appends a change with the fields it won, stores
+   any conflicts, and remembers the result.
+
+Each result is `applied`, `duplicate` or `rejected` with a reason. An applied
+result carries its conflicts, so the device can tell the user their edit was
+overridden. A `CLOCK_DRIFT` rejection is not remembered: the answer depends on
+the time, so the device may retry.
+
+### Why the change counter is not a Postgres sequence
+
+With a sequence, two transactions can take numbers 41 and 42 and commit in the
+opposite order. A device that pulls between the two commits sees 42, moves its
+cursor past 41, and never receives change 41.
+
+Instead the counter lives on the organisation's row and the push transaction
+locks that row first. Writers in one organisation run one at a time, so
+numbers are handed out in commit order and a cursor can never skip a change.
+The cost is one writer per organisation at a time, which is fine at this
+scale.
