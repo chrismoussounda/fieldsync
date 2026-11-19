@@ -42,6 +42,12 @@ importers:
       '@electric-sql/pglite':
         specifier: ^0.5.17
         version: 0.5.17
+      '@fieldsync/sim':
+        specifier: workspace:^
+        version: link:../../packages/sim
+      '@fieldsync/sync-client':
+        specifier: workspace:^
+        version: link:../../packages/sync-client
       '@testcontainers/postgresql':
         specifier: ^12.2.2
         version: 12.2.2(bare-buffer@3.7.3)
@@ -71,6 +77,24 @@ importers:
       zod:
         specifier: ^4.6.7
         version: 4.6.7
+
+  packages/sim:
+    dependencies:
+      '@fieldsync/hlc':
+        specifier: workspace:^
+        version: link:../hlc
+      '@fieldsync/merge':
+        specifier: workspace:^
+        version: link:../merge
+      '@fieldsync/protocol':
+        specifier: workspace:^
+        version: link:../protocol
+      '@fieldsync/sync-client':
+        specifier: workspace:^
+        version: link:../sync-client
+      fast-check:
+        specifier: ^4.10.3
+        version: 4.10.3
 
   packages/sync-client:
     dependencies:

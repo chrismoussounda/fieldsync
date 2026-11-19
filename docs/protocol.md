@@ -162,3 +162,24 @@ database: it talks to storage and to the network through two interfaces,
   in the same write.
 
 A sync is a push followed by a pull.
+
+## Proof: the simulation
+
+`packages/sim` plays random scenarios with 2 to 5 devices. Each device runs the
+real `SyncClient` with a clock skewed by up to an hour, and talks to the server
+through a transport that can:
+
+- be offline;
+- lose a response after the server applied the request, so the device retries
+  an operation the server already has;
+- hold a request back and deliver it later, after the device has retried it,
+  so the server sees duplicates out of order.
+
+Between faults, devices edit, delete and restore four shared work orders. At
+the end the network heals and every device syncs until nothing is left to
+send. The run passes only if every device holds exactly the server's state, no
+operation was rejected, and each device's clock only moved forward.
+
+fast-check generates 500 scenarios per run against an in-memory server, and 50
+against the real push and pull handlers on Postgres. When a run fails, it
+shrinks the scenario to a short one that still fails.
