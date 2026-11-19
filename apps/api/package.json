@@ -2,6 +2,7 @@
 	"name": "@fieldsync/api",
 	"version": "0.0.0",
 	"scripts": {
+		"start": "node src/main.ts",
 		"typecheck": "tsc --noEmit"
 	},
 	"license": "MIT",
