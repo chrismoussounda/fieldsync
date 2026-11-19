@@ -10,11 +10,13 @@ import {
 import type { Transport } from "./client.ts";
 
 export class HttpError extends Error {
-	constructor(
-		readonly status: number,
-		readonly code: string | undefined,
-	) {
+	readonly status: number;
+	readonly code: string | undefined;
+
+	constructor(status: number, code: string | undefined) {
 		super(`HTTP ${status}${code ? ` ${code}` : ""}`);
+		this.status = status;
+		this.code = code;
 	}
 }
 
