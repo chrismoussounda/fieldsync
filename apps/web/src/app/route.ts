@@ -3,10 +3,12 @@ import { useSyncExternalStore } from "react";
 export type Route =
 	| { name: "list" }
 	| { name: "new" }
+	| { name: "debug" }
 	| { name: "order"; id: string };
 
 export function parseRoute(hash: string): Route {
 	if (hash === "#/new") return { name: "new" };
+	if (hash === "#/debug") return { name: "debug" };
 	const order = /^#\/orders\/([0-9a-f-]{36})$/.exec(hash);
 	if (order?.[1]) return { name: "order", id: order[1] };
 	return { name: "list" };
@@ -25,5 +27,6 @@ export function useRoute(): Route {
 export const ROUTES = {
 	list: "#/",
 	new: "#/new",
+	debug: "#/debug",
 	order: (id: string) => `#/orders/${id}`,
 };

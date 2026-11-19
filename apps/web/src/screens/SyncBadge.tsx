@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { ROUTES } from "../app/route.ts";
 import type { SyncLoop } from "../sync/loop.ts";
 
 const LABELS = {
@@ -23,14 +24,9 @@ export function SyncBadge({
 		? `Last synced ${new Date(lastSyncedAt).toLocaleTimeString()}`
 		: "Not synced yet";
 	return (
-		<button
-			type="button"
-			className={`badge sync-${state}`}
-			title={since}
-			onClick={() => void loop.run()}
-		>
+		<a href={ROUTES.debug} className={`badge sync-${state}`} title={since}>
 			{LABELS[state]}
 			{pending > 0 && ` · ${pending} waiting`}
-		</button>
+		</a>
 	);
 }

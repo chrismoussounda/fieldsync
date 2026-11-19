@@ -1,13 +1,13 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { useRoute } from "./app/route.ts";
-import { startSync } from "./app/workspace.ts";
+import { type Sync, startSync } from "./app/workspace.ts";
 import type { Session, User } from "./auth/session.ts";
+import { Debug } from "./screens/Debug.tsx";
 import { Login } from "./screens/Login.tsx";
 import { OrderDetail } from "./screens/OrderDetail.tsx";
 import { Orders } from "./screens/Orders.tsx";
 import { SyncBadge } from "./screens/SyncBadge.tsx";
-import type { SyncLoop } from "./sync/loop.ts";
 import type { LocalDb } from "./sync/storage.ts";
 
 type Props = { db: LocalDb; session: Session };
@@ -23,7 +23,7 @@ export function App({ db, session }: Props) {
 }
 
 function SignedIn({ db, session, user }: Props & { user: User }) {
-	const [loop, setLoop] = useState<SyncLoop | null>(null);
+	const [sync, setSync] = useState<Sync | null>(null);
 	const route = useRoute();
 	const pending =
 		useLiveQuery(
@@ -34,10 +34,10 @@ function SignedIn({ db, session, user }: Props & { user: User }) {
 	useEffect(() => {
 		let stop: (() => void) | undefined;
 		let cancelled = false;
-		void startSync(db, session).then((sync) => {
-			if (cancelled) return sync.stop();
-			stop = sync.stop;
-			setLoop(sync.loop);
+		void startSync(db, session).then((started) => {
+			if (cancelled) return started.stop();
+			stop = started.stop;
+			setSync(started.sync);
 		});
 		return () => {
 			cancelled = true;
@@ -49,19 +49,21 @@ function SignedIn({ db, session, user }: Props & { user: User }) {
 		<>
 			<header className="topbar">
 				<strong className="brand">FieldSync</strong>
-				{loop && <SyncBadge loop={loop} pending={pending} />}
+				{sync && <SyncBadge loop={sync.loop} pending={pending} />}
 				<span className="who">
 					{user.name} <span className="muted">· {user.role}</span>
 				</span>
 				<SignOut session={session} pending={pending} />
 			</header>
 			<main className="page">
-				{route.name === "list" || !loop ? (
+				{route.name === "list" || !sync ? (
 					<Orders db={db} user={user} />
+				) : route.name === "debug" ? (
+					<Debug db={db} sync={sync} />
 				) : (
 					<OrderDetail
 						db={db}
-						loop={loop}
+						loop={sync.loop}
 						user={user}
 						id={route.name === "order" ? route.id : null}
 					/>
