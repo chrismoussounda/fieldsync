@@ -24,6 +24,21 @@ export class Clock {
 		return encode(this.#last);
 	}
 
+	/** Moves past a clock seen on another device, so later local stamps sort after it. */
+	receive(remote: string): void {
+		const seen = decode(remote);
+		const wall = Math.max(this.#now(), this.#last.wall, seen.wall);
+		let counter = 0;
+		if (wall === this.#last.wall && wall === seen.wall) {
+			counter = Math.max(this.#last.counter, seen.counter) + 1;
+		} else if (wall === this.#last.wall) {
+			counter = this.#last.counter + 1;
+		} else if (wall === seen.wall) {
+			counter = seen.counter + 1;
+		}
+		this.#last = { wall, counter, node: this.#node };
+	}
+
 	/** The value to persist and pass back as `saved` on the next start. */
 	state(): string {
 		return encode(this.#last);

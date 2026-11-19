@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { Clock } from "./clock.ts";
-import { decode } from "./timestamp.ts";
+import { decode, encode } from "./timestamp.ts";
 
 const NODE = "0a1b2c3d";
 
@@ -61,6 +61,54 @@ describe("tick", () => {
 
 	it("rejects a node that is not 8 hex characters", () => {
 		expect(() => new Clock("phone-1", fakeTime().now)).toThrow("Invalid node");
+	});
+});
+
+describe("receive", () => {
+	const OTHER = "ffffffff";
+
+	it("jumps to a remote clock that is ahead", () => {
+		const clock = new Clock(NODE, fakeTime(1_000).now);
+		clock.receive(encode({ wall: 2_000, counter: 4, node: OTHER }));
+		expect(decode(clock.state())).toEqual({
+			wall: 2_000,
+			counter: 5,
+			node: NODE,
+		});
+	});
+
+	it("only bumps the counter when the local clock is ahead", () => {
+		const time = fakeTime(3_000);
+		const clock = new Clock(NODE, time.now);
+		clock.tick();
+		time.set(1_000);
+		clock.receive(encode({ wall: 2_000, counter: 9, node: OTHER }));
+		expect(decode(clock.state())).toMatchObject({ wall: 3_000, counter: 1 });
+	});
+
+	it("goes past both counters when the times are equal", () => {
+		const clock = new Clock(NODE, fakeTime(1_000).now);
+		clock.tick();
+		clock.receive(encode({ wall: 1_000, counter: 7, node: OTHER }));
+		expect(decode(clock.state())).toMatchObject({ wall: 1_000, counter: 8 });
+	});
+
+	it("makes the next local stamp sort after everything seen", () => {
+		const remote = fc.record({
+			wall: fc.integer({ min: 0, max: 10_000 }),
+			counter: fc.integer({ min: 0, max: 100 }),
+			node: fc.constant(OTHER),
+		});
+		fc.assert(
+			fc.property(fc.integer({ min: 0, max: 10_000 }), remote, (now, seen) => {
+				const clock = new Clock(NODE, fakeTime(now).now);
+				const before = clock.tick();
+				clock.receive(encode(seen));
+				const after = clock.tick();
+				expect(after > before).toBe(true);
+				expect(after > encode(seen)).toBe(true);
+			}),
+		);
 	});
 });
 
