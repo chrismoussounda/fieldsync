@@ -2,6 +2,8 @@ import { decode, encode, type Timestamp } from "./timestamp.ts";
 
 const NODE = /^[0-9a-f]{8}$/;
 
+export const MAX_DRIFT_MS = 24 * 60 * 60 * 1000;
+
 export class Clock {
 	readonly #node: string;
 	readonly #now: () => number;
@@ -27,7 +29,10 @@ export class Clock {
 	/** Moves past a clock seen on another device, so later local stamps sort after it. */
 	receive(remote: string): void {
 		const seen = decode(remote);
-		const wall = Math.max(this.#now(), this.#last.wall, seen.wall);
+		const now = this.#now();
+		// One device with a broken clock must not drag every other device forward.
+		if (seen.wall - now > MAX_DRIFT_MS) return;
+		const wall = Math.max(now, this.#last.wall, seen.wall);
 		let counter = 0;
 		if (wall === this.#last.wall && wall === seen.wall) {
 			counter = Math.max(this.#last.counter, seen.counter) + 1;

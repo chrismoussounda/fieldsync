@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { Clock } from "./clock.ts";
+import { Clock, MAX_DRIFT_MS } from "./clock.ts";
 import { decode, encode } from "./timestamp.ts";
 
 const NODE = "0a1b2c3d";
@@ -91,6 +91,23 @@ describe("receive", () => {
 		clock.tick();
 		clock.receive(encode({ wall: 1_000, counter: 7, node: OTHER }));
 		expect(decode(clock.state())).toMatchObject({ wall: 1_000, counter: 8 });
+	});
+
+	it("ignores a remote clock more than a day ahead", () => {
+		const clock = new Clock(NODE, fakeTime(1_000).now);
+		const before = clock.state();
+		clock.receive(
+			encode({ wall: 1_000 + MAX_DRIFT_MS + 1, counter: 0, node: OTHER }),
+		);
+		expect(clock.state()).toBe(before);
+	});
+
+	it("accepts a remote clock exactly a day ahead", () => {
+		const clock = new Clock(NODE, fakeTime(1_000).now);
+		clock.receive(
+			encode({ wall: 1_000 + MAX_DRIFT_MS, counter: 0, node: OTHER }),
+		);
+		expect(decode(clock.state()).wall).toBe(1_000 + MAX_DRIFT_MS);
 	});
 
 	it("makes the next local stamp sort after everything seen", () => {
