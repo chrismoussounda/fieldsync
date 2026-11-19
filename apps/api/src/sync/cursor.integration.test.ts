@@ -11,6 +11,7 @@ import { migrateToLatest } from "../db/migrate.ts";
 import type { Database } from "../db/schema.ts";
 import { handlePull } from "./pull.ts";
 import { handlePush } from "./push.ts";
+import { allowAll } from "./testing.ts";
 
 const ORG = "00000000-0000-4000-8000-000000000001";
 const DEVICES = 20;
@@ -89,6 +90,7 @@ it("never lets a pulling device skip a change under concurrent pushes", async ()
 				db,
 				{ orgId: ORG, deviceId: device },
 				{ ops: ops(device) },
+				{ authorize: allowAll },
 			);
 		}),
 	);

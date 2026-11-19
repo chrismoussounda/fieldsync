@@ -6,6 +6,7 @@ import type { Database } from "../db/schema.ts";
 import { createTestDb, emptyTestDb } from "../db/testing.ts";
 import { handlePull, MAX_PULL_LIMIT } from "./pull.ts";
 import { type Auth, handlePush } from "./push.ts";
+import { allowAll } from "./testing.ts";
 
 const ORG = "00000000-0000-4000-8000-000000000001";
 const OTHER_ORG = "00000000-0000-4000-8000-000000000002";
@@ -54,7 +55,7 @@ async function seed(count: number, auth = phone): Promise<Op[]> {
 	const ops = Array.from({ length: count }, (_, i) =>
 		op(i + 1, { title: `Job ${i + 1}` }),
 	);
-	await handlePush(db, auth, { ops }, () => NOW);
+	await handlePush(db, auth, { ops }, { authorize: allowAll, now: () => NOW });
 	return ops;
 }
 

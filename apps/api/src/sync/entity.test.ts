@@ -5,6 +5,7 @@ import type { Database } from "../db/schema.ts";
 import { createTestDb, emptyTestDb } from "../db/testing.ts";
 import { handleGetEntity } from "./entity.ts";
 import { type Auth, handlePush } from "./push.ts";
+import { allowAll } from "./testing.ts";
 
 const ORG = "00000000-0000-4000-8000-000000000001";
 const OTHER_ORG = "00000000-0000-4000-8000-000000000002";
@@ -36,20 +37,25 @@ afterAll(() => db.destroy());
 
 it("returns the current state of a record", async () => {
 	const hlc = encode({ wall: 1, counter: 0, node: "0a1b2c3d" });
-	await handlePush(db, phone, {
-		ops: [
-			{
-				opId: "00000000-0000-7000-8000-000000000001",
-				deviceId: PHONE,
-				...request,
-				kind: "upsert",
-				patch: { status: "assigned" },
-				base: {},
-				hlc,
-				clientVersion: "0.1.0",
-			},
-		],
-	});
+	await handlePush(
+		db,
+		phone,
+		{
+			ops: [
+				{
+					opId: "00000000-0000-7000-8000-000000000001",
+					deviceId: PHONE,
+					...request,
+					kind: "upsert",
+					patch: { status: "assigned" },
+					base: {},
+					hlc,
+					clientVersion: "0.1.0",
+				},
+			],
+		},
+		{ authorize: allowAll },
+	);
 
 	expect(await handleGetEntity(db, phone, request, () => NOW)).toEqual({
 		entity: {

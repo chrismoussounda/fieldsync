@@ -4,7 +4,8 @@ import type { Kysely } from "kysely";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { Database } from "../db/schema.ts";
 import { createTestDb, emptyTestDb } from "../db/testing.ts";
-import { type Auth, handlePush } from "./push.ts";
+import { type Auth, type Authorize, handlePush } from "./push.ts";
+import { allowAll } from "./testing.ts";
 
 const ORG = "00000000-0000-4000-8000-000000000001";
 const OTHER_ORG = "00000000-0000-4000-8000-000000000002";
@@ -53,7 +54,7 @@ function op(deviceId: string, wall: number, overrides: Partial<Op> = {}): Op {
 }
 
 function push(auth: Auth, ...ops: unknown[]) {
-	return handlePush(db, auth, { ops }, () => NOW);
+	return handlePush(db, auth, { ops }, { authorize: allowAll, now: () => NOW });
 }
 
 function order(orgId = ORG) {
@@ -165,6 +166,31 @@ describe("handlePush", () => {
 		expect(await order()).toBeUndefined();
 	});
 
+	it("asks whether the user may change the record as stored", async () => {
+		const seen: unknown[] = [];
+		// Allows creating the record, then only edits that keep it assigned.
+		const authorize: Authorize = (_op, current) => {
+			seen.push(current?.fields ?? null);
+			return current === null || current.fields.assigneeId === "me";
+		};
+		const send = (o: Op) =>
+			handlePush(db, phone, { ops: [o] }, { authorize, now: () => NOW });
+
+		await send(op(PHONE, 1, { patch: { assigneeId: "someone" } }));
+		const refused = op(PHONE, 2, { patch: { status: "done" } });
+		const first = await send(refused);
+		const retry = await send(refused);
+
+		expect(seen).toEqual([null, { assigneeId: "someone" }]);
+		expect(first.results[0]).toEqual({
+			opId: refused.opId,
+			status: "rejected",
+			reason: "FORBIDDEN",
+		});
+		expect(retry.results).toEqual(first.results);
+		expect((await order())?.fields).toEqual({ assigneeId: "someone" });
+	});
+
 	it("rejects a clock too far ahead, and accepts the retry once time catches up", async () => {
 		const early = op(PHONE, NOW + MAX_DRIFT_MS + 1, { patch: { a: 1 } });
 		const first = await push(phone, early);
@@ -172,7 +198,15 @@ describe("handlePush", () => {
 			{ opId: early.opId, status: "rejected", reason: "CLOCK_DRIFT" },
 		]);
 
-		const later = await handlePush(db, phone, { ops: [early] }, () => NOW + 1);
+		const later = await handlePush(
+			db,
+			phone,
+			{ ops: [early] },
+			{
+				authorize: allowAll,
+				now: () => NOW + 1,
+			},
+		);
 		expect(later.results[0]?.status).toBe("applied");
 	});
 
@@ -227,7 +261,14 @@ describe("handlePush", () => {
 	it("applies nothing when the batch fails", async () => {
 		const create = op(PHONE, 1, { patch: { status: "assigned" } });
 		await expect(
-			handlePush(db, { orgId: ORDER, deviceId: PHONE }, { ops: [create] }),
+			handlePush(
+				db,
+				{ orgId: ORDER, deviceId: PHONE },
+				{ ops: [create] },
+				{
+					authorize: allowAll,
+				},
+			),
 		).rejects.toThrow();
 		expect(await changes()).toEqual([]);
 	});
