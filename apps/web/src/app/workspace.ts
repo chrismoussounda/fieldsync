@@ -2,6 +2,7 @@ import { HttpTransport, SyncClient } from "@fieldsync/sync-client";
 import { type Role, Session, type User } from "../auth/session.ts";
 import { SyncLoop } from "../sync/loop.ts";
 import { DexieStorage, LocalDb } from "../sync/storage.ts";
+import { NetworkSwitch } from "../sync/switch.ts";
 
 export const API_URL = import.meta.env.VITE_API_URL ?? "/api";
 const CLIENT_VERSION = "0.1.0";
@@ -19,19 +20,30 @@ export async function openWorkspace(): Promise<{
 	return { db, session };
 }
 
-/** Starts syncing as the signed-in user; returns the loop and how to stop it. */
+export type Sync = {
+	client: SyncClient;
+	loop: SyncLoop;
+	network: NetworkSwitch;
+	storage: DexieStorage;
+};
+
+/** Starts syncing as the signed-in user; returns the parts and how to stop it. */
 export async function startSync(
 	db: LocalDb,
 	session: Session,
-): Promise<{ loop: SyncLoop; stop: () => void }> {
-	const client = new SyncClient({
-		deviceId: await session.deviceId(),
-		clientVersion: CLIENT_VERSION,
-		storage: new DexieStorage(db),
-		transport: new HttpTransport({
+): Promise<{ sync: Sync; stop: () => void }> {
+	const storage = new DexieStorage(db);
+	const network = new NetworkSwitch(
+		new HttpTransport({
 			baseUrl: API_URL,
 			getToken: () => session.getToken(),
 		}),
+	);
+	const client = new SyncClient({
+		deviceId: await session.deviceId(),
+		clientVersion: CLIENT_VERSION,
+		storage,
+		transport: network,
 		savedClock: await db.getMeta<string>("clock"),
 	});
 	const loop = new SyncLoop({
@@ -49,7 +61,7 @@ export async function startSync(
 		});
 	});
 	return {
-		loop,
+		sync: { client, loop, network, storage },
 		stop: () => {
 			stopLoop();
 			stopMembers();

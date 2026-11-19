@@ -305,3 +305,64 @@ textarea:disabled {
 	align-items: center;
 	gap: 0.75rem;
 }
+
+h3 {
+	margin: 0 0 0.5rem;
+	font-size: 1rem;
+}
+
+code {
+	font-size: 0.85em;
+	word-break: break-all;
+}
+
+.debug {
+	display: grid;
+	gap: 0.75rem;
+}
+
+.debug .card {
+	display: grid;
+	gap: 0.6rem;
+}
+
+.facts {
+	grid-template-columns: max-content 1fr;
+	margin: 0;
+	font-size: 0.9rem;
+}
+
+.facts dt {
+	color: var(--muted);
+}
+
+.facts dd {
+	margin: 0;
+}
+
+.outbox {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	gap: 0.4rem;
+	font-size: 0.9rem;
+}
+
+.outbox li {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.25rem 0.6rem;
+}
+
+.chip.outbox-pending,
+.chip.outbox-inflight {
+	background: var(--warn-bg);
+	color: var(--warn-text);
+}
+
+.chip.outbox-dead {
+	background: var(--urgent-bg);
+	color: var(--danger);
+}

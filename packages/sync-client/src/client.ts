@@ -69,6 +69,11 @@ export class SyncClient {
 		return this.#clock.state();
 	}
 
+	/** How far the server's time is ahead of this device's, learned from the last response. */
+	clockOffset(): number {
+		return this.#offset;
+	}
+
 	/** The only way the app writes: applies the change locally and queues it. */
 	async mutate({
 		entityType,

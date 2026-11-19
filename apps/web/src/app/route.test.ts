@@ -7,6 +7,7 @@ describe("parseRoute", () => {
 	it("reads the screens back from their links", () => {
 		expect(parseRoute(ROUTES.order(ID))).toEqual({ name: "order", id: ID });
 		expect(parseRoute(ROUTES.new)).toEqual({ name: "new" });
+		expect(parseRoute(ROUTES.debug)).toEqual({ name: "debug" });
 		expect(parseRoute(ROUTES.list)).toEqual({ name: "list" });
 	});
 
