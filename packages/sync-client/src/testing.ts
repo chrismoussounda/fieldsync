@@ -1,3 +1,4 @@
+import { decode, MAX_DRIFT_MS } from "@fieldsync/hlc";
 import { merge } from "@fieldsync/merge";
 import {
 	type Change,
@@ -21,6 +22,7 @@ export class FakeServer implements Transport {
 	readonly #results = new Map<string, OpResult>();
 	reject = new Set<string>();
 	offline = false;
+	time = 0;
 
 	async push(request: PushRequest): Promise<PushResponse> {
 		if (this.offline) throw new Error("offline");
@@ -29,6 +31,13 @@ export class FakeServer implements Transport {
 			const op = OpSchema.parse(raw);
 			const prior = this.#results.get(op.opId);
 			if (prior) return { ...prior, status: "duplicate" } as OpResult;
+			if (decode(op.hlc).wall - this.time > MAX_DRIFT_MS) {
+				return {
+					opId: op.opId,
+					status: "rejected",
+					reason: "CLOCK_DRIFT",
+				} as const;
+			}
 			if (this.reject.has(op.opId)) {
 				return {
 					opId: op.opId,
@@ -59,7 +68,7 @@ export class FakeServer implements Transport {
 			this.#results.set(op.opId, result);
 			return result;
 		});
-		return { results, serverTime: 0 };
+		return { results, serverTime: this.time };
 	}
 
 	async entity({
@@ -68,7 +77,7 @@ export class FakeServer implements Transport {
 	}: EntityRequest): Promise<EntityResponse> {
 		if (this.offline) throw new Error("offline");
 		const entity = this.entities.get(`${entityType}:${entityId}`) ?? null;
-		return { entity: structuredClone(entity), serverTime: 0 };
+		return { entity: structuredClone(entity), serverTime: this.time };
 	}
 
 	async pull({ cursor, limit }: PullRequest): Promise<PullResponse> {
@@ -79,7 +88,7 @@ export class FakeServer implements Transport {
 			changes,
 			nextCursor: changes.at(-1)?.seq ?? cursor,
 			hasMore: after.length > limit,
-			serverTime: 0,
+			serverTime: this.time,
 		};
 	}
 }

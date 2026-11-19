@@ -16,6 +16,11 @@ export interface SyncStorage {
 	getCursor(): Promise<number>;
 	/** Merges pulled changes and stores the new cursor, atomically. */
 	applyRemote(changes: Change[], nextCursor: number): Promise<void>;
+	/**
+	 * Replaces the operations `rewrite` returns a new version for, in outbox
+	 * order, and marks them pending. Returns the new versions.
+	 */
+	rewriteOps(rewrite: (op: Op) => Op | null): Promise<Op[]>;
 	/** Replaces a record with the server's copy plus the operations not yet accepted. */
 	rebuildEntity(
 		type: string,
@@ -102,6 +107,18 @@ export class MemoryStorage implements SyncStorage {
 			this.entities.set(k, applyChange(this.entities.get(k) ?? null, change));
 		}
 		this.cursor = nextCursor;
+	}
+
+	async rewriteOps(rewrite: (op: Op) => Op | null): Promise<Op[]> {
+		const changed: Op[] = [];
+		for (const [index, entry] of this.outbox.entries()) {
+			if (entry.status === "dead") continue;
+			const op = rewrite(entry.op);
+			if (!op) continue;
+			this.outbox[index] = { op, status: "pending" };
+			changed.push(op);
+		}
+		return changed;
 	}
 
 	async rebuildEntity(
