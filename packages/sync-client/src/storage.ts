@@ -27,6 +27,8 @@ export interface SyncStorage {
 		id: string,
 		snapshot: EntityState | null,
 	): Promise<void>;
+	/** The queued operations, oldest first. */
+	getOutbox(): Promise<OutboxEntry[]>;
 }
 
 export function applyChange(
@@ -137,6 +139,10 @@ export class MemoryStorage implements SyncStorage {
 		const state = replay(snapshot, ops);
 		if (state) this.entities.set(key(type, id), state);
 		else this.entities.delete(key(type, id));
+	}
+
+	async getOutbox(): Promise<OutboxEntry[]> {
+		return this.outbox.map((entry) => ({ ...entry }));
 	}
 }
 
