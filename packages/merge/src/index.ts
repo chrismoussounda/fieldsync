@@ -1,5 +1,4 @@
 export {
-	type Conflict,
 	type EntityState,
 	isDeleted,
 	type MergeResult,

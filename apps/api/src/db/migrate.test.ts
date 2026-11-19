@@ -1,8 +1,8 @@
 import { type Kysely, sql } from "kysely";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { migrator } from "./migrate.ts";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { migrateToLatest, migrator } from "./migrate.ts";
 import type { Database } from "./schema.ts";
-import { createTestDb } from "./testing.ts";
+import { createTestDb, emptyTestDb } from "./testing.ts";
 
 const ORG = "00000000-0000-4000-8000-000000000001";
 const DEVICE = "0a1b2c3d-0000-4000-8000-000000000001";
@@ -10,12 +10,16 @@ const ENTITY = "00000000-0000-4000-8000-0000000000aa";
 
 let db: Kysely<Database>;
 
-beforeEach(async () => {
+beforeAll(async () => {
 	db = await createTestDb();
+});
+
+beforeEach(async () => {
+	await emptyTestDb(db);
 	await db.insertInto("orgs").values({ id: ORG, name: "Demo" }).execute();
 });
 
-afterEach(() => db.destroy());
+afterAll(() => db.destroy());
 
 async function tables(): Promise<string[]> {
 	const { rows } = await sql<{ table_name: string }>`
@@ -54,6 +58,7 @@ describe("migrations", () => {
 	it("roll back cleanly", async () => {
 		await migrator(db as Kysely<unknown>).migrateDown();
 		expect(await tables()).toEqual([]);
+		await migrateToLatest(db as Kysely<unknown>);
 	});
 
 	it("start the change counter of an org at zero", async () => {
