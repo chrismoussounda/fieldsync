@@ -3,6 +3,7 @@ import { decode, encode, type Timestamp } from "./timestamp.ts";
 const NODE = /^[0-9a-f]{8}$/;
 
 export const MAX_DRIFT_MS = 24 * 60 * 60 * 1000;
+const MAX_COUNTER = 0xffff;
 
 export class Clock {
 	readonly #node: string;
@@ -18,15 +19,13 @@ export class Clock {
 			: { wall: 0, counter: 0, node };
 	}
 
-	/** Stamps a local event. Never goes backwards, even if the device clock does. */
 	tick(): string {
 		const wall = Math.max(this.#now(), this.#last.wall);
 		const counter = wall === this.#last.wall ? this.#last.counter + 1 : 0;
-		this.#last = { wall, counter, node: this.#node };
+		this.#set(wall, counter);
 		return encode(this.#last);
 	}
 
-	/** Moves past a clock seen on another device, so later local stamps sort after it. */
 	receive(remote: string): void {
 		const seen = decode(remote);
 		const now = this.#now();
@@ -41,11 +40,18 @@ export class Clock {
 		} else if (wall === seen.wall) {
 			counter = seen.counter + 1;
 		}
-		this.#last = { wall, counter, node: this.#node };
+		this.#set(wall, counter);
 	}
 
-	/** The value to persist and pass back as `saved` on the next start. */
 	state(): string {
 		return encode(this.#last);
+	}
+
+	#set(wall: number, counter: number): void {
+		// The counter has 4 hex digits; past that, borrow the next millisecond.
+		this.#last =
+			counter > MAX_COUNTER
+				? { wall: wall + 1, counter: 0, node: this.#node }
+				: { wall, counter, node: this.#node };
 	}
 }

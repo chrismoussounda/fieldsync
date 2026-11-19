@@ -59,6 +59,14 @@ describe("tick", () => {
 		);
 	});
 
+	it("borrows the next millisecond when the counter is full", () => {
+		const full = encode({ wall: 1_000, counter: 0xffff, node: NODE });
+		const clock = new Clock(NODE, fakeTime(1_000).now, full);
+		const stamp = clock.tick();
+		expect(decode(stamp)).toMatchObject({ wall: 1_001, counter: 0 });
+		expect(stamp > full).toBe(true);
+	});
+
 	it("rejects a node that is not 8 hex characters", () => {
 		expect(() => new Clock("phone-1", fakeTime().now)).toThrow("Invalid node");
 	});
