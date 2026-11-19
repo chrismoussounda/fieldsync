@@ -3,6 +3,8 @@
 	"version": "0.0.0",
 	"scripts": {
 		"start": "node src/main.ts",
+		"dev": "node --env-file=.env --watch src/main.ts",
+		"seed": "node --env-file=.env src/seed.ts",
 		"typecheck": "tsc --noEmit"
 	},
 	"license": "MIT",
