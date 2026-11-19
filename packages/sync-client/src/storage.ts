@@ -29,6 +29,8 @@ export interface SyncStorage {
 	): Promise<void>;
 	/** The queued operations, oldest first. */
 	getOutbox(): Promise<OutboxEntry[]>;
+	/** Removes rejected operations once the user has seen them; others stay. */
+	discardDead(opIds: string[]): Promise<void>;
 }
 
 export function applyChange(
@@ -143,6 +145,15 @@ export class MemoryStorage implements SyncStorage {
 
 	async getOutbox(): Promise<OutboxEntry[]> {
 		return this.outbox.map((entry) => ({ ...entry }));
+	}
+
+	async discardDead(opIds: string[]): Promise<void> {
+		for (let i = this.outbox.length - 1; i >= 0; i--) {
+			const entry = this.outbox[i];
+			if (entry?.status === "dead" && opIds.includes(entry.op.opId)) {
+				this.outbox.splice(i, 1);
+			}
+		}
 	}
 }
 

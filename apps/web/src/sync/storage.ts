@@ -158,6 +158,14 @@ export class DexieStorage implements SyncStorage {
 		});
 	}
 
+	async discardDead(opIds: string[]): Promise<void> {
+		await this.#db.outbox
+			.where("opId")
+			.anyOf(opIds)
+			.and((r) => r.status === "dead")
+			.delete();
+	}
+
 	async getOutbox(): Promise<OutboxEntry[]> {
 		const rows = await this.#db.outbox.toArray();
 		return rows.map((r) =>

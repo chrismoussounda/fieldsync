@@ -136,6 +136,20 @@ export function describeStorage(
 			]);
 		});
 
+		it("discards rejected operations only", async () => {
+			const storage = await create();
+			const [kept, refused] = [op(A, 1, { n: 1 }), op(A, 2, { n: 2 })];
+			await queue(storage, kept, refused);
+			await storage.claimPending(2);
+			await storage.resolveOps([
+				{ opId: refused.opId, status: "rejected", reason: "FORBIDDEN" },
+			]);
+			await storage.discardDead([kept.opId, refused.opId]);
+			expect(await storage.getOutbox()).toEqual([
+				{ op: kept, status: "inflight" },
+			]);
+		});
+
 		it("rebuilds a record from the server copy and its queued operations", async () => {
 			const storage = await create();
 			const queued = op(A, 5, { notes: "mine" });
