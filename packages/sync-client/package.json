@@ -1,0 +1,16 @@
+{
+	"name": "@fieldsync/sync-client",
+	"version": "0.0.0",
+	"scripts": {
+		"typecheck": "tsc --noEmit"
+	},
+	"license": "MIT",
+	"type": "module",
+	"exports": "./src/index.ts",
+	"private": true,
+	"dependencies": {
+		"@fieldsync/hlc": "workspace:^",
+		"@fieldsync/merge": "workspace:^",
+		"@fieldsync/protocol": "workspace:^"
+	}
+}

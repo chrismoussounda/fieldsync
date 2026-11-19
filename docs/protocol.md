@@ -143,3 +143,22 @@ An integration test on a real Postgres runs 20 devices pushing at once while
 another device pulls in a loop, and checks the puller receives every change
 exactly once. The same test fails when the counter is replaced by a Postgres
 sequence.
+
+## Client
+
+`packages/sync-client` runs on the device. It knows nothing about the UI or the
+database: it talks to storage and to the network through two interfaces,
+`SyncStorage` and `Transport`, so tests and the simulator can swap both.
+
+- **`mutate()`** is the only way the app writes. It stamps an operation, fills
+  `base` from the clocks of the fields being replaced, merges it into the local
+  record, and queues it in the outbox, in one atomic write.
+- **Push** sends pending operations oldest first, in batches of 100. Applied and
+  duplicate operations leave the outbox; rejected ones stay as dead, with their
+  reason, and are not resent. If the request fails, the batch goes back to
+  pending.
+- **Pull** applies changes after the stored cursor through the same merge
+  function, moves the clock past every remote stamp, and stores the new cursor
+  in the same write.
+
+A sync is a push followed by a pull.
