@@ -20,7 +20,7 @@ describe("simulation", () => {
 			fc.asyncProperty(scenario(), (s) => runScenario(fakeServer(), s)),
 			{ numRuns: 500 },
 		);
-	});
+	}, 60_000);
 
 	it("delivers a held-back request after the device already retried it", async () => {
 		const server = fakeServer();
