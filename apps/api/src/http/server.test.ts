@@ -64,11 +64,15 @@ async function signIn(email: string, deviceId: string) {
 		payload: { email, password: PASSWORD, deviceId, deviceName: "Phone" },
 	});
 	expect(response.statusCode).toBe(200);
-	return response.json() as { accessToken: string; refreshToken: string };
+	return response.json() as {
+		accessToken: string;
+		refreshToken: string;
+		user: { id: string };
+	};
 }
 
-async function syncHeaders() {
-	const { accessToken } = await signIn("tech@example.com", PHONE);
+async function syncHeaders(email = "dispatch@example.com") {
+	const { accessToken } = await signIn(email, PHONE);
 	return {
 		"x-protocol-version": PROTOCOL_VERSION,
 		authorization: `Bearer ${accessToken}`,
@@ -194,6 +198,19 @@ describe("sync routes", () => {
 		expect(entity.json().entity.fields).toEqual({ status: "assigned" });
 	});
 
+	it("refuse an operation the role may not do", async () => {
+		const response = await app.inject({
+			method: "POST",
+			url: "/sync/push",
+			headers: await syncHeaders("tech@example.com"),
+			payload: { ops: [op({ title: "Not mine to create" })] },
+		});
+		expect(response.json().results[0]).toMatchObject({
+			status: "rejected",
+			reason: "FORBIDDEN",
+		});
+	});
+
 	it("tell an outdated app to update before asking it to sign in", async () => {
 		const response = await app.inject({
 			url: "/sync/pull?cursor=0",
@@ -249,7 +266,7 @@ describe("sync routes", () => {
 
 describe("HttpTransport", () => {
 	async function device(email: string, deviceId: string) {
-		const { accessToken } = await signIn(email, deviceId);
+		const { accessToken, user } = await signIn(email, deviceId);
 		const storage = new MemoryStorage();
 		const client = new SyncClient({
 			deviceId,
@@ -260,7 +277,7 @@ describe("HttpTransport", () => {
 				getToken: async () => accessToken,
 			}),
 		});
-		return { client, storage };
+		return { client, storage, userId: user.id };
 	}
 
 	it("syncs two devices through the real server", async () => {
@@ -270,7 +287,11 @@ describe("HttpTransport", () => {
 
 		await office.client.mutate({
 			...target,
-			patch: { status: "assigned", priority: "normal" },
+			patch: {
+				status: "assigned",
+				priority: "normal",
+				assigneeId: phone.userId,
+			},
 		});
 		await office.client.syncOnce();
 		await phone.client.syncOnce();
@@ -280,7 +301,11 @@ describe("HttpTransport", () => {
 		await office.client.syncOnce();
 		await phone.client.syncOnce();
 
-		const merged = { status: "in_progress", priority: "urgent" };
+		const merged = {
+			status: "in_progress",
+			priority: "urgent",
+			assigneeId: phone.userId,
+		};
 		const key = `work_order:${ORDER}`;
 		expect(phone.storage.entities.get(key)?.fields).toEqual(merged);
 		expect(office.storage.entities.get(key)?.fields).toEqual(merged);
