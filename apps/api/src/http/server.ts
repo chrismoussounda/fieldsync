@@ -7,21 +7,38 @@ import Fastify, {
 } from "fastify";
 import { type Kysely, sql } from "kysely";
 import { z } from "zod";
+import { listDevices, revokeDevice } from "../auth/devices.ts";
+import {
+	type AuthConfig,
+	authenticate,
+	login,
+	type Principal,
+	refresh,
+} from "../auth/session.ts";
 import type { Database } from "../db/schema.ts";
+import { ApiError } from "../errors.ts";
 import { handleGetEntity } from "../sync/entity.ts";
 import { handlePull, MAX_PULL_LIMIT } from "../sync/pull.ts";
-import { type Auth, handlePush } from "../sync/push.ts";
-
-export type Authenticate = (request: FastifyRequest) => Promise<Auth | null>;
+import { handlePush } from "../sync/push.ts";
 
 export type ServerOptions = {
 	db: Kysely<Database>;
-	authenticate: Authenticate;
+	/** Signs access tokens; at least 32 bytes. */
+	secret: Uint8Array;
 	now?: () => number;
 	logger?: FastifyServerOptions["logger"];
 };
 
 const MAX_PUSH_OPS = 100;
+
+const LoginBody = z.object({
+	email: z.string().min(1).max(254),
+	password: z.string().min(1).max(256),
+	deviceId: z.uuid(),
+	deviceName: z.string().min(1).max(100),
+});
+
+const RefreshBody = z.object({ refreshToken: z.string().min(1).max(100) });
 
 const PushBody = z.object({ ops: z.array(z.unknown()).max(MAX_PUSH_OPS) });
 
@@ -37,19 +54,22 @@ const PullQuery = z.object({
 
 const EntityParams = z.object({ type: z.string().min(1), id: z.uuid() });
 
+const DeviceParams = z.object({ id: z.uuid() });
+
 declare module "fastify" {
 	interface FastifyRequest {
-		auth: Auth;
+		auth: Principal;
 	}
 }
 
 export function buildServer({
 	db,
-	authenticate,
+	secret,
 	now = Date.now,
 	logger = false,
 }: ServerOptions): FastifyInstance {
 	const app = Fastify({ logger, bodyLimit: 1024 * 1024 });
+	const config: AuthConfig = { secret, now };
 
 	app.setErrorHandler((error: FastifyError, request, reply) => {
 		if (error instanceof z.ZodError) {
@@ -73,17 +93,45 @@ export function buildServer({
 		}
 	});
 
+	app.post("/auth/login", async (request) =>
+		login(db, config, LoginBody.parse(request.body)),
+	);
+
+	app.post("/auth/refresh", async (request) =>
+		refresh(db, config, RefreshBody.parse(request.body).refreshToken),
+	);
+
+	// Routes registered after this need a valid access token.
+	const secure = (scope: FastifyInstance) => {
+		scope.decorateRequest("auth");
+		scope.addHook("onRequest", async (request) => {
+			request.auth = await authenticate(db, config, bearer(request));
+		});
+	};
+
+	app.register(async (devices) => {
+		secure(devices);
+
+		devices.get("/devices", async (request) => ({
+			devices: await listDevices(db, request.auth),
+		}));
+
+		devices.post("/devices/:id/revoke", async (request, reply) => {
+			const { id } = DeviceParams.parse(request.params);
+			await revokeDevice(db, request.auth, id, now());
+			return reply.code(204).send();
+		});
+	});
+
 	app.register(
 		async (sync) => {
-			sync.decorateRequest("auth");
+			// Checked before the token, so an outdated app is told to update first.
 			sync.addHook("onRequest", async (request, reply) => {
 				if (request.headers["x-protocol-version"] !== PROTOCOL_VERSION) {
 					return reply.code(426).send({ error: "UNSUPPORTED_PROTOCOL" });
 				}
-				const auth = await authenticate(request);
-				if (!auth) return reply.code(401).send({ error: "UNAUTHORIZED" });
-				request.auth = auth;
 			});
+			secure(sync);
 
 			sync.post("/push", async (request) =>
 				handlePush(db, request.auth, PushBody.parse(request.body), now),
@@ -107,4 +155,10 @@ export function buildServer({
 	);
 
 	return app;
+}
+
+function bearer(request: FastifyRequest): string {
+	const [scheme, token] = request.headers.authorization?.split(" ") ?? [];
+	if (scheme !== "Bearer" || !token) throw new ApiError(401, "UNAUTHORIZED");
+	return token;
 }

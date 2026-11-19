@@ -57,4 +57,32 @@ export type Database = {
 		reviewed_by: string | null;
 		reviewed_at: Date | null;
 	};
+	users: {
+		id: string;
+		org_id: string;
+		email: string;
+		name: string;
+		password_hash: string;
+		role: Role;
+		created_at: CreatedAt;
+	};
+	devices: {
+		id: string;
+		org_id: string;
+		user_id: string;
+		name: string;
+		registered_at: CreatedAt;
+		last_seen_at: Date | null;
+		revoked_at: Date | null;
+	};
+	refresh_tokens: {
+		hash: string;
+		family_id: string;
+		user_id: string;
+		device_id: string;
+		expires_at: Date;
+		used_at: Date | null;
+	};
 };
+
+export type Role = "technician" | "dispatcher" | "admin";

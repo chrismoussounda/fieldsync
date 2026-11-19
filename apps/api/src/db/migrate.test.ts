@@ -1,4 +1,5 @@
 import { type Kysely, sql } from "kysely";
+import { NO_MIGRATIONS } from "kysely/migration";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { migrateToLatest, migrator } from "./migrate.ts";
 import type { Database } from "./schema.ts";
@@ -45,18 +46,49 @@ function change(seq: number, opId: string) {
 }
 
 describe("migrations", () => {
-	it("create the sync tables", async () => {
+	it("create the sync and auth tables", async () => {
 		expect(await tables()).toEqual([
 			"changes",
 			"conflicts",
+			"devices",
 			"entities",
 			"orgs",
 			"received_ops",
+			"refresh_tokens",
+			"users",
 		]);
 	});
 
+	it("refuse two devices of an org sharing a clock node", async () => {
+		const user = "00000000-0000-4000-8000-0000000000b1";
+		await db
+			.insertInto("users")
+			.values({
+				id: user,
+				org_id: ORG,
+				email: "tech@example.com",
+				name: "Tech",
+				password_hash: "x",
+				role: "technician",
+			})
+			.execute();
+		const device = (id: string) => ({
+			id,
+			org_id: ORG,
+			user_id: user,
+			name: "Phone",
+		});
+		await db.insertInto("devices").values(device(DEVICE)).execute();
+		await expect(
+			db
+				.insertInto("devices")
+				.values(device("0a1b2c3d-0000-4000-8000-000000000002"))
+				.execute(),
+		).rejects.toThrow();
+	});
+
 	it("roll back cleanly", async () => {
-		await migrator(db as Kysely<unknown>).migrateDown();
+		await migrator(db as Kysely<unknown>).migrateTo(NO_MIGRATIONS);
 		expect(await tables()).toEqual([]);
 		await migrateToLatest(db as Kysely<unknown>);
 	});
