@@ -4,6 +4,7 @@ import {
 	editableFields,
 	FIELDS,
 	type Field,
+	MAX_LENGTH,
 	PRIORITIES,
 	STATUSES,
 	WORK_ORDER,
@@ -97,6 +98,7 @@ function OrderForm({
 	const field = (name: Field) => ({
 		value: draft[name],
 		disabled: !editable.has(name),
+		maxLength: (MAX_LENGTH as Partial<Record<Field, number>>)[name],
 		onChange: (e: { target: { value: string } }) => set(name)(e.target.value),
 	});
 
