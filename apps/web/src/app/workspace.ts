@@ -7,7 +7,14 @@ import { NetworkSwitch } from "../sync/switch.ts";
 export const API_URL = import.meta.env.VITE_API_URL ?? "/api";
 const CLIENT_VERSION = "0.1.0";
 
-export type Member = { id: string; name: string; role: Role };
+export type Member = {
+	id: string;
+	name: string;
+	role: Role;
+	active: boolean;
+	/** Sent to admins only. */
+	email?: string;
+};
 
 /** What the app needs before anyone signs in. */
 export async function openWorkspace(): Promise<{

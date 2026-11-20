@@ -51,6 +51,7 @@ export async function technicianIds(
 		.select("id")
 		.where("org_id", "=", orgId)
 		.where("role", "=", "technician")
+		.where("disabled_at", "is", null)
 		.execute();
 	return new Set(rows.map((r) => r.id));
 }

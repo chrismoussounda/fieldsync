@@ -2,7 +2,6 @@ import { randomUUID } from "node:crypto";
 import { hash } from "@node-rs/argon2";
 import type { Kysely } from "kysely";
 import type { Database, Role } from "../db/schema.ts";
-import type { Principal } from "./session.ts";
 
 export type NewUser = {
 	orgId: string;
@@ -34,17 +33,4 @@ export async function createUser(
 		})
 		.execute();
 	return id;
-}
-
-/** The org's members, so a dispatcher can pick whom to assign. */
-export function listUsers(
-	db: Kysely<Database>,
-	principal: Principal,
-): Promise<{ id: string; name: string; role: Role }[]> {
-	return db
-		.selectFrom("users")
-		.select(["id", "name", "role"])
-		.where("org_id", "=", principal.orgId)
-		.orderBy("name")
-		.execute();
 }

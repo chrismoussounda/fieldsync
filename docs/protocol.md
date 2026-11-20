@@ -226,6 +226,12 @@ shrinks the scenario to a short one that still fails.
 | POST   | `/auth/login`              | email, password, device      | session            |
 | POST   | `/auth/refresh`            | `refreshToken`               | session            |
 | GET    | `/users`                   |                              | the org's members  |
+| POST   | `/users`                   | email, name, role, password  | 201, the new id    |
+| PATCH  | `/users/:id`               | `name`, `role`               | 204                |
+| POST   | `/users/:id/disable`       |                              | 204                |
+| POST   | `/users/:id/enable`        |                              | 204                |
+| POST   | `/users/:id/password`      | `password`                   | 204                |
+| POST   | `/me/password`             | `current`, `next`            | 204                |
 | GET    | `/conflicts`               | `open` (default `true`)      | the conflict log   |
 | POST   | `/conflicts/:id/review`    |                              | 204                |
 | GET    | `/devices`                 |                              | the org's devices  |
@@ -237,17 +243,20 @@ Every `/sync` request carries `X-Protocol-Version` and a bearer token. The
 version is checked first, so an outdated app is told to update even when
 signed out.
 
-| Status | `error`                | Meaning                                   |
-| ------ | ---------------------- | ----------------------------------------- |
-| 400    | `BAD_REQUEST`          | Malformed body, query or path             |
-| 401    | `UNAUTHORIZED`         | Missing or invalid token                  |
-| 401    | `DEVICE_REVOKED`       | An admin locked this device out           |
-| 403    | `FORBIDDEN`            | The role may not do this                  |
-| 404    | `NOT_FOUND`            | No such device in the org                 |
-| 409    | `DEVICE_TAKEN`         | Device id or its clock node already used  |
-| 426    | `UNSUPPORTED_PROTOCOL` | The app must update before syncing again  |
-| 429    | `RATE_LIMITED`         | Too many requests; see `Retry-After`      |
-| 500    | `INTERNAL`             | Logged on the server; no details returned |
+| Status | `error`                | Meaning                                    |
+| ------ | ---------------------- | ------------------------------------------ |
+| 400    | `BAD_REQUEST`          | Malformed body, query or path              |
+| 401    | `UNAUTHORIZED`         | Missing or invalid token                   |
+| 401    | `DEVICE_REVOKED`       | An admin locked this device out            |
+| 403    | `FORBIDDEN`            | The role may not do this                   |
+| 403    | `ACCOUNT_DISABLED`     | Right password, but the account is off     |
+| 404    | `NOT_FOUND`            | No such device in the org                  |
+| 409    | `DEVICE_TAKEN`         | Device id or its clock node already used   |
+| 409    | `EMAIL_TAKEN`          | Another user has this email                |
+| 409    | `OWN_ACCOUNT`          | Admins cannot demote or disable themselves |
+| 426    | `UNSUPPORTED_PROTOCOL` | The app must update before syncing again   |
+| 429    | `RATE_LIMITED`         | Too many requests; see `Retry-After`       |
+| 500    | `INTERNAL`             | Logged on the server; no details returned  |
 
 Rate limits: 10 sign-ins per account and address per 15 minutes, 60 refreshes
 per address and 300 sync requests per device per minute. Sync is counted per
@@ -284,6 +293,7 @@ and rejects what the user's role may not do with `FORBIDDEN`.
 | Report progress                        | assigned only | yes        | yes   |
 | Read and review the conflict log       | no            | yes        | yes   |
 | List and revoke devices                | no            | no         | yes   |
+| Add, edit and disable users            | no            | no         | yes   |
 
 Planning fields are title, description, address, priority, assignee and due
 date; progress fields are status and notes.

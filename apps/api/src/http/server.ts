@@ -17,7 +17,16 @@ import {
 	type Principal,
 	refresh,
 } from "../auth/session.ts";
-import { listUsers, normalizeEmail } from "../auth/users.ts";
+import {
+	addUser,
+	changePassword,
+	listMembers,
+	MIN_PASSWORD,
+	resetPassword,
+	setActive,
+	updateUser,
+} from "../auth/team.ts";
+import { normalizeEmail } from "../auth/users.ts";
 import { listConflicts, reviewConflict } from "../conflicts.ts";
 import type { Database } from "../db/schema.ts";
 import { ApiError } from "../errors.ts";
@@ -70,6 +79,28 @@ const PullQuery = z.object({
 const EntityParams = z.object({ type: z.string().min(1), id: z.uuid() });
 
 const DeviceParams = z.object({ id: z.uuid() });
+
+const Password = z.string().min(MIN_PASSWORD).max(256);
+const RoleName = z.enum(["technician", "dispatcher", "admin"]);
+
+const NewUserBody = z.object({
+	email: z.email().max(254),
+	name: z.string().trim().min(1).max(100),
+	role: RoleName,
+	password: Password,
+});
+
+const UserChanges = z.object({
+	name: z.string().trim().min(1).max(100).optional(),
+	role: RoleName.optional(),
+});
+
+const PasswordReset = z.object({ password: Password });
+
+const PasswordChange = z.object({
+	current: z.string().min(1).max(256),
+	next: Password,
+});
 
 const IdParams = z.object({ id: z.uuid() });
 
@@ -166,8 +197,47 @@ export function buildServer({
 		secure(account);
 
 		account.get("/users", async (request) => ({
-			users: await listUsers(db, request.auth),
+			users: await listMembers(db, request.auth),
 		}));
+
+		account.post("/users", async (request, reply) => {
+			const id = await addUser(
+				db,
+				request.auth,
+				NewUserBody.parse(request.body),
+			);
+			return reply.code(201).send({ id });
+		});
+
+		account.patch("/users/:id", async (request, reply) => {
+			const { id } = IdParams.parse(request.params);
+			await updateUser(db, request.auth, id, UserChanges.parse(request.body));
+			return reply.code(204).send();
+		});
+
+		for (const [action, active] of [
+			["enable", true],
+			["disable", false],
+		] as const) {
+			account.post(`/users/:id/${action}`, async (request, reply) => {
+				const { id } = IdParams.parse(request.params);
+				await setActive(db, request.auth, id, active, now());
+				return reply.code(204).send();
+			});
+		}
+
+		account.post("/users/:id/password", async (request, reply) => {
+			const { id } = IdParams.parse(request.params);
+			const { password } = PasswordReset.parse(request.body);
+			await resetPassword(db, request.auth, id, password);
+			return reply.code(204).send();
+		});
+
+		account.post("/me/password", async (request, reply) => {
+			const { current, next } = PasswordChange.parse(request.body);
+			await changePassword(db, request.auth, current, next);
+			return reply.code(204).send();
+		});
 
 		account.get("/conflicts", async (request) => {
 			const { open } = ConflictsQuery.parse(request.query);
