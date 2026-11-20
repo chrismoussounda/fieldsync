@@ -370,3 +370,8 @@ code {
 a.brand {
 	color: var(--text);
 }
+
+.chip.refused {
+	background: var(--urgent-bg);
+	color: var(--danger);
+}
