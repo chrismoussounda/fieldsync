@@ -17,7 +17,8 @@ export default defineConfig({
 		trace: "retain-on-failure",
 	},
 	webServer: {
-		command: `pnpm exec vite --port ${WEB_PORT} --strictPort`,
+		// The production build, since the service worker only exists there.
+		command: `pnpm exec vite build && pnpm exec vite preview --port ${WEB_PORT} --strictPort`,
 		url: `http://localhost:${WEB_PORT}`,
 		env: { FIELDSYNC_API: `http://127.0.0.1:${API_PORT}` },
 	},
