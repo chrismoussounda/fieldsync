@@ -82,6 +82,7 @@ function SignedIn({ db, session, user }: Props & { user: User }) {
 					<OrderDetail
 						db={db}
 						loop={sync.loop}
+						session={session}
 						user={user}
 						id={route.name === "order" ? route.id : null}
 					/>

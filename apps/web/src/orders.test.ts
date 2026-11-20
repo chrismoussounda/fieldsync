@@ -1,7 +1,14 @@
 import type { EntityState } from "@fieldsync/merge";
 import { FIELDS, PROGRESS_FIELDS } from "@fieldsync/work-orders";
 import { describe, expect, it } from "vitest";
-import { byUrgency, type Order, patchOf, toDraft, toOrder } from "./orders.ts";
+import {
+	byUrgency,
+	describeValue,
+	type Order,
+	patchOf,
+	toDraft,
+	toOrder,
+} from "./orders.ts";
 
 const HLC = "0000000000001-0000-0a1b2c3d";
 
@@ -14,6 +21,24 @@ function state(fields: EntityState["fields"], deleted = false): EntityState {
 		restoredHlc: null,
 	};
 }
+
+describe("describeValue", () => {
+	const names = new Map([["u1", "Junior"]]);
+
+	it("names people and labels codes", () => {
+		expect(describeValue("assigneeId", "u1", names)).toBe("Junior");
+		expect(describeValue("assigneeId", "gone", names)).toBe("Someone");
+		expect(describeValue("status", "in_progress", names)).toBe("In progress");
+		expect(describeValue("priority", "urgent", names)).toBe("Urgent");
+		expect(describeValue("notes", null, names)).toBe("(empty)");
+	});
+
+	it("shortens long text", () => {
+		const shown = describeValue("notes", "x".repeat(200), names);
+		expect(shown).toHaveLength(80);
+		expect(shown.endsWith("…")).toBe(true);
+	});
+});
 
 describe("toOrder", () => {
 	it("fills in what a partly synced record lacks", () => {

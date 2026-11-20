@@ -186,6 +186,20 @@ describe("team routes", () => {
 	});
 });
 
+describe("history route", () => {
+	it("answers any signed-in member, and checks the record id", async () => {
+		const { accessToken } = await signIn("tech@example.com", PHONE);
+		const headers = { authorization: `Bearer ${accessToken}` };
+		const ok = await app.inject({
+			url: `/history/work_order/${crypto.randomUUID()}`,
+			headers,
+		});
+		expect(ok.json()).toEqual({ entries: [] });
+		const bad = await app.inject({ url: "/history/work_order/42", headers });
+		expect(bad.statusCode).toBe(400);
+	});
+});
+
 describe("conflict routes", () => {
 	it("list conflicts for dispatchers only", async () => {
 		const asRole = async (email: string, device: string) => {

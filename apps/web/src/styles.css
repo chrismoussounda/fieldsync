@@ -395,6 +395,38 @@ a.who {
 	margin-bottom: 0.75rem;
 }
 
+.detail {
+	display: grid;
+	gap: 0.75rem;
+}
+
+.timeline,
+.changes {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.timeline {
+	display: grid;
+	gap: 0.75rem;
+}
+
+.timeline > li {
+	display: grid;
+	gap: 0.2rem;
+	padding-left: 0.75rem;
+	border-left: 2px solid var(--line);
+}
+
+.timeline strong {
+	color: var(--text);
+}
+
+.changes {
+	font-size: 0.9rem;
+}
+
 .member.inactive strong {
 	color: var(--muted);
 }

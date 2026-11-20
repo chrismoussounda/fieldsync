@@ -30,6 +30,7 @@ import { normalizeEmail } from "../auth/users.ts";
 import { listConflicts, reviewConflict } from "../conflicts.ts";
 import type { Database } from "../db/schema.ts";
 import { ApiError } from "../errors.ts";
+import { entityHistory } from "../history.ts";
 import { handleGetEntity } from "../sync/entity.ts";
 import { handlePull, MAX_PULL_LIMIT } from "../sync/pull.ts";
 import { handlePush } from "../sync/push.ts";
@@ -237,6 +238,11 @@ export function buildServer({
 			const { current, next } = PasswordChange.parse(request.body);
 			await changePassword(db, request.auth, current, next);
 			return reply.code(204).send();
+		});
+
+		account.get("/history/:type/:id", async (request) => {
+			const { type, id } = EntityParams.parse(request.params);
+			return { entries: await entityHistory(db, request.auth, type, id) };
 		});
 
 		account.get("/conflicts", async (request) => {

@@ -92,7 +92,7 @@ value: the last 8 characters of a stamp identify the device, and so its user.
 | -------------- | ---------------------------------------------------------------- |
 | `orgs`         | One row per organisation, with its change counter `seq`          |
 | `entities`     | Current state of each record: fields, clocks, delete and restore |
-| `changes`      | Append-only log, numbered by `seq`; this is what devices pull    |
+| `changes`      | Append-only log by `seq`: what devices pull, and record history  |
 | `received_ops` | The result given for each operation, replayed on a retry         |
 | `conflicts`    | Every conflict the merge reported                                |
 
@@ -232,6 +232,7 @@ shrinks the scenario to a short one that still fails.
 | POST   | `/users/:id/enable`        |                              | 204                |
 | POST   | `/users/:id/password`      | `password`                   | 204                |
 | POST   | `/me/password`             | `current`, `next`            | 204                |
+| GET    | `/history/:type/:id`       |                              | a record's changes |
 | GET    | `/conflicts`               | `open` (default `true`)      | the conflict log   |
 | POST   | `/conflicts/:id/review`    |                              | 204                |
 | GET    | `/devices`                 |                              | the org's devices  |
