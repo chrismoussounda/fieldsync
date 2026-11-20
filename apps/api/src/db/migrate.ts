@@ -4,6 +4,7 @@ import * as syncTables from "./migrations/001_sync_tables.ts";
 import * as authTables from "./migrations/002_auth_tables.ts";
 import * as conflictsIndex from "./migrations/003_conflicts_index.ts";
 import * as orgEpoch from "./migrations/004_org_epoch.ts";
+import * as userDisabled from "./migrations/005_user_disabled.ts";
 
 // Listed in code instead of read from disk, so the simulator can run them in memory.
 const provider: MigrationProvider = {
@@ -12,6 +13,7 @@ const provider: MigrationProvider = {
 		"002_auth_tables": authTables,
 		"003_conflicts_index": conflictsIndex,
 		"004_org_epoch": orgEpoch,
+		"005_user_disabled": userDisabled,
 	}),
 };
 

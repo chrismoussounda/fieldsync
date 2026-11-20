@@ -66,6 +66,7 @@ export type Database = {
 		password_hash: string;
 		role: Role;
 		created_at: CreatedAt;
+		disabled_at: Date | null;
 	};
 	devices: {
 		id: string;

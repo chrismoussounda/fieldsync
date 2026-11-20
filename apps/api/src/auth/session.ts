@@ -55,7 +55,7 @@ export async function login(
 ): Promise<Session> {
 	const user = await db
 		.selectFrom("users")
-		.select(["id", "org_id", "name", "role", "password_hash"])
+		.select(["id", "org_id", "name", "role", "password_hash", "disabled_at"])
 		.where("email", "=", normalizeEmail(email))
 		.executeTakeFirst();
 	dummyHash ??= hash(randomUUID());
@@ -64,6 +64,8 @@ export async function login(
 		password,
 	);
 	if (!user || !valid) throw unauthorized();
+	// Said only to someone who knows the password.
+	if (user.disabled_at) throw new ApiError(403, "ACCOUNT_DISABLED");
 
 	const device = await db
 		.selectFrom("devices")

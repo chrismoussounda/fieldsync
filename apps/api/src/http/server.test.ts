@@ -146,6 +146,46 @@ describe("user routes", () => {
 	});
 });
 
+describe("team routes", () => {
+	async function as(email: string, device: string) {
+		const { accessToken } = await signIn(email, device);
+		return { authorization: `Bearer ${accessToken}` };
+	}
+
+	it("let an admin add a user, and nobody else", async () => {
+		const user = {
+			email: "new@example.com",
+			name: "New",
+			role: "technician",
+			password: "long enough password",
+		};
+		const byAdmin = await app.inject({
+			method: "POST",
+			url: "/users",
+			headers: await as("admin@example.com", OFFICE),
+			payload: user,
+		});
+		expect(byAdmin.statusCode).toBe(201);
+		const byDispatcher = await app.inject({
+			method: "POST",
+			url: "/users",
+			headers: await as("dispatch@example.com", PHONE),
+			payload: { ...user, email: "other@example.com" },
+		});
+		expect(byDispatcher.statusCode).toBe(403);
+	});
+
+	it("refuse a short new password", async () => {
+		const response = await app.inject({
+			method: "POST",
+			url: "/me/password",
+			headers: await as("tech@example.com", PHONE),
+			payload: { current: PASSWORD, next: "short" },
+		});
+		expect(response.statusCode).toBe(400);
+	});
+});
+
 describe("conflict routes", () => {
 	it("list conflicts for dispatchers only", async () => {
 		const asRole = async (email: string, device: string) => {
