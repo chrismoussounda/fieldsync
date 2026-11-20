@@ -94,7 +94,13 @@ function OrderForm({
 		window.location.hash = ROUTES.list;
 	}
 
-	const technicians = members?.filter((m) => m.role === "technician") ?? [];
+	// Disabled technicians keep their name on past orders but get no new ones.
+	const technicians =
+		members?.filter(
+			(m) =>
+				m.role === "technician" &&
+				(m.active !== false || m.id === draft.assigneeId),
+		) ?? [];
 	const field = (name: Field) => ({
 		value: draft[name],
 		disabled: !editable.has(name),
