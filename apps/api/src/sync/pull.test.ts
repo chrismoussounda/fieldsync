@@ -6,6 +6,7 @@ import type { Database } from "../db/schema.ts";
 import { createTestDb, emptyTestDb } from "../db/testing.ts";
 import { handlePull, MAX_PULL_LIMIT } from "./pull.ts";
 import { type Auth, handlePush } from "./push.ts";
+import { resetOrg } from "./reset.ts";
 import { allowAll } from "./testing.ts";
 
 const ORG = "00000000-0000-4000-8000-000000000001";
@@ -67,6 +68,7 @@ describe("handlePull", () => {
 	it("returns the changes after the cursor, in order", async () => {
 		const [first, second] = await seed(2);
 		expect(await pull(0)).toEqual({
+			epoch: expect.any(String),
 			changes: [
 				{
 					seq: 1,
@@ -121,5 +123,28 @@ describe("handlePull", () => {
 	it("only returns changes of the caller's organisation", async () => {
 		await seed(1, { orgId: OTHER_ORG, deviceId: PHONE });
 		expect((await pull(0)).changes).toEqual([]);
+	});
+});
+
+describe("resetOrg", () => {
+	it("starts a new epoch with nothing to pull, and keeps numbering", async () => {
+		await seed(2);
+		const before = await pull(0);
+		await resetOrg(db, ORG);
+
+		const after = await pull(0);
+		expect(after.epoch).not.toBe(before.epoch);
+		expect(after.changes).toEqual([]);
+		await seed(1);
+		expect((await pull(0)).changes.map((c) => c.seq)).toEqual([3]);
+	});
+
+	it("leaves other orgs alone", async () => {
+		await seed(1, { orgId: OTHER_ORG, deviceId: PHONE });
+		const before = await pull(0, 100, { orgId: OTHER_ORG, deviceId: PHONE });
+		await resetOrg(db, ORG);
+		expect(await pull(0, 100, { orgId: OTHER_ORG, deviceId: PHONE })).toEqual(
+			before,
+		);
 	});
 });

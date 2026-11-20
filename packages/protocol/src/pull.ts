@@ -14,6 +14,8 @@ export type Change = {
 export type PullRequest = { cursor: number; limit: number };
 
 export type PullResponse = {
+	/** Changes when the org's data is reset; the device must then pull from 0. */
+	epoch: string;
 	changes: Change[];
 	nextCursor: number;
 	hasMore: boolean;

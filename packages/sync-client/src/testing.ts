@@ -21,6 +21,7 @@ export class FakeServer implements Transport {
 	readonly pushes: PushRequest[] = [];
 	readonly #results = new Map<string, OpResult>();
 	reject = new Set<string>();
+	epoch = "epoch-1";
 	offline = false;
 	time = 0;
 
@@ -85,6 +86,7 @@ export class FakeServer implements Transport {
 		const after = this.changes.filter((c) => c.seq > cursor);
 		const changes = after.slice(0, limit);
 		return {
+			epoch: this.epoch,
 			changes,
 			nextCursor: changes.at(-1)?.seq ?? cursor,
 			hasMore: after.length > limit,
