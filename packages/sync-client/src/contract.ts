@@ -58,6 +58,7 @@ export function describeStorage(
 			const storage = await create();
 			expect(await storage.getEntity("work_order", A)).toBeNull();
 			expect(await storage.getCursor()).toBe(0);
+			expect(await storage.getEpoch()).toBeNull();
 			expect(await storage.getOutbox()).toEqual([]);
 		});
 
@@ -107,12 +108,32 @@ export function describeStorage(
 			const local = op(A, 1, { status: "assigned", notes: "local" });
 			await queue(storage, local);
 			const remote = op(A, 2, { status: "done" });
-			await storage.applyRemote([change(remote, 7)], 7);
+			await storage.applyRemote([change(remote, 7)], 7, "e1");
 			expect((await storage.getEntity("work_order", A))?.fields).toEqual({
 				status: "done",
 				notes: "local",
 			});
 			expect(await storage.getCursor()).toBe(7);
+			expect(await storage.getEpoch()).toBe("e1");
+		});
+
+		it("forgets what was pulled after a server reset, but not queued changes", async () => {
+			const storage = await create();
+			const mine = op(A, 1, { notes: "mine" });
+			await queue(storage, mine);
+			await storage.applyRemote(
+				[change(op(B, 2, { title: "theirs" }), 3)],
+				3,
+				"e1",
+			);
+			await storage.resetRemote();
+			expect(await storage.getEntity("work_order", A)).toEqual(stateOf(mine));
+			expect(await storage.getEntity("work_order", B)).toBeNull();
+			expect(await storage.getCursor()).toBe(0);
+			expect(await storage.getEpoch()).toBeNull();
+			expect(await storage.getOutbox()).toEqual([
+				{ op: mine, status: "pending" },
+			]);
 		});
 
 		it("rewrites operations in place and leaves dead ones alone", async () => {
