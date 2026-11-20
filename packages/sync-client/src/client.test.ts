@@ -225,3 +225,35 @@ describe("clock drift", () => {
 		expect(decode(op.hlc).wall).toBe(50_000);
 	});
 });
+
+describe("server reset", () => {
+	it("drops the old copy, keeps unsent changes and pulls again", async () => {
+		const server = new FakeServer();
+		const phone = device(PHONE, server);
+		const office = device(OFFICE, server);
+		await office.edit({ title: "Old job" });
+		await office.client.syncOnce();
+		await phone.client.syncOnce();
+		expect(phone.order()?.fields).toEqual({ title: "Old job" });
+
+		// The server is wiped while the phone has an edit waiting.
+		server.changes.length = 0;
+		server.entities.clear();
+		server.epoch = "epoch-2";
+		const other = "00000000-0000-4000-8000-0000000000bb";
+		await phone.client.mutate({
+			entityType: "work_order",
+			entityId: other,
+			patch: { notes: "written before the reset" },
+		});
+		await phone.client.syncOnce();
+
+		expect(phone.order()).toBeUndefined();
+		expect(phone.storage.entities.get(`work_order:${other}`)?.fields).toEqual({
+			notes: "written before the reset",
+		});
+		expect(phone.storage.epoch).toBe("epoch-2");
+		expect(phone.storage.cursor).toBe(server.changes.length);
+		expect(phone.storage.outbox).toEqual([]);
+	});
+});

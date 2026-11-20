@@ -3,7 +3,7 @@ import { afterAll, beforeAll, expect, it } from "vitest";
 import { login } from "./auth/session.ts";
 import type { Database } from "./db/schema.ts";
 import { createTestDb } from "./db/testing.ts";
-import { DEMO_ORG, seedDemo } from "./demo.ts";
+import { DEMO_ORG, resetDemo, seedDemo } from "./demo.ts";
 
 let db: Kysely<Database>;
 
@@ -39,4 +39,28 @@ it("seeds the demo org once, with users who can sign in", async () => {
 		},
 	);
 	expect(session.user.role).toBe("dispatcher");
+});
+
+it("resets the demo orders under a new epoch and keeps the users", async () => {
+	const epoch = async () =>
+		(
+			await db
+				.selectFrom("orgs")
+				.select("epoch")
+				.where("id", "=", DEMO_ORG)
+				.executeTakeFirstOrThrow()
+		).epoch;
+	const before = await epoch();
+	await db.deleteFrom("entities").execute();
+
+	await resetDemo(db);
+
+	expect(await epoch()).not.toBe(before);
+	expect(await db.selectFrom("entities").selectAll().execute()).toHaveLength(5);
+	expect(await db.selectFrom("users").selectAll().execute()).toHaveLength(4);
+	const assigned = await db
+		.selectFrom("entities")
+		.select((eb) => eb.ref("fields", "->>").key("assigneeId").as("assignee"))
+		.execute();
+	expect(assigned.filter((a) => a.assignee !== null)).toHaveLength(4);
 });

@@ -12,6 +12,13 @@ export async function handlePull(
 	now: () => number = Date.now,
 ): Promise<PullResponse> {
 	const size = Math.min(Math.max(limit, 1), MAX_PULL_LIMIT);
+	// Read before the changes: a reset in between then shows on the next pull,
+	// instead of new changes being filed under the old epoch.
+	const { epoch } = await db
+		.selectFrom("orgs")
+		.select("epoch")
+		.where("id", "=", auth.orgId)
+		.executeTakeFirstOrThrow();
 	// One extra row tells whether another page exists.
 	const rows = await db
 		.selectFrom("changes")
@@ -43,6 +50,7 @@ export async function handlePull(
 		hlc: row.hlc,
 	}));
 	return {
+		epoch,
 		changes,
 		nextCursor: changes.at(-1)?.seq ?? cursor,
 		hasMore: rows.length > size,

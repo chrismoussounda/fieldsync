@@ -14,8 +14,19 @@ export interface SyncStorage {
 	releaseOps(opIds: string[]): Promise<void>;
 	resolveOps(results: OpResult[]): Promise<void>;
 	getCursor(): Promise<number>;
-	/** Merges pulled changes and stores the new cursor, atomically. */
-	applyRemote(changes: Change[], nextCursor: number): Promise<void>;
+	/** The server epoch the stored records belong to; null before the first pull. */
+	getEpoch(): Promise<string | null>;
+	/** Merges pulled changes and stores the new cursor and epoch, atomically. */
+	applyRemote(
+		changes: Change[],
+		nextCursor: number,
+		epoch: string,
+	): Promise<void>;
+	/**
+	 * Forgets everything pulled, after the server's data was reset: records are
+	 * rebuilt from the operations not yet accepted, the cursor goes back to 0.
+	 */
+	resetRemote(): Promise<void>;
 	/**
 	 * Replaces the operations `rewrite` returns a new version for, in outbox
 	 * order, and marks them pending. Returns the new versions.
@@ -55,6 +66,7 @@ export class MemoryStorage implements SyncStorage {
 	readonly entities = new Map<string, EntityState>();
 	readonly outbox: OutboxEntry[] = [];
 	cursor = 0;
+	epoch: string | null = null;
 
 	async getEntity(type: string, id: string): Promise<EntityState | null> {
 		return this.entities.get(key(type, id)) ?? null;
@@ -105,12 +117,32 @@ export class MemoryStorage implements SyncStorage {
 		return this.cursor;
 	}
 
-	async applyRemote(changes: Change[], nextCursor: number): Promise<void> {
+	async getEpoch(): Promise<string | null> {
+		return this.epoch;
+	}
+
+	async applyRemote(
+		changes: Change[],
+		nextCursor: number,
+		epoch: string,
+	): Promise<void> {
 		for (const change of changes) {
 			const k = key(change.entityType, change.entityId);
 			this.entities.set(k, applyChange(this.entities.get(k) ?? null, change));
 		}
 		this.cursor = nextCursor;
+		this.epoch = epoch;
+	}
+
+	async resetRemote(): Promise<void> {
+		this.entities.clear();
+		for (const { op } of this.outbox.filter((e) => e.status !== "dead")) {
+			const k = key(op.entityType, op.entityId);
+			const state = replay(this.entities.get(k) ?? null, [op]);
+			if (state) this.entities.set(k, state);
+		}
+		this.cursor = 0;
+		this.epoch = null;
 	}
 
 	async rewriteOps(rewrite: (op: Op) => Op | null): Promise<Op[]> {

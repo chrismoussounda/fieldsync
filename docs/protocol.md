@@ -133,7 +133,7 @@ A device asks for the changes after its cursor, the `seq` of the last change it
 applied:
 
 ```
-cursor, limit (at most 500)  →  changes, nextCursor, hasMore, serverTime
+cursor, limit (at most 500)  →  epoch, changes, nextCursor, hasMore, serverTime
 ```
 
 Changes come in `seq` order. The device applies them with the merge function
@@ -144,6 +144,15 @@ An integration test on a real Postgres runs 20 devices pushing at once while
 another device pulls in a loop, and checks the puller receives every change
 exactly once. The same test fails when the counter is replaced by a Postgres
 sequence.
+
+### Resets
+
+An org's data can be wiped, for the nightly demo reset or a restore from
+backup. The server then gives the org a new `epoch`. A device that sees an
+epoch different from the one its records came from drops them, rebuilds its
+records from the operations still in its outbox, and pulls again from 0. Users
+and devices stay signed in, and the change counter keeps counting, so no
+number is reused.
 
 ## Client
 

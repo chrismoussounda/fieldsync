@@ -11,6 +11,7 @@ export type Database = {
 		id: string;
 		name: string;
 		seq: Generated<Seq>;
+		epoch: Generated<string>;
 		created_at: CreatedAt;
 	};
 	entities: {

@@ -141,8 +141,18 @@ export class SyncClient {
 			const cursor = await this.#storage.getCursor();
 			const page = await this.#transport.pull({ cursor, limit: PULL_PAGE });
 			this.#learnTime(page.serverTime);
+			const known = await this.#storage.getEpoch();
+			if (known !== null && known !== page.epoch) {
+				// The server's data was reset: start over from its first change.
+				await this.#storage.resetRemote();
+				continue;
+			}
 			for (const change of page.changes) this.#clock.receive(change.hlc);
-			await this.#storage.applyRemote(page.changes, page.nextCursor);
+			await this.#storage.applyRemote(
+				page.changes,
+				page.nextCursor,
+				page.epoch,
+			);
 			if (!page.hasMore) return;
 		}
 	}

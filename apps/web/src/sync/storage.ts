@@ -106,7 +106,15 @@ export class DexieStorage implements SyncStorage {
 		return (await this.#db.getMeta<number>("cursor")) ?? 0;
 	}
 
-	applyRemote(changes: Change[], nextCursor: number): Promise<void> {
+	async getEpoch(): Promise<string | null> {
+		return (await this.#db.getMeta<string>("epoch")) ?? null;
+	}
+
+	applyRemote(
+		changes: Change[],
+		nextCursor: number,
+		epoch: string,
+	): Promise<void> {
 		const db = this.#db;
 		return db.transaction("rw", db.entities, db.meta, async () => {
 			for (const change of changes) {
@@ -119,6 +127,26 @@ export class DexieStorage implements SyncStorage {
 				});
 			}
 			await db.meta.put({ key: "cursor", value: nextCursor });
+			await db.meta.put({ key: "epoch", value: epoch });
+		});
+	}
+
+	resetRemote(): Promise<void> {
+		const db = this.#db;
+		return db.transaction("rw", db.entities, db.outbox, db.meta, async () => {
+			await db.entities.clear();
+			const rows = await db.outbox.toArray();
+			const rebuilt = new Map<string, EntityRow>();
+			for (const { op, status } of rows) {
+				if (status === "dead") continue;
+				const k = `${op.entityType}:${op.entityId}`;
+				const state = replay(rebuilt.get(k)?.state ?? null, [op]);
+				if (state) {
+					rebuilt.set(k, { type: op.entityType, id: op.entityId, state });
+				}
+			}
+			await db.entities.bulkPut([...rebuilt.values()]);
+			await db.meta.bulkDelete(["cursor", "epoch"]);
 		});
 	}
 
