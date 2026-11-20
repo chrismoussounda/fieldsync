@@ -19,6 +19,7 @@ const app = buildServer({
 	db,
 	secret: new TextEncoder().encode(config.JWT_SECRET),
 	logger: { level: config.LOG_LEVEL },
+	trustProxy: config.TRUST_PROXY,
 });
 await app.listen({ host: config.HOST, port: config.PORT });
 

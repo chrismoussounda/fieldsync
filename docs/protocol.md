@@ -246,7 +246,12 @@ signed out.
 | 404    | `NOT_FOUND`            | No such device in the org                 |
 | 409    | `DEVICE_TAKEN`         | Device id or its clock node already used  |
 | 426    | `UNSUPPORTED_PROTOCOL` | The app must update before syncing again  |
+| 429    | `RATE_LIMITED`         | Too many requests; see `Retry-After`      |
 | 500    | `INTERNAL`             | Logged on the server; no details returned |
+
+Rate limits: 10 sign-ins per account and address per 15 minutes, 60 refreshes
+per address and 300 sync requests per device per minute. Sync is counted per
+device, so an office behind one address is not treated as one client.
 
 Bodies are limited to 1 MB. A rejected operation inside a push is not an HTTP
 error: the request succeeds and the result says why.

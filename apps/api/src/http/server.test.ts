@@ -19,6 +19,8 @@ const PHONE = "0a1b2c3d-0000-4000-8000-000000000001";
 const OFFICE = "ffffffff-0000-4000-8000-000000000002";
 const ORDER = "00000000-0000-4000-8000-0000000000aa";
 const PASSWORD = "correct horse";
+const SECRET = new TextEncoder().encode("a test secret of at least 32 bytes");
+const GENEROUS = { login: 1000, refresh: 1000, sync: 1000 };
 
 let db: Kysely<Database>;
 let app: FastifyInstance;
@@ -26,10 +28,8 @@ let baseUrl: string;
 
 beforeAll(async () => {
 	db = await createTestDb();
-	app = buildServer({
-		db,
-		secret: new TextEncoder().encode("a test secret of at least 32 bytes"),
-	});
+	// These tests sign in many times from one address; limits are tested below.
+	app = buildServer({ db, secret: SECRET, limits: GENEROUS });
 	baseUrl = await app.listen({ host: "127.0.0.1", port: 0 });
 });
 
@@ -401,5 +401,49 @@ describe("HttpTransport", () => {
 			refused,
 		);
 		expect(heard).toEqual([refused]);
+	});
+});
+
+describe("rate limits", () => {
+	let limited: FastifyInstance;
+
+	beforeAll(() => {
+		limited = buildServer({
+			db,
+			secret: SECRET,
+			limits: { login: 2, refresh: 2, sync: 2 },
+		});
+	});
+
+	afterAll(() => limited.close());
+
+	const attempt = (email: string) =>
+		limited.inject({
+			method: "POST",
+			url: "/auth/login",
+			payload: {
+				email,
+				password: "wrong",
+				deviceId: PHONE,
+				deviceName: "Phone",
+			},
+		});
+
+	it("stop password guessing on one account, not on the others", async () => {
+		await attempt("tech@example.com");
+		await attempt("TECH@example.com ");
+		const blocked = await attempt("tech@example.com");
+		expect(blocked.statusCode).toBe(429);
+		expect(blocked.json()).toEqual({ error: "RATE_LIMITED" });
+		expect(blocked.headers["retry-after"]).toBeDefined();
+		expect((await attempt("dispatch@example.com")).statusCode).toBe(401);
+	});
+
+	it("count sync requests per device", async () => {
+		const headers = await syncHeaders();
+		const pull = () => limited.inject({ url: "/sync/pull?cursor=0", headers });
+		expect((await pull()).statusCode).toBe(200);
+		expect((await pull()).statusCode).toBe(200);
+		expect((await pull()).statusCode).toBe(429);
 	});
 });
