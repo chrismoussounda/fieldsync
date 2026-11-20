@@ -163,6 +163,22 @@ describe("Session", () => {
 		expect(auth.revoked).toBe(true);
 	});
 
+	it("locks out at once when a request says the device is revoked", async () => {
+		const auth = session(fakeFetch(tokens(1)).fetch);
+		await auth.login("a@b.c", "pw");
+		await auth.reportFailure(new HttpError(401, "DEVICE_REVOKED"));
+		expect(auth.revoked).toBe(true);
+	});
+
+	it("refreshes after a request refuses the access token", async () => {
+		const { fetch, sent } = fakeFetch(tokens(1), tokens(2));
+		const auth = session(fetch);
+		await auth.login("a@b.c", "pw");
+		await auth.reportFailure(new HttpError(401, "UNAUTHORIZED"));
+		expect(await auth.getToken()).toBe("access-2");
+		expect(sent[1]?.url).toBe("/api/auth/refresh");
+	});
+
 	it("notifies listeners when the user changes", async () => {
 		const auth = session(fakeFetch(tokens(1)).fetch);
 		let calls = 0;

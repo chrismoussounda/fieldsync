@@ -388,12 +388,18 @@ describe("HttpTransport", () => {
 	});
 
 	it("reports an HTTP error with its code", async () => {
+		const heard: HttpError[] = [];
 		const transport = new HttpTransport({
 			baseUrl,
 			getToken: async () => null,
+			onError: (error) => {
+				heard.push(error);
+			},
 		});
+		const refused = new HttpError(401, "UNAUTHORIZED");
 		await expect(transport.pull({ cursor: 0, limit: 10 })).rejects.toEqual(
-			new HttpError(401, "UNAUTHORIZED"),
+			refused,
 		);
+		expect(heard).toEqual([refused]);
 	});
 });

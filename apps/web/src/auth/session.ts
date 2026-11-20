@@ -129,6 +129,21 @@ export class Session {
 		this.#setState({ user: null, revoked: false });
 	}
 
+	/** Called with every failed API request, to react the moment access ends. */
+	async reportFailure(error: unknown): Promise<void> {
+		if (isCode(error, "DEVICE_REVOKED")) {
+			await this.#markRevoked();
+		} else if (isCode(error, "UNAUTHORIZED")) {
+			// The server no longer accepts this access token: refresh next time.
+			this.#access = null;
+		}
+	}
+
+	async #markRevoked(): Promise<void> {
+		await this.#db.setMeta("revoked", true);
+		this.#setState({ ...this.#state, revoked: true });
+	}
+
 	async #refresh(): Promise<string> {
 		const refreshToken = this.#stored?.refreshToken;
 		if (!refreshToken) throw new HttpError(401, "UNAUTHORIZED");
@@ -140,8 +155,7 @@ export class Session {
 			return tokens.accessToken;
 		} catch (error) {
 			if (isCode(error, "DEVICE_REVOKED")) {
-				await this.#db.setMeta("revoked", true);
-				this.#setState({ ...this.#state, revoked: true });
+				await this.#markRevoked();
 			} else if (error instanceof HttpError && error.status === 401) {
 				// Local data stays: unsynced changes go out after the next sign-in.
 				this.#stored = null;

@@ -37,6 +37,7 @@ export async function startSync(
 		new HttpTransport({
 			baseUrl: API_URL,
 			getToken: () => session.getToken(),
+			onError: (error) => session.reportFailure(error),
 		}),
 	);
 	const client = new SyncClient({
@@ -82,7 +83,9 @@ export async function apiFetch<T>(
 	});
 	if (!response.ok) {
 		const payload = await response.json().catch(() => null);
-		throw new HttpError(response.status, payload?.error);
+		const error = new HttpError(response.status, payload?.error);
+		await session.reportFailure(error);
+		throw error;
 	}
 	return response.status === 204 ? null : ((await response.json()) as T);
 }

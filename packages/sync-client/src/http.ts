@@ -23,6 +23,8 @@ export class HttpError extends Error {
 export type HttpTransportOptions = {
 	baseUrl: string;
 	getToken: () => Promise<string | null>;
+	/** Hears every refused request before it is thrown, e.g. to notice a revoked device. */
+	onError?: (error: HttpError) => Promise<void> | void;
 	fetch?: typeof fetch;
 };
 
@@ -30,7 +32,11 @@ export class HttpTransport implements Transport {
 	readonly #options: Required<HttpTransportOptions>;
 
 	constructor(options: HttpTransportOptions) {
-		this.#options = { fetch: globalThis.fetch.bind(globalThis), ...options };
+		this.#options = {
+			fetch: globalThis.fetch.bind(globalThis),
+			onError: () => {},
+			...options,
+		};
 	}
 
 	push(request: PushRequest): Promise<PushResponse> {
@@ -70,7 +76,9 @@ export class HttpTransport implements Transport {
 			const payload = (await response.json().catch(() => null)) as {
 				error?: string;
 			} | null;
-			throw new HttpError(response.status, payload?.error);
+			const error = new HttpError(response.status, payload?.error);
+			await this.#options.onError(error);
+			throw error;
 		}
 		return (await response.json()) as T;
 	}
