@@ -4,14 +4,26 @@ export const JUNIOR = "Junior Nkounkou";
 export const MERVEILLE = "Merveille Bouanga";
 
 /** A signed-in device: its own browser context, so its own IndexedDB. */
-export async function device(browser: Browser, email: string): Promise<Page> {
+export async function device(
+	browser: Browser,
+	email: string,
+	password = process.env.DEMO_PASSWORD ?? "",
+): Promise<Page> {
 	const page = await (await browser.newContext()).newPage();
-	await page.goto("/");
-	await page.getByLabel("Email").fill(email);
-	await page.getByLabel("Password").fill(process.env.DEMO_PASSWORD ?? "");
-	await page.getByRole("button", { name: "Sign in" }).click();
+	await signIn(page, email, password);
 	await expect(page.locator(".badge")).toHaveText("Synced");
 	return page;
+}
+
+export async function signIn(
+	page: Page,
+	email: string,
+	password: string,
+): Promise<void> {
+	await page.goto("/");
+	await page.getByLabel("Email").fill(email);
+	await page.getByLabel("Password").fill(password);
+	await page.getByRole("button", { name: "Sign in" }).click();
 }
 
 /** Reloading syncs at once instead of waiting for the next tick. */

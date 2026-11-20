@@ -4,6 +4,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { ROUTES, useRoute } from "./app/route.ts";
 import { type Sync, startSync } from "./app/workspace.ts";
 import type { Session, User } from "./auth/session.ts";
+import { Account } from "./screens/Account.tsx";
 import { Conflicts } from "./screens/Conflicts.tsx";
 import { Debug } from "./screens/Debug.tsx";
 import { Devices } from "./screens/Devices.tsx";
@@ -11,6 +12,7 @@ import { Login } from "./screens/Login.tsx";
 import { OrderDetail } from "./screens/OrderDetail.tsx";
 import { Orders } from "./screens/Orders.tsx";
 import { SyncBadge } from "./screens/SyncBadge.tsx";
+import { Team } from "./screens/Team.tsx";
 import type { LocalDb } from "./sync/storage.ts";
 
 type Props = { db: LocalDb; session: Session };
@@ -55,11 +57,12 @@ function SignedIn({ db, session, user }: Props & { user: User }) {
 					FieldSync
 				</a>
 				{canManage(user.role) && <a href={ROUTES.conflicts}>Conflicts</a>}
+				{user.role === "admin" && <a href={ROUTES.team}>Team</a>}
 				{user.role === "admin" && <a href={ROUTES.devices}>Devices</a>}
 				{sync && <SyncBadge loop={sync.loop} pending={pending} />}
-				<span className="who">
+				<a href={ROUTES.account} className="who">
 					{user.name} <span className="muted">· {user.role}</span>
-				</span>
+				</a>
 				<SignOut session={session} pending={pending} />
 			</header>
 			<main className="page">
@@ -67,6 +70,10 @@ function SignedIn({ db, session, user }: Props & { user: User }) {
 					<Orders db={db} user={user} />
 				) : route.name === "devices" ? (
 					<Devices session={session} />
+				) : route.name === "team" ? (
+					<Team db={db} session={session} user={user} />
+				) : route.name === "account" ? (
+					<Account session={session} user={user} />
 				) : route.name === "conflicts" ? (
 					<Conflicts db={db} session={session} />
 				) : route.name === "debug" ? (

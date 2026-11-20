@@ -117,8 +117,9 @@ export async function changePassword(
 		.select("password_hash")
 		.where("id", "=", principal.userId)
 		.executeTakeFirstOrThrow();
+	// Not 401: the session itself is fine, and clients treat 401 as signed out.
 	if (!(await verify(user.password_hash, current))) {
-		throw new ApiError(401, "UNAUTHORIZED");
+		throw new ApiError(403, "WRONG_PASSWORD");
 	}
 	await db.transaction().execute(async (tx) => {
 		await tx

@@ -1,9 +1,10 @@
-import { HttpError } from "@fieldsync/sync-client";
 import { type FormEvent, useState } from "react";
+import { messageFor } from "../app/errors.ts";
 import type { Session } from "../auth/session.ts";
 
 const MESSAGES: Record<string, string> = {
 	UNAUTHORIZED: "Wrong email or password.",
+	ACCOUNT_DISABLED: "This account was disabled. Ask an admin to turn it on.",
 	DEVICE_REVOKED: "This device was revoked by an admin.",
 	DEVICE_TAKEN:
 		"Changes from another account are still waiting on this device.",
@@ -24,11 +25,7 @@ export function Login({ session }: { session: Session }) {
 				String(form.get("password")),
 			);
 		} catch (e) {
-			setError(
-				e instanceof HttpError
-					? (MESSAGES[e.code ?? ""] ?? "The server refused the sign-in.")
-					: "No connection. Signing in needs the network once.",
-			);
+			setError(messageFor(e, MESSAGES));
 		} finally {
 			setBusy(false);
 		}
