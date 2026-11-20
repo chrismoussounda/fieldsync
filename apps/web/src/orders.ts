@@ -34,6 +34,28 @@ export const STATUS_LABELS: Record<string, string> = {
 	cancelled: "Cancelled",
 };
 
+export const PRIORITY_LABELS: Record<string, string> = {
+	urgent: "Urgent",
+	normal: "Normal",
+	low: "Low",
+};
+
+const SHORT = 80;
+
+/** A field's value as a person reads it; assignees by name. */
+export function describeValue(
+	field: string,
+	value: unknown,
+	names: ReadonlyMap<string, string>,
+): string {
+	if (value === null || value === undefined || value === "") return "(empty)";
+	const text = String(value);
+	if (field === "assigneeId") return names.get(text) ?? "Someone";
+	if (field === "status") return STATUS_LABELS[text] ?? text;
+	if (field === "priority") return PRIORITY_LABELS[text] ?? text;
+	return text.length > SHORT ? `${text.slice(0, SHORT - 1)}…` : text;
+}
+
 /** Reads a stored record as a work order; null once it is deleted. */
 export function toOrder(id: string, state: EntityState): Order | null {
 	if (isDeleted(state)) return null;

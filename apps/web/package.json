@@ -11,6 +11,7 @@
 		"e2e": "playwright test"
 	},
 	"dependencies": {
+		"@fieldsync/hlc": "workspace:^",
 		"@fieldsync/merge": "workspace:^",
 		"@fieldsync/protocol": "workspace:^",
 		"@fieldsync/sync-client": "workspace:^",
@@ -21,7 +22,6 @@
 		"react-dom": "^19.3.1"
 	},
 	"devDependencies": {
-		"@fieldsync/hlc": "workspace:^",
 		"@playwright/test": "^1.65.1",
 		"@testcontainers/postgresql": "^12.2.2",
 		"@types/node": "^22.20.5",

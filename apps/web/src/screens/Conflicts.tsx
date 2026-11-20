@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ROUTES } from "../app/route.ts";
 import { apiFetch, type Member } from "../app/workspace.ts";
 import type { Session } from "../auth/session.ts";
-import { FIELD_LABELS, STATUS_LABELS } from "../orders.ts";
+import { describeValue, FIELD_LABELS } from "../orders.ts";
 import type { LocalDb } from "../sync/storage.ts";
 
 type Side = { value: unknown; at: number; by: string | null };
@@ -55,17 +55,10 @@ export function Conflicts({ db, session }: { db: LocalDb; session: Session }) {
 		await load();
 	}
 
-	const show = (field: string, value: unknown) => {
-		if (value === null || value === undefined || value === "") return "(empty)";
-		if (field === "assigneeId") return names.get(String(value)) ?? "Someone";
-		if (field === "status")
-			return STATUS_LABELS[String(value)] ?? String(value);
-		return String(value);
-	};
 	const side = (label: string, field: string, s: Side) => (
 		<p>
 			<span className="muted">{label}</span>{" "}
-			<strong>{show(field, s.value)}</strong>
+			<strong>{describeValue(field, s.value, names)}</strong>
 			<span className="muted">
 				{" "}
 				by {s.by ?? "an unknown device"}, {new Date(s.at).toLocaleString()}

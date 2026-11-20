@@ -13,18 +13,19 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { type FormEvent, useState } from "react";
 import { ROUTES } from "../app/route.ts";
 import type { Member } from "../app/workspace.ts";
-import type { User } from "../auth/session.ts";
-import { type Draft, patchOf, STATUS_LABELS, toDraft } from "../orders.ts";
+import type { Session, User } from "../auth/session.ts";
+import {
+	type Draft,
+	PRIORITY_LABELS,
+	patchOf,
+	STATUS_LABELS,
+	toDraft,
+} from "../orders.ts";
 import type { SyncLoop } from "../sync/loop.ts";
 import type { LocalDb } from "../sync/storage.ts";
+import { OrderHistory } from "./OrderHistory.tsx";
 
-type Props = { db: LocalDb; loop: SyncLoop; user: User };
-
-const PRIORITY_LABELS: Record<string, string> = {
-	urgent: "Urgent",
-	normal: "Normal",
-	low: "Low",
-};
+type Props = { db: LocalDb; loop: SyncLoop; session: Session; user: User };
 
 /** An existing work order, or a new one when `id` is null. */
 export function OrderDetail({ id, ...props }: Props & { id: string | null }) {
@@ -44,7 +45,28 @@ export function OrderDetail({ id, ...props }: Props & { id: string | null }) {
 			</section>
 		);
 	}
-	return <OrderForm key={id ?? "new"} id={id} state={state} {...props} />;
+	return (
+		<div className="detail">
+			<OrderForm key={id ?? "new"} id={id} state={state} {...props} />
+			{id && state && (
+				<OrderHistory
+					db={props.db}
+					session={props.session}
+					id={id}
+					stamp={latestStamp(state)}
+				/>
+			)}
+		</div>
+	);
+}
+
+// Clock stamps sort by time, so the largest is the latest change.
+function latestStamp(state: EntityState): string {
+	return [
+		...Object.values(state.clocks),
+		state.deletedHlc ?? "",
+		state.restoredHlc ?? "",
+	].reduce((a, b) => (b > a ? b : a), "");
 }
 
 function OrderForm({
