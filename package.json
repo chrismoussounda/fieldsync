@@ -6,7 +6,8 @@
 		"format": "biome check --write",
 		"test": "vitest run --passWithNoTests --exclude '**/*.integration.test.ts'",
 		"typecheck": "pnpm -r typecheck",
-		"test:integration": "vitest run integration"
+		"test:integration": "vitest run integration",
+		"test:e2e": "pnpm --filter @fieldsync/web e2e"
 	},
 	"license": "MIT",
 	"devDependencies": {
