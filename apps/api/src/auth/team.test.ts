@@ -202,7 +202,7 @@ describe("passwords", () => {
 		};
 		expect(
 			await failure(changePassword(db, me, "wrong", "a brand new password")),
-		).toBe("UNAUTHORIZED");
+		).toBe("WRONG_PASSWORD");
 		await changePassword(db, me, PASSWORD, "a brand new password");
 		await expect(
 			signIn("tech@example.com", "a brand new password"),

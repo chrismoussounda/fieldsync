@@ -250,7 +250,8 @@ signed out.
 | 401    | `DEVICE_REVOKED`       | An admin locked this device out            |
 | 403    | `FORBIDDEN`            | The role may not do this                   |
 | 403    | `ACCOUNT_DISABLED`     | Right password, but the account is off     |
-| 404    | `NOT_FOUND`            | No such device in the org                  |
+| 403    | `WRONG_PASSWORD`       | The current password given does not match  |
+| 404    | `NOT_FOUND`            | No such device or user in the org          |
 | 409    | `DEVICE_TAKEN`         | Device id or its clock node already used   |
 | 409    | `EMAIL_TAKEN`          | Another user has this email                |
 | 409    | `OWN_ACCOUNT`          | Admins cannot demote or disable themselves |
