@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <title>FieldSync</title>
+  <rect width="512" height="512" rx="112" fill="#0f7a5c"/>
+  <g fill="none" stroke="#fff" stroke-width="40" stroke-linecap="round">
+    <path d="M136 256a120 120 0 0 1 205-85"/>
+    <path d="M376 256a120 120 0 0 1-205 85"/>
+  </g>
+  <g fill="#fff">
+    <path d="M366 146l3 53-53-3z"/>
+    <path d="M146 366l-3-53 53 3z"/>
+  </g>
+</svg>
