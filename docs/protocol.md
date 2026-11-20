@@ -284,7 +284,9 @@ Planning fields are title, description, address, priority, assignee and due
 date; progress fields are status and notes.
 
 Fields outside these lists, and other kinds of record, are refused for every
-role. A technician who edits an order offline while it is reassigned to someone
+role. Values are checked before roles and refused with `INVALID_OP`: known
+statuses and priorities, real dates, bounded text, a title that stays set, and
+an assignee who is one of the org's technicians. A technician who edits an order offline while it is reassigned to someone
 else gets the edit rejected on sync, and the device rebuilds the order from the
 server. Every device still pulls the whole org: limiting what each one receives
 comes later.

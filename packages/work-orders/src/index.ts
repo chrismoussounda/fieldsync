@@ -53,3 +53,54 @@ export function editableFields(
 	if (current?.assigneeId === user.id) return new Set(PROGRESS_FIELDS);
 	return new Set();
 }
+
+export const MAX_LENGTH = {
+	title: 200,
+	address: 300,
+	description: 5000,
+	notes: 5000,
+} as const;
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
+// A work order always has these; the others can be cleared with null.
+const REQUIRED = new Set<string>(["title", "status", "priority"]);
+
+/** Whether a value fits its field: known choices, real dates, bounded text. */
+export function isValidValue(field: string, value: unknown): boolean {
+	if (value === null) return !REQUIRED.has(field);
+	if (typeof value !== "string") return false;
+	switch (field) {
+		case "status":
+			return (STATUSES as readonly string[]).includes(value);
+		case "priority":
+			return (PRIORITIES as readonly string[]).includes(value);
+		case "assigneeId":
+			return UUID.test(value);
+		case "dueDate":
+			return isDay(value);
+		case "title":
+		case "address":
+		case "description":
+		case "notes":
+			return value.trim().length > 0 && value.length <= MAX_LENGTH[field];
+		default:
+			return false;
+	}
+}
+
+// Date.parse rolls 2026-02-30 over to 2 March, so the date must read back unchanged.
+function isDay(value: string): boolean {
+	const time = Date.parse(value);
+	return (
+		DAY.test(value) &&
+		!Number.isNaN(time) &&
+		new Date(time).toISOString().startsWith(value)
+	);
+}
+
+export function isValidPatch(patch: Record<string, unknown>): boolean {
+	return Object.entries(patch).every(([field, value]) =>
+		isValidValue(field, value),
+	);
+}

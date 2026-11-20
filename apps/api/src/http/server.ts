@@ -8,7 +8,7 @@ import Fastify, {
 import { type Kysely, sql } from "kysely";
 import { z } from "zod";
 import { listDevices, revokeDevice } from "../auth/devices.ts";
-import { mayWrite } from "../auth/policy.ts";
+import { isValidOrder, mayWrite, technicianIds } from "../auth/policy.ts";
 import {
 	type AuthConfig,
 	authenticate,
@@ -164,12 +164,15 @@ export function buildServer({
 			});
 			secure(sync);
 
-			sync.post("/push", async (request) =>
-				handlePush(db, request.auth, PushBody.parse(request.body), {
+			sync.post("/push", async (request) => {
+				const body = PushBody.parse(request.body);
+				const technicians = await technicianIds(db, request.auth.orgId);
+				return handlePush(db, request.auth, body, {
+					validate: (op) => isValidOrder(op, technicians),
 					authorize: (op, current) => mayWrite(request.auth, op, current),
 					now,
-				}),
-			);
+				});
+			});
 
 			sync.get("/pull", async (request) =>
 				handlePull(db, request.auth, PullQuery.parse(request.query), now),
