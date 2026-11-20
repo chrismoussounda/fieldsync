@@ -85,10 +85,13 @@ export function buildServer({
 			return reply.code(400).send({ error: "BAD_REQUEST" });
 		}
 		const status = error.statusCode ?? 500;
-		if (status >= 500) request.log.error(error);
-		return reply
-			.code(status)
-			.send({ error: status >= 500 ? "INTERNAL" : error.code });
+		if (status >= 500) {
+			request.log.error(error);
+			return reply.code(500).send({ error: "INTERNAL" });
+		}
+		// Fastify's own codes describe its internals; clients get ours.
+		const code = error instanceof ApiError ? error.code : "BAD_REQUEST";
+		return reply.code(status).send({ error: code });
 	});
 
 	app.get("/healthz", async () => ({ status: "ok" }));

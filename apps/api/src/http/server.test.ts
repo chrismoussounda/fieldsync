@@ -294,6 +294,16 @@ describe("sync routes", () => {
 		}
 	});
 
+	it("answer the framework's own refusals with our code", async () => {
+		const response = await app.inject({
+			method: "POST",
+			url: "/sync/push",
+			headers: { ...(await syncHeaders()), "content-type": "application/json" },
+		});
+		expect(response.statusCode).toBe(400);
+		expect(response.json()).toEqual({ error: "BAD_REQUEST" });
+	});
+
 	it("refuse a batch larger than 100 operations", async () => {
 		const response = await app.inject({
 			method: "POST",
