@@ -146,6 +146,31 @@ describe("user routes", () => {
 	});
 });
 
+describe("conflict routes", () => {
+	it("list conflicts for dispatchers only", async () => {
+		const asRole = async (email: string, device: string) => {
+			const { accessToken } = await signIn(email, device);
+			return app.inject({
+				url: "/conflicts?open=false",
+				headers: { authorization: `Bearer ${accessToken}` },
+			});
+		};
+		const dispatcher = await asRole("dispatch@example.com", OFFICE);
+		expect(dispatcher.json()).toEqual({ conflicts: [] });
+		expect((await asRole("tech@example.com", PHONE)).statusCode).toBe(403);
+	});
+
+	it("refuse to review an unknown conflict", async () => {
+		const { accessToken } = await signIn("dispatch@example.com", OFFICE);
+		const response = await app.inject({
+			method: "POST",
+			url: `/conflicts/${crypto.randomUUID()}/review`,
+			headers: { authorization: `Bearer ${accessToken}` },
+		});
+		expect(response.statusCode).toBe(404);
+	});
+});
+
 describe("device routes", () => {
 	it("are for admins only", async () => {
 		const { accessToken } = await signIn("dispatch@example.com", OFFICE);
@@ -267,6 +292,16 @@ describe("sync routes", () => {
 			expect(response.statusCode).toBe(400);
 			expect(response.json()).toEqual({ error: "BAD_REQUEST" });
 		}
+	});
+
+	it("answer the framework's own refusals with our code", async () => {
+		const response = await app.inject({
+			method: "POST",
+			url: "/sync/push",
+			headers: { ...(await syncHeaders()), "content-type": "application/json" },
+		});
+		expect(response.statusCode).toBe(400);
+		expect(response.json()).toEqual({ error: "BAD_REQUEST" });
 	});
 
 	it("refuse a batch larger than 100 operations", async () => {

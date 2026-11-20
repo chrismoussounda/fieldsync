@@ -17,6 +17,7 @@ import {
 	refresh,
 } from "../auth/session.ts";
 import { listUsers } from "../auth/users.ts";
+import { listConflicts, reviewConflict } from "../conflicts.ts";
 import type { Database } from "../db/schema.ts";
 import { ApiError } from "../errors.ts";
 import { handleGetEntity } from "../sync/entity.ts";
@@ -58,6 +59,12 @@ const EntityParams = z.object({ type: z.string().min(1), id: z.uuid() });
 
 const DeviceParams = z.object({ id: z.uuid() });
 
+const IdParams = z.object({ id: z.uuid() });
+
+const ConflictsQuery = z.object({
+	open: z.enum(["true", "false"]).default("true"),
+});
+
 declare module "fastify" {
 	interface FastifyRequest {
 		auth: Principal;
@@ -78,10 +85,13 @@ export function buildServer({
 			return reply.code(400).send({ error: "BAD_REQUEST" });
 		}
 		const status = error.statusCode ?? 500;
-		if (status >= 500) request.log.error(error);
-		return reply
-			.code(status)
-			.send({ error: status >= 500 ? "INTERNAL" : error.code });
+		if (status >= 500) {
+			request.log.error(error);
+			return reply.code(500).send({ error: "INTERNAL" });
+		}
+		// Fastify's own codes describe its internals; clients get ours.
+		const code = error instanceof ApiError ? error.code : "BAD_REQUEST";
+		return reply.code(status).send({ error: code });
 	});
 
 	app.get("/healthz", async () => ({ status: "ok" }));
@@ -117,6 +127,21 @@ export function buildServer({
 		account.get("/users", async (request) => ({
 			users: await listUsers(db, request.auth),
 		}));
+
+		account.get("/conflicts", async (request) => {
+			const { open } = ConflictsQuery.parse(request.query);
+			return {
+				conflicts: await listConflicts(db, request.auth, {
+					open: open === "true",
+				}),
+			};
+		});
+
+		account.post("/conflicts/:id/review", async (request, reply) => {
+			const { id } = IdParams.parse(request.params);
+			await reviewConflict(db, request.auth, id, now());
+			return reply.code(204).send();
+		});
 
 		account.get("/devices", async (request) => ({
 			devices: await listDevices(db, request.auth),

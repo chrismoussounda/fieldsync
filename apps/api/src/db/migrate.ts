@@ -2,12 +2,14 @@ import type { Kysely } from "kysely";
 import { type MigrationProvider, Migrator } from "kysely/migration";
 import * as syncTables from "./migrations/001_sync_tables.ts";
 import * as authTables from "./migrations/002_auth_tables.ts";
+import * as conflictsIndex from "./migrations/003_conflicts_index.ts";
 
 // Listed in code instead of read from disk, so the simulator can run them in memory.
 const provider: MigrationProvider = {
 	getMigrations: async () => ({
 		"001_sync_tables": syncTables,
 		"002_auth_tables": authTables,
+		"003_conflicts_index": conflictsIndex,
 	}),
 };
 

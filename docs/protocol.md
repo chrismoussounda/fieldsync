@@ -83,7 +83,8 @@ conflict when:
 
 A device's own operations arriving late or out of order are not conflicts.
 Only the server records conflicts; devices merge pulled changes with detection
-off.
+off. Dispatchers read them in the conflict log, which names who wrote each
+value: the last 8 characters of a stamp identify the device, and so its user.
 
 ## Server storage
 
@@ -215,6 +216,9 @@ shrinks the scenario to a short one that still fails.
 | GET    | `/sync/entities/:type/:id` |                              | `EntityResponse`   |
 | POST   | `/auth/login`              | email, password, device      | session            |
 | POST   | `/auth/refresh`            | `refreshToken`               | session            |
+| GET    | `/users`                   |                              | the org's members  |
+| GET    | `/conflicts`               | `open` (default `true`)      | the conflict log   |
+| POST   | `/conflicts/:id/review`    |                              | 204                |
 | GET    | `/devices`                 |                              | the org's devices  |
 | POST   | `/devices/:id/revoke`      |                              | 204                |
 | GET    | `/healthz`                 |                              | process is up      |
@@ -264,6 +268,7 @@ and rejects what the user's role may not do with `FORBIDDEN`.
 | Create, delete or restore a work order | no            | yes        | yes   |
 | Plan the job                           | no            | yes        | yes   |
 | Report progress                        | assigned only | yes        | yes   |
+| Read and review the conflict log       | no            | yes        | yes   |
 | List and revoke devices                | no            | no         | yes   |
 
 Planning fields are title, description, address, priority, assignee and due
