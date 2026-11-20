@@ -4,6 +4,7 @@ import type { Kysely } from "kysely";
 import { createUser } from "./auth/users.ts";
 import type { Database, Role } from "./db/schema.ts";
 import { handlePush } from "./sync/push.ts";
+import { resetOrg } from "./sync/reset.ts";
 
 export const DEMO_ORG = "00000000-0000-4000-8000-00000000d001";
 // Writes the demo orders like any device, so they reach phones through pull.
@@ -88,13 +89,31 @@ export async function seedDemo(
 	if (exists) return;
 
 	await db.insertInto("orgs").values({ id: DEMO_ORG, name: "Demo" }).execute();
-	const ids = new Map<string, string>();
 	for (const user of USERS) {
-		ids.set(
-			user.email,
-			await createUser(db, { ...user, orgId: DEMO_ORG, password }),
-		);
+		await createUser(db, { ...user, orgId: DEMO_ORG, password });
 	}
+	await seedOrders(db, now);
+}
+
+/**
+ * Puts the demo orders back as they started. Users and devices stay, so
+ * signed-in visitors see their app start over at its next sync.
+ */
+export async function resetDemo(
+	db: Kysely<Database>,
+	now = Date.now(),
+): Promise<void> {
+	await resetOrg(db, DEMO_ORG);
+	await seedOrders(db, now);
+}
+
+async function seedOrders(db: Kysely<Database>, now: number): Promise<void> {
+	const users = await db
+		.selectFrom("users")
+		.select(["id", "email"])
+		.where("org_id", "=", DEMO_ORG)
+		.execute();
+	const ids = new Map(users.map((u) => [u.email, u.id]));
 
 	const ops: Op[] = ORDERS.map((order, i) => ({
 		opId: crypto.randomUUID(),

@@ -5,7 +5,8 @@
 		"start": "node src/main.ts",
 		"dev": "node --env-file=.env --watch src/main.ts",
 		"seed": "node --env-file=.env src/seed.ts",
-		"typecheck": "tsc --noEmit"
+		"typecheck": "tsc --noEmit",
+		"reset-demo": "node --env-file=.env src/reset-demo.ts"
 	},
 	"license": "MIT",
 	"type": "module",

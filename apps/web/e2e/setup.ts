@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { PostgreSqlContainer } from "@testcontainers/postgresql";
 import { API_PORT } from "../playwright.config.ts";
 
-const API_DIR = fileURLToPath(new URL("../../api", import.meta.url));
+export const API_DIR = fileURLToPath(new URL("../../api", import.meta.url));
 
 /** A fresh Postgres with the demo org, and the real API in front of it. */
 export default async function setup() {
@@ -29,6 +29,7 @@ export default async function setup() {
 	await ready(`http://127.0.0.1:${API_PORT}/readyz`);
 	// Read by the tests, which run after this in child processes.
 	process.env.DEMO_PASSWORD = env.DEMO_PASSWORD;
+	process.env.DATABASE_URL = env.DATABASE_URL;
 
 	return async () => {
 		api.kill();
