@@ -5,6 +5,11 @@ const Env = z.object({
 	JWT_SECRET: z.string().min(32),
 	HOST: z.string().default("0.0.0.0"),
 	PORT: z.coerce.number().int().min(1).max(65535).default(3000),
+	// Behind a hosting proxy, so rate limits see each client's own address.
+	TRUST_PROXY: z
+		.enum(["true", "false"])
+		.default("false")
+		.transform((v) => v === "true"),
 	LOG_LEVEL: z
 		.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
 		.default("info"),

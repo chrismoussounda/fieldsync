@@ -12,6 +12,7 @@
 	"type": "module",
 	"private": true,
 	"dependencies": {
+		"@fastify/rate-limit": "^11.2.2",
 		"@fieldsync/hlc": "workspace:^",
 		"@fieldsync/merge": "workspace:^",
 		"@fieldsync/protocol": "workspace:^",

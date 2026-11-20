@@ -1,3 +1,4 @@
+import rateLimit from "@fastify/rate-limit";
 import { PROTOCOL_VERSION } from "@fieldsync/protocol";
 import Fastify, {
 	type FastifyError,
@@ -16,7 +17,7 @@ import {
 	type Principal,
 	refresh,
 } from "../auth/session.ts";
-import { listUsers } from "../auth/users.ts";
+import { listUsers, normalizeEmail } from "../auth/users.ts";
 import { listConflicts, reviewConflict } from "../conflicts.ts";
 import type { Database } from "../db/schema.ts";
 import { ApiError } from "../errors.ts";
@@ -24,13 +25,24 @@ import { handleGetEntity } from "../sync/entity.ts";
 import { handlePull, MAX_PULL_LIMIT } from "../sync/pull.ts";
 import { handlePush } from "../sync/push.ts";
 
+/** Requests allowed: sign-ins per account and address per 15 minutes,
+ * refreshes per address and sync requests per device, per minute. */
+export type Limits = { login: number; refresh: number; sync: number };
+
+export const DEFAULT_LIMITS: Limits = { login: 10, refresh: 60, sync: 300 };
+
 export type ServerOptions = {
 	db: Kysely<Database>;
 	/** Signs access tokens; at least 32 bytes. */
 	secret: Uint8Array;
 	now?: () => number;
 	logger?: FastifyServerOptions["logger"];
+	limits?: Limits;
+	/** Read the client address from X-Forwarded-For, behind a proxy. */
+	trustProxy?: boolean;
 };
+
+const rateLimited = () => new ApiError(429, "RATE_LIMITED");
 
 const MAX_PUSH_OPS = 100;
 
@@ -76,8 +88,10 @@ export function buildServer({
 	secret,
 	now = Date.now,
 	logger = false,
+	limits = DEFAULT_LIMITS,
+	trustProxy = false,
 }: ServerOptions): FastifyInstance {
-	const app = Fastify({ logger, bodyLimit: 1024 * 1024 });
+	const app = Fastify({ logger, bodyLimit: 1024 * 1024, trustProxy });
 	const config: AuthConfig = { secret, now };
 
 	app.setErrorHandler((error: FastifyError, request, reply) => {
@@ -105,13 +119,40 @@ export function buildServer({
 		}
 	});
 
-	app.post("/auth/login", async (request) =>
-		login(db, config, LoginBody.parse(request.body)),
-	);
+	app.register(async (auth) => {
+		// After parsing, so a sign-in is counted per account, not only per address.
+		await auth.register(rateLimit, {
+			global: false,
+			hook: "preHandler",
+			errorResponseBuilder: rateLimited,
+		});
 
-	app.post("/auth/refresh", async (request) =>
-		refresh(db, config, RefreshBody.parse(request.body).refreshToken),
-	);
+		auth.post(
+			"/auth/login",
+			{
+				config: {
+					rateLimit: {
+						max: limits.login,
+						timeWindow: "15 minutes",
+						keyGenerator: (request) => {
+							const { email } = (request.body ?? {}) as { email?: unknown };
+							return `${request.ip}:${normalizeEmail(String(email ?? ""))}`;
+						},
+					},
+				},
+			},
+			async (request) => login(db, config, LoginBody.parse(request.body)),
+		);
+
+		auth.post(
+			"/auth/refresh",
+			{
+				config: { rateLimit: { max: limits.refresh, timeWindow: "1 minute" } },
+			},
+			async (request) =>
+				refresh(db, config, RefreshBody.parse(request.body).refreshToken),
+		);
+	});
 
 	// Routes registered after this need a valid access token.
 	const secure = (scope: FastifyInstance) => {
@@ -163,6 +204,14 @@ export function buildServer({
 				}
 			});
 			secure(sync);
+			// Per device, once signed in: an office behind one address is not one client.
+			await sync.register(rateLimit, {
+				max: limits.sync,
+				timeWindow: "1 minute",
+				hook: "preHandler",
+				keyGenerator: (request) => request.auth.deviceId,
+				errorResponseBuilder: rateLimited,
+			});
 
 			sync.post("/push", async (request) => {
 				const body = PushBody.parse(request.body);

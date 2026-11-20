@@ -12,6 +12,7 @@ describe("loadConfig", () => {
 			HOST: "0.0.0.0",
 			PORT: 3000,
 			LOG_LEVEL: "info",
+			TRUST_PROXY: false,
 		});
 	});
 
