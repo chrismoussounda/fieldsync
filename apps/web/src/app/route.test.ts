@@ -9,6 +9,7 @@ describe("parseRoute", () => {
 		expect(parseRoute(ROUTES.new)).toEqual({ name: "new" });
 		expect(parseRoute(ROUTES.debug)).toEqual({ name: "debug" });
 		expect(parseRoute(ROUTES.conflicts)).toEqual({ name: "conflicts" });
+		expect(parseRoute(ROUTES.devices)).toEqual({ name: "devices" });
 		expect(parseRoute(ROUTES.list)).toEqual({ name: "list" });
 	});
 

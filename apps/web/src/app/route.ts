@@ -5,12 +5,14 @@ export type Route =
 	| { name: "new" }
 	| { name: "debug" }
 	| { name: "conflicts" }
+	| { name: "devices" }
 	| { name: "order"; id: string };
 
 export function parseRoute(hash: string): Route {
 	if (hash === "#/new") return { name: "new" };
 	if (hash === "#/debug") return { name: "debug" };
 	if (hash === "#/conflicts") return { name: "conflicts" };
+	if (hash === "#/devices") return { name: "devices" };
 	const order = /^#\/orders\/([0-9a-f-]{36})$/.exec(hash);
 	if (order?.[1]) return { name: "order", id: order[1] };
 	return { name: "list" };
@@ -31,5 +33,6 @@ export const ROUTES = {
 	new: "#/new",
 	debug: "#/debug",
 	conflicts: "#/conflicts",
+	devices: "#/devices",
 	order: (id: string) => `#/orders/${id}`,
 };
