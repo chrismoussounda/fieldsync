@@ -5,8 +5,11 @@ import {
 	editableFields,
 	FIELDS,
 	type Field,
+	isValidPatch,
 	WORK_ORDER,
 } from "@fieldsync/work-orders";
+import type { Kysely } from "kysely";
+import type { Database } from "../db/schema.ts";
 import type { Principal } from "./session.ts";
 
 const KNOWN = new Set<string>(FIELDS);
@@ -27,4 +30,27 @@ export function mayWrite(
 		current?.fields ?? null,
 	);
 	return fields.every((f) => editable.has(f as Field));
+}
+
+/** Values that fit their fields, and an assignee who is one of the org's technicians. */
+export function isValidOrder(
+	op: Op,
+	technicians: ReadonlySet<string>,
+): boolean {
+	if (!isValidPatch(op.patch)) return false;
+	const assignee = op.patch.assigneeId;
+	return typeof assignee !== "string" || technicians.has(assignee);
+}
+
+export async function technicianIds(
+	db: Kysely<Database>,
+	orgId: string,
+): Promise<ReadonlySet<string>> {
+	const rows = await db
+		.selectFrom("users")
+		.select("id")
+		.where("org_id", "=", orgId)
+		.where("role", "=", "technician")
+		.execute();
+	return new Set(rows.map((r) => r.id));
 }

@@ -166,6 +166,29 @@ describe("handlePush", () => {
 		expect(await order()).toBeUndefined();
 	});
 
+	it("rejects invalid values before asking about roles", async () => {
+		let asked = false;
+		const bad = op(PHONE, 1, { patch: { status: "banana" } });
+		const { results } = await handlePush(
+			db,
+			phone,
+			{ ops: [bad] },
+			{
+				validate: (o) => o.patch.status !== "banana",
+				authorize: () => {
+					asked = true;
+					return true;
+				},
+				now: () => NOW,
+			},
+		);
+		expect(results).toEqual([
+			{ opId: bad.opId, status: "rejected", reason: "INVALID_OP" },
+		]);
+		expect(asked).toBe(false);
+		expect(await order()).toBeUndefined();
+	});
+
 	it("asks whether the user may change the record as stored", async () => {
 		const seen: unknown[] = [];
 		// Allows creating the record, then only edits that keep it assigned.

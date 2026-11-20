@@ -239,6 +239,31 @@ describe("sync routes", () => {
 		expect(entity.json().entity.fields).toEqual({ status: "assigned" });
 	});
 
+	it("refuse values that make no sense", async () => {
+		const admin = await db
+			.selectFrom("users")
+			.select("id")
+			.where("role", "=", "admin")
+			.executeTakeFirstOrThrow();
+		const response = await app.inject({
+			method: "POST",
+			url: "/sync/push",
+			headers: await syncHeaders(),
+			payload: {
+				ops: [
+					op({ title: "Fix pump", status: "banana" }),
+					op({ title: "Fix pump", assigneeId: admin.id }),
+				],
+			},
+		});
+		for (const result of response.json().results) {
+			expect(result).toMatchObject({
+				status: "rejected",
+				reason: "INVALID_OP",
+			});
+		}
+	});
+
 	it("refuse an operation the role may not do", async () => {
 		const response = await app.inject({
 			method: "POST",

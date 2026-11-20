@@ -17,13 +17,20 @@ export type Auth = { orgId: string; deviceId: string };
 /** Whether the device's user may apply an operation to the record as it is now. */
 export type Authorize = (op: Op, current: EntityState | null) => boolean;
 
-export type PushOptions = { authorize: Authorize; now?: () => number };
+/** Whether an operation's values make sense, whoever sends it. */
+export type Validate = (op: Op) => boolean;
+
+export type PushOptions = {
+	authorize: Authorize;
+	validate?: Validate;
+	now?: () => number;
+};
 
 export function handlePush(
 	db: Kysely<Database>,
 	auth: Auth,
 	body: PushRequest,
-	{ authorize, now = Date.now }: PushOptions,
+	{ authorize, validate = () => true, now = Date.now }: PushOptions,
 ): Promise<PushResponse> {
 	return db.transaction().execute(async (tx) => {
 		// One writer per org at a time: change numbers are then handed out in
@@ -37,7 +44,9 @@ export function handlePush(
 
 		const results: OpResult[] = [];
 		for (const raw of body.ops) {
-			results.push(await pushOne(tx, auth, authorize, raw, now()));
+			results.push(
+				await pushOne(tx, auth, { authorize, validate }, raw, now()),
+			);
 		}
 		return { results, serverTime: now() };
 	});
@@ -46,7 +55,7 @@ export function handlePush(
 async function pushOne(
 	tx: Transaction<Database>,
 	auth: Auth,
-	authorize: Authorize,
+	{ authorize, validate }: { authorize: Authorize; validate: Validate },
 	raw: unknown,
 	now: number,
 ): Promise<OpResult> {
@@ -70,7 +79,9 @@ async function pushOne(
 
 	const current = await load(tx, auth, op);
 	const denied =
-		check(auth, op, now) ?? (authorize(op, current) ? null : "FORBIDDEN");
+		check(auth, op, now) ??
+		(validate(op) ? null : "INVALID_OP") ??
+		(authorize(op, current) ? null : "FORBIDDEN");
 	if (denied) {
 		const result: OpResult = {
 			opId: op.opId,
