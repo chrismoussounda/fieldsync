@@ -366,3 +366,7 @@ code {
 	background: var(--urgent-bg);
 	color: var(--danger);
 }
+
+a.brand {
+	color: var(--text);
+}

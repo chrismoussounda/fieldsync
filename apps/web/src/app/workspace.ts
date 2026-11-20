@@ -1,4 +1,4 @@
-import { HttpTransport, SyncClient } from "@fieldsync/sync-client";
+import { HttpError, HttpTransport, SyncClient } from "@fieldsync/sync-client";
 import { type Role, Session, type User } from "../auth/session.ts";
 import { SyncLoop } from "../sync/loop.ts";
 import { DexieStorage, LocalDb } from "../sync/storage.ts";
@@ -69,16 +69,31 @@ export async function startSync(
 	};
 }
 
+/** A signed-in request to the API; throws `HttpError`, or `TypeError` offline. */
+export async function apiFetch<T>(
+	session: Session,
+	path: string,
+	init: RequestInit = {},
+): Promise<T | null> {
+	const token = await session.getToken();
+	const response = await fetch(`${API_URL}${path}`, {
+		...init,
+		headers: { authorization: `Bearer ${token}` },
+	});
+	if (!response.ok) {
+		const payload = await response.json().catch(() => null);
+		throw new HttpError(response.status, payload?.error);
+	}
+	return response.status === 204 ? null : ((await response.json()) as T);
+}
+
 // Cached, so names still show offline.
 async function refreshMembers(db: LocalDb, session: Session): Promise<boolean> {
-	const token = await session.getToken().catch(() => null);
-	if (!token) return false;
-	const response = await fetch(`${API_URL}/users`, {
-		headers: { authorization: `Bearer ${token}` },
-	}).catch(() => null);
-	if (!response?.ok) return false;
-	const { users } = (await response.json()) as { users: Member[] };
-	await db.setMeta("members", users);
+	const result = await apiFetch<{ users: Member[] }>(session, "/users").catch(
+		() => null,
+	);
+	if (!result) return false;
+	await db.setMeta("members", result.users);
 	return true;
 }
 

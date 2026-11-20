@@ -1,8 +1,10 @@
+import { canManage } from "@fieldsync/work-orders";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { useRoute } from "./app/route.ts";
+import { ROUTES, useRoute } from "./app/route.ts";
 import { type Sync, startSync } from "./app/workspace.ts";
 import type { Session, User } from "./auth/session.ts";
+import { Conflicts } from "./screens/Conflicts.tsx";
 import { Debug } from "./screens/Debug.tsx";
 import { Login } from "./screens/Login.tsx";
 import { OrderDetail } from "./screens/OrderDetail.tsx";
@@ -48,7 +50,10 @@ function SignedIn({ db, session, user }: Props & { user: User }) {
 	return (
 		<>
 			<header className="topbar">
-				<strong className="brand">FieldSync</strong>
+				<a href={ROUTES.list} className="brand">
+					FieldSync
+				</a>
+				{canManage(user.role) && <a href={ROUTES.conflicts}>Conflicts</a>}
 				{sync && <SyncBadge loop={sync.loop} pending={pending} />}
 				<span className="who">
 					{user.name} <span className="muted">· {user.role}</span>
@@ -58,6 +63,8 @@ function SignedIn({ db, session, user }: Props & { user: User }) {
 			<main className="page">
 				{route.name === "list" || !sync ? (
 					<Orders db={db} user={user} />
+				) : route.name === "conflicts" ? (
+					<Conflicts db={db} session={session} />
 				) : route.name === "debug" ? (
 					<Debug db={db} sync={sync} />
 				) : (

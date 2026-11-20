@@ -15,6 +15,17 @@ export type Order = {
 	notes: string;
 };
 
+export const FIELD_LABELS: Record<string, string> = {
+	title: "Title",
+	description: "Description",
+	address: "Address",
+	priority: "Priority",
+	assigneeId: "Assignee",
+	dueDate: "Due date",
+	status: "Status",
+	notes: "Notes",
+};
+
 export const STATUS_LABELS: Record<string, string> = {
 	open: "Open",
 	assigned: "Assigned",
