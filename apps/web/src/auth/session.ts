@@ -1,5 +1,6 @@
 import { HttpError } from "@fieldsync/sync-client";
 import type { LocalDb } from "../sync/storage.ts";
+import { deviceName } from "./device-name.ts";
 
 export type Role = "technician" | "dispatcher" | "admin";
 export type User = { id: string; name: string; role: Role };
@@ -87,7 +88,7 @@ export class Session {
 				email,
 				password,
 				deviceId: await this.deviceId(),
-				deviceName: "Web app",
+				deviceName: deviceName(navigator.userAgent),
 			});
 		let tokens: Tokens;
 		try {
