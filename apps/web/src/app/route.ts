@@ -6,13 +6,17 @@ export type Route =
 	| { name: "debug" }
 	| { name: "conflicts" }
 	| { name: "devices" }
+	| { name: "team" }
+	| { name: "account" }
 	| { name: "order"; id: string };
 
+const PAGES = ["new", "debug", "conflicts", "devices", "team", "account"];
+
 export function parseRoute(hash: string): Route {
-	if (hash === "#/new") return { name: "new" };
-	if (hash === "#/debug") return { name: "debug" };
-	if (hash === "#/conflicts") return { name: "conflicts" };
-	if (hash === "#/devices") return { name: "devices" };
+	const page = hash.slice(2);
+	if (hash.startsWith("#/") && PAGES.includes(page)) {
+		return { name: page } as Route;
+	}
 	const order = /^#\/orders\/([0-9a-f-]{36})$/.exec(hash);
 	if (order?.[1]) return { name: "order", id: order[1] };
 	return { name: "list" };
@@ -34,5 +38,7 @@ export const ROUTES = {
 	debug: "#/debug",
 	conflicts: "#/conflicts",
 	devices: "#/devices",
+	team: "#/team",
+	account: "#/account",
 	order: (id: string) => `#/orders/${id}`,
 };

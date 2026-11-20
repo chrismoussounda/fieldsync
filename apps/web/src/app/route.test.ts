@@ -10,11 +10,14 @@ describe("parseRoute", () => {
 		expect(parseRoute(ROUTES.debug)).toEqual({ name: "debug" });
 		expect(parseRoute(ROUTES.conflicts)).toEqual({ name: "conflicts" });
 		expect(parseRoute(ROUTES.devices)).toEqual({ name: "devices" });
+		expect(parseRoute(ROUTES.team)).toEqual({ name: "team" });
+		expect(parseRoute(ROUTES.account)).toEqual({ name: "account" });
 		expect(parseRoute(ROUTES.list)).toEqual({ name: "list" });
 	});
 
 	it("falls back to the list for anything else", () => {
 		expect(parseRoute("")).toEqual({ name: "list" });
+		expect(parseRoute("#/order")).toEqual({ name: "list" });
 		expect(parseRoute("#/orders/not-an-id")).toEqual({ name: "list" });
 	});
 });

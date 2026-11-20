@@ -375,3 +375,26 @@ a.brand {
 	background: var(--urgent-bg);
 	color: var(--danger);
 }
+
+a.who {
+	color: var(--text);
+	font-weight: 500;
+}
+
+.chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.3rem;
+}
+
+.hint {
+	font-size: 0.85rem;
+}
+
+.add-member {
+	margin-bottom: 0.75rem;
+}
+
+.member.inactive strong {
+	color: var(--muted);
+}

@@ -81,12 +81,15 @@ export async function startSync(
 export async function apiFetch<T>(
 	session: Session,
 	path: string,
-	init: RequestInit = {},
+	{ method = "GET", json }: { method?: string; json?: unknown } = {},
 ): Promise<T | null> {
 	const token = await session.getToken();
+	const headers: Record<string, string> = { authorization: `Bearer ${token}` };
+	if (json !== undefined) headers["content-type"] = "application/json";
 	const response = await fetch(`${API_URL}${path}`, {
-		...init,
-		headers: { authorization: `Bearer ${token}` },
+		method,
+		headers,
+		...(json === undefined ? {} : { body: JSON.stringify(json) }),
 	});
 	if (!response.ok) {
 		const payload = await response.json().catch(() => null);
