@@ -14,7 +14,7 @@ import {
 	isValidOrder,
 	mayWrite,
 	technicianIds,
-	workOrderScope,
+	WORK_ORDER_SCOPING,
 } from "../auth/policy.ts";
 import {
 	type AuthConfig,
@@ -253,7 +253,7 @@ export function buildServer({
 				db,
 				request.auth,
 				{ entityType: type, entityId: id },
-				{ audience: audienceOf(request.auth), scopeOf: workOrderScope },
+				{ audience: audienceOf(request.auth), scoping: WORK_ORDER_SCOPING },
 			);
 			if (!entity) throw new ApiError(404, "NOT_FOUND");
 			return { entries: await entityHistory(db, request.auth, type, id) };
@@ -309,7 +309,7 @@ export function buildServer({
 				return handlePush(db, request.auth, body, {
 					validate: (op) => isValidOrder(op, technicians),
 					authorize: (op, current) => mayWrite(request.auth, op, current),
-					scopeOf: workOrderScope,
+					scoping: WORK_ORDER_SCOPING,
 					now,
 				});
 			});
@@ -327,7 +327,11 @@ export function buildServer({
 					db,
 					request.auth,
 					{ entityType: type, entityId: id },
-					{ now, audience: audienceOf(request.auth), scopeOf: workOrderScope },
+					{
+						now,
+						audience: audienceOf(request.auth),
+						scoping: WORK_ORDER_SCOPING,
+					},
 				);
 			});
 		},

@@ -2,12 +2,14 @@ import { encode } from "@fieldsync/hlc";
 import type { Op } from "@fieldsync/protocol";
 import type { Kysely } from "kysely";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { workOrderScope } from "../auth/policy.ts";
+import { WORK_ORDER_SCOPING } from "../auth/policy.ts";
 import type { Database } from "../db/schema.ts";
 import { createTestDb, emptyTestDb } from "../db/testing.ts";
+import { handleGetEntity } from "./entity.ts";
 import { handlePull, MAX_PULL_LIMIT } from "./pull.ts";
 import { type Auth, handlePush } from "./push.ts";
 import { resetOrg } from "./reset.ts";
+import type { Scoping } from "./scope.ts";
 import { openRules } from "./testing.ts";
 
 const ORG = "00000000-0000-4000-8000-000000000001";
@@ -161,7 +163,7 @@ describe("partial pull", () => {
 			db,
 			phone,
 			{ ops: [{ ...op(wall, patch), entityId: ORDER }] },
-			{ ...openRules, scopeOf: workOrderScope, now: () => NOW },
+			{ ...openRules, scoping: WORK_ORDER_SCOPING, now: () => NOW },
 		);
 	};
 	const asJunior = (cursor: number) =>
@@ -218,5 +220,71 @@ describe("partial pull", () => {
 		const junior = await asJunior(0);
 		expect(junior.epoch).not.toBe(office.epoch);
 		expect(junior.epoch.startsWith(office.epoch)).toBe(true);
+	});
+});
+
+describe("records that belong to another", () => {
+	const ORDER = "00000000-0000-4000-8000-0000000000aa";
+	const PHOTO = "00000000-0000-4000-8000-0000000000bb";
+	// Like a photo and its order: the photo shares the order's scope.
+	const scoping: Scoping = {
+		scopeOf: WORK_ORDER_SCOPING.scopeOf,
+		parentOf: (type, _id, state) =>
+			type === "photo" && typeof state.fields.orderId === "string"
+				? { type: "work_order", id: state.fields.orderId }
+				: null,
+	};
+	let wall = 200;
+
+	const write = (type: string, id: string, patch: Op["patch"]) => {
+		wall += 1;
+		return handlePush(
+			db,
+			phone,
+			{ ops: [{ ...op(wall, patch), entityType: type, entityId: id }] },
+			{ ...openRules, scoping, now: () => NOW },
+		);
+	};
+	const asJunior = (cursor: number) =>
+		handlePull(db, phone, { cursor, limit: 100 }, { audience: "junior" });
+
+	it("come with their parent, and go with it", async () => {
+		await write("work_order", ORDER, { title: "Fix pump" });
+		await write("photo", PHOTO, { orderId: ORDER, caption: "Before" });
+		await write("work_order", ORDER, { assigneeId: "junior" });
+		await write("photo", PHOTO, { caption: "After" });
+		await write("work_order", ORDER, { assigneeId: "merveille" });
+
+		const { changes } = await asJunior(0);
+		expect(changes.map((c) => [c.seq, c.entityType, c.scope])).toEqual([
+			[3, "work_order", "enter"],
+			[4, "photo", undefined],
+			[5, "work_order", "leave"],
+		]);
+		expect(changes[0]?.children).toEqual([
+			{
+				entityType: "photo",
+				entityId: PHOTO,
+				state: expect.objectContaining({
+					fields: { orderId: ORDER, caption: "After" },
+				}),
+			},
+		]);
+		expect(changes[2]?.children).toEqual([
+			{ entityType: "photo", entityId: PHOTO },
+		]);
+	});
+
+	it("are only visible to whoever sees the parent", async () => {
+		await write("work_order", ORDER, {
+			title: "Fix pump",
+			assigneeId: "junior",
+		});
+		await write("photo", PHOTO, { orderId: ORDER, caption: "Before" });
+		const request = { entityType: "photo", entityId: PHOTO };
+		const as = (audience: string) =>
+			handleGetEntity(db, phone, request, { audience, scoping });
+		expect((await as("junior")).entity).not.toBeNull();
+		expect((await as("merveille")).entity).toBeNull();
 	});
 });

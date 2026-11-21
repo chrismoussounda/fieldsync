@@ -11,12 +11,20 @@ import {
 } from "@fieldsync/protocol";
 import { type Kysely, sql, type Transaction } from "kysely";
 import type { Database } from "../db/schema.ts";
-import type { ScopeOf } from "./scope.ts";
+import { readEntity } from "./records.ts";
+import { type EntityRef, type Scoping, scopeWith } from "./scope.ts";
 
 export type Auth = { orgId: string; deviceId: string };
 
-/** Whether the device's user may apply an operation to the record as it is now. */
-export type Authorize = (op: Op, current: EntityState | null) => boolean;
+/**
+ * Whether the device's user may apply an operation to the record as it is
+ * now; `parent` is the record it belongs to, if any, like a photo's order.
+ */
+export type Authorize = (
+	op: Op,
+	current: EntityState | null,
+	parent: EntityState | null,
+) => boolean;
 
 /** Whether an operation's values make sense, whoever sends it. */
 export type Validate = (op: Op) => boolean;
@@ -28,17 +36,17 @@ export type PushOptions = {
 	 * Recorded on each change, so partial pulls know who it concerns. Required:
 	 * a writer that forgot it would hide its records from every technician.
 	 */
-	scopeOf: ScopeOf;
+	scoping: Scoping;
 	now?: () => number;
 };
 
-type Rules = { authorize: Authorize; validate: Validate; scopeOf: ScopeOf };
+type Rules = { authorize: Authorize; validate: Validate; scoping: Scoping };
 
 export function handlePush(
 	db: Kysely<Database>,
 	auth: Auth,
 	body: PushRequest,
-	{ authorize, validate = () => true, scopeOf, now = Date.now }: PushOptions,
+	{ authorize, validate = () => true, scoping, now = Date.now }: PushOptions,
 ): Promise<PushResponse> {
 	return db.transaction().execute(async (tx) => {
 		// One writer per org at a time: change numbers are then handed out in
@@ -53,7 +61,7 @@ export function handlePush(
 		const results: OpResult[] = [];
 		for (const raw of body.ops) {
 			results.push(
-				await pushOne(tx, auth, { authorize, validate, scopeOf }, raw, now()),
+				await pushOne(tx, auth, { authorize, validate, scoping }, raw, now()),
 			);
 		}
 		return { results, serverTime: now() };
@@ -63,7 +71,7 @@ export function handlePush(
 async function pushOne(
 	tx: Transaction<Database>,
 	auth: Auth,
-	{ authorize, validate, scopeOf }: Rules,
+	{ authorize, validate, scoping }: Rules,
 	raw: unknown,
 	now: number,
 ): Promise<OpResult> {
@@ -85,11 +93,17 @@ async function pushOne(
 			: prior.result;
 	}
 
-	const current = await load(tx, auth, op);
+	const { entityType: type, entityId: id } = op;
+	const current = await readEntity(tx, auth.orgId, type, id);
+	const { state, won, conflicts } = merge(current, op);
+	const ref = scoping.parentOf(type, id, state);
+	const parent = ref
+		? await readEntity(tx, auth.orgId, ref.type, ref.id)
+		: null;
 	const denied =
 		check(auth, op, now) ??
 		(validate(op) ? null : "INVALID_OP") ??
-		(authorize(op, current) ? null : "FORBIDDEN");
+		(authorize(op, current, parent) ? null : "FORBIDDEN");
 	if (denied) {
 		const result: OpResult = {
 			opId: op.opId,
@@ -101,9 +115,14 @@ async function pushOne(
 		return result;
 	}
 
-	const { state, won, conflicts } = merge(current, op);
 	const seq = await nextSeq(tx, auth);
-	await save(tx, auth, op, state, seq);
+	await save(tx, auth, op, state, ref, seq);
+	// A record only changes parent if its own fields say so.
+	const refBefore = current ? scoping.parentOf(type, id, current) : null;
+	const parentBefore =
+		refBefore && (refBefore.type !== ref?.type || refBefore.id !== ref?.id)
+			? await readEntity(tx, auth.orgId, refBefore.type, refBefore.id)
+			: parent;
 	await tx
 		.insertInto("changes")
 		.values({
@@ -116,8 +135,10 @@ async function pushOne(
 			kind: op.kind,
 			patch: JSON.stringify(won),
 			hlc: op.hlc,
-			scope_before: current ? scopeOf(op.entityType, current) : null,
-			scope_after: scopeOf(op.entityType, state),
+			scope_before: current
+				? scopeWith(scoping, type, id, current, parentBefore)
+				: null,
+			scope_after: scopeWith(scoping, type, id, state, parent),
 		})
 		.execute();
 	if (conflicts.length > 0) {
@@ -161,36 +182,17 @@ function opIdOf(raw: unknown): string | null {
 	return typeof opId === "string" ? opId : null;
 }
 
-async function load(
-	tx: Transaction<Database>,
-	auth: Auth,
-	op: Op,
-): Promise<EntityState | null> {
-	const row = await tx
-		.selectFrom("entities")
-		.selectAll()
-		.where("org_id", "=", auth.orgId)
-		.where("type", "=", op.entityType)
-		.where("id", "=", op.entityId)
-		.executeTakeFirst();
-	if (!row) return null;
-	return {
-		fields: row.fields,
-		clocks: row.clocks,
-		createdHlc: row.created_hlc,
-		deletedHlc: row.deleted_hlc,
-		restoredHlc: row.restored_hlc,
-	};
-}
-
 async function save(
 	tx: Transaction<Database>,
 	auth: Auth,
 	op: Op,
 	state: EntityState,
+	parent: EntityRef | null,
 	seq: number,
 ): Promise<void> {
 	const values = {
+		parent_type: parent?.type ?? null,
+		parent_id: parent?.id ?? null,
 		fields: JSON.stringify(state.fields),
 		clocks: JSON.stringify(state.clocks),
 		created_hlc: state.createdHlc,

@@ -174,6 +174,13 @@ counter when there is no further page. The counter, the changes and the copies
 are read in one snapshot, so a copy is never older than the changes sent with
 it.
 
+A record can belong to another, like a photo to its order: the server stores
+its parent (`parent_type`, `parent_id`), and it shares the parent's scope. An
+`enter` change carries the copies of the record's children in `children`, and a
+`leave` change lists them, so they come and go with it. A child's own changes
+are filed under the parent's scope at the time. One level only: a parent has no
+parent itself.
+
 The epoch a technician sees is the org's plus their id. A role change gives
 their devices a new epoch, so they start over from 0 with the full set, or
 their own share of it.

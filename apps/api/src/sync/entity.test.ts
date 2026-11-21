@@ -1,7 +1,7 @@
 import { encode } from "@fieldsync/hlc";
 import type { Kysely } from "kysely";
 import { afterAll, beforeAll, beforeEach, expect, it } from "vitest";
-import { workOrderScope } from "../auth/policy.ts";
+import { WORK_ORDER_SCOPING } from "../auth/policy.ts";
 import type { Database } from "../db/schema.ts";
 import { createTestDb, emptyTestDb } from "../db/testing.ts";
 import { handleGetEntity } from "./entity.ts";
@@ -94,7 +94,10 @@ it("returns null for a record outside the device's scope", async () => {
 		{ ...openRules },
 	);
 	const as = (audience: string) =>
-		handleGetEntity(db, phone, request, { audience, scopeOf: workOrderScope });
+		handleGetEntity(db, phone, request, {
+			audience,
+			scoping: WORK_ORDER_SCOPING,
+		});
 	expect((await as("junior")).entity).toBeNull();
 	expect((await as("merveille")).entity?.fields).toEqual({
 		assigneeId: "merveille",

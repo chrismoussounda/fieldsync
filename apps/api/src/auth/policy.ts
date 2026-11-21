@@ -10,7 +10,7 @@ import {
 } from "@fieldsync/work-orders";
 import type { Kysely } from "kysely";
 import type { Database } from "../db/schema.ts";
-import type { Audience, ScopeOf } from "../sync/scope.ts";
+import type { Audience, Scoping } from "../sync/scope.ts";
 import type { Principal } from "./session.ts";
 
 const KNOWN = new Set<string>(FIELDS);
@@ -33,11 +33,14 @@ export function mayWrite(
 	return fields.every((f) => editable.has(f as Field));
 }
 
-/** A work order is in the scope of its assignee; nothing else is scoped. */
-export const workOrderScope: ScopeOf = (entityType, state) =>
-	entityType === WORK_ORDER && typeof state.fields.assigneeId === "string"
-		? state.fields.assigneeId
-		: null;
+/** A work order is in the scope of its assignee; nothing else is scoped yet. */
+export const WORK_ORDER_SCOPING: Scoping = {
+	scopeOf: (entityType, state) =>
+		entityType === WORK_ORDER && typeof state.fields.assigneeId === "string"
+			? state.fields.assigneeId
+			: null,
+	parentOf: () => null,
+};
 
 /** Technicians sync only their own orders; the office syncs everything. */
 export function audienceOf(principal: Principal): Audience {
