@@ -8,10 +8,15 @@ export const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 export const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 
 export const MAX_CAPTION = 200;
+export const MAX_SIGNER = 100;
 
 /** Set once, when the photo is taken. */
 const FIXED = ["orderId", "contentType", "size", "takenBy", "takenAt"] as const;
-export const PHOTO_FIELDS = [...FIXED, "caption"] as const;
+/**
+ * `signer` makes the photo a customer's signature, with their name; set once
+ * too, and only when the photo is taken.
+ */
+export const PHOTO_FIELDS = [...FIXED, "signer", "caption"] as const;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
@@ -31,6 +36,12 @@ export function isValidPhotoPatch(patch: Record<string, unknown>): boolean {
 				);
 			case "takenAt":
 				return typeof value === "string" && !Number.isNaN(Date.parse(value));
+			case "signer":
+				return (
+					typeof value === "string" &&
+					value.trim().length > 0 &&
+					value.length <= MAX_SIGNER
+				);
 			case "caption":
 				return (
 					value === null ||
@@ -81,5 +92,5 @@ export function isPhotoChange(
 	if (!current) {
 		return FIXED.every((f) => f in patch) && patch.takenBy === user.id;
 	}
-	return FIXED.every((f) => !(f in patch));
+	return [...FIXED, "signer"].every((f) => !(f in patch));
 }

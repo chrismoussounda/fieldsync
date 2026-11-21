@@ -35,6 +35,8 @@ describe("isValidPhotoPatch", () => {
 		expect(isValidPhotoPatch({ takenAt: "yesterday" })).toBe(false);
 		expect(isValidPhotoPatch({ caption: " " })).toBe(false);
 		expect(isValidPhotoPatch({ caption: null })).toBe(true);
+		expect(isValidPhotoPatch({ signer: "Mr Kaya" })).toBe(true);
+		expect(isValidPhotoPatch({ signer: " " })).toBe(false);
 	});
 });
 
@@ -60,5 +62,9 @@ describe("who may do what", () => {
 		expect(isPhotoChange(tech, { caption: "x" }, null)).toBe(false);
 		expect(isPhotoChange(tech, { caption: "x" }, photo)).toBe(true);
 		expect(isPhotoChange(tech, { size: 9 }, photo)).toBe(false);
+		expect(isPhotoChange(tech, { ...photo, signer: "Mr Kaya" }, null)).toBe(
+			true,
+		);
+		expect(isPhotoChange(tech, { signer: "Someone else" }, photo)).toBe(false);
 	});
 });

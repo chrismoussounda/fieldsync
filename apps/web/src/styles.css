@@ -679,3 +679,38 @@ label.button.disabled {
 	color: var(--warn-text);
 	font-size: 0.9rem;
 }
+
+.signature {
+	display: grid;
+	gap: 0.6rem;
+}
+
+.signature figure {
+	display: grid;
+	gap: 0.4rem;
+	margin: 0;
+}
+
+.signature .photo,
+.pad canvas {
+	width: 100%;
+	aspect-ratio: 3;
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	background: #fff;
+}
+
+.signature .photo img {
+	object-fit: contain;
+}
+
+.pad {
+	display: grid;
+	gap: 0.5rem;
+}
+
+.pad canvas {
+	height: auto;
+	touch-action: none;
+	cursor: crosshair;
+}

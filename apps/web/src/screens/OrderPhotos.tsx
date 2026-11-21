@@ -22,7 +22,10 @@ type Props = {
 
 /** The order's photos; taken offline, they upload once the network is back. */
 export function OrderPhotos({ db, loop, user, orderId, order }: Props) {
-	const photos = useLiveQuery(() => photosOf(db, orderId), [db, orderId]);
+	const photos = useLiveQuery(
+		async () => (await photosOf(db, orderId)).filter((p) => !p.signer),
+		[db, orderId],
+	);
 	const members = useLiveQuery(() => db.getMeta<Member[]>("members"), [db]);
 	const names = new Map(members?.map((m) => [m.id, m.name]));
 	const [caption, setCaption] = useState("");
@@ -145,7 +148,15 @@ export function OrderPhotos({ db, loop, user, orderId, order }: Props) {
 }
 
 /** The image from this device, or why it is not here yet. */
-function PhotoImage({ db, id, alt }: { db: LocalDb; id: string; alt: string }) {
+export function PhotoImage({
+	db,
+	id,
+	alt,
+}: {
+	db: LocalDb;
+	id: string;
+	alt: string;
+}) {
 	const file = useLiveQuery(() => db.files.get(id), [db, id]);
 	const [url, setUrl] = useState<string | null>(null);
 
