@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { parseRoute, ROUTES } from "./route.ts";
 
 const ID = "00000000-0000-4000-8000-0000000000aa";
+const LIST = { name: "list", query: null };
 
 describe("parseRoute", () => {
 	it("reads the screens back from their links", () => {
@@ -12,12 +13,17 @@ describe("parseRoute", () => {
 		expect(parseRoute(ROUTES.devices)).toEqual({ name: "devices" });
 		expect(parseRoute(ROUTES.team)).toEqual({ name: "team" });
 		expect(parseRoute(ROUTES.account)).toEqual({ name: "account" });
-		expect(parseRoute(ROUTES.list)).toEqual({ name: "list" });
+		expect(parseRoute(ROUTES.overview)).toEqual({ name: "overview" });
+		expect(parseRoute(ROUTES.filtered("due=overdue"))).toEqual({
+			name: "list",
+			query: "due=overdue",
+		});
+		expect(parseRoute(ROUTES.list)).toEqual(LIST);
 	});
 
 	it("falls back to the list for anything else", () => {
-		expect(parseRoute("")).toEqual({ name: "list" });
-		expect(parseRoute("#/order")).toEqual({ name: "list" });
-		expect(parseRoute("#/orders/not-an-id")).toEqual({ name: "list" });
+		expect(parseRoute("")).toEqual(LIST);
+		expect(parseRoute("#/order")).toEqual(LIST);
+		expect(parseRoute("#/orders/not-an-id")).toEqual(LIST);
 	});
 });

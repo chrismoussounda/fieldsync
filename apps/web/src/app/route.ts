@@ -1,16 +1,26 @@
 import { useSyncExternalStore } from "react";
 
 export type Route =
-	| { name: "list" }
+	/** `query` holds filters set by a link; null when the link set none. */
+	| { name: "list"; query: string | null }
 	| { name: "new" }
 	| { name: "debug" }
 	| { name: "conflicts" }
 	| { name: "devices" }
 	| { name: "team" }
 	| { name: "account" }
+	| { name: "overview" }
 	| { name: "order"; id: string };
 
-const PAGES = ["new", "debug", "conflicts", "devices", "team", "account"];
+const PAGES = [
+	"new",
+	"debug",
+	"conflicts",
+	"devices",
+	"team",
+	"account",
+	"overview",
+];
 
 export function parseRoute(hash: string): Route {
 	const page = hash.slice(2);
@@ -19,7 +29,8 @@ export function parseRoute(hash: string): Route {
 	}
 	const order = /^#\/orders\/([0-9a-f-]{36})$/.exec(hash);
 	if (order?.[1]) return { name: "order", id: order[1] };
-	return { name: "list" };
+	const filtered = /^#\/\?(.*)$/.exec(hash);
+	return { name: "list", query: filtered?.[1] ?? null };
 }
 
 const subscribe = (listener: () => void) => {
@@ -34,6 +45,8 @@ export function useRoute(): Route {
 
 export const ROUTES = {
 	list: "#/",
+	filtered: (query: string) => `#/?${query}`,
+	overview: "#/overview",
 	new: "#/new",
 	debug: "#/debug",
 	conflicts: "#/conflicts",
