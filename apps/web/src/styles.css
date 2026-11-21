@@ -723,3 +723,18 @@ label.button.disabled {
 .time .toolbar {
 	margin-bottom: 0;
 }
+
+.site-info {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.35rem 0.75rem;
+	padding: 0.6rem 0.75rem;
+	border-radius: 8px;
+	background: var(--bg);
+	font-size: 0.9rem;
+}
+
+.site-info p {
+	flex-basis: 100%;
+	margin: 0;
+}

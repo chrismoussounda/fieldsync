@@ -10,6 +10,9 @@ export type Route =
 	| { name: "team" }
 	| { name: "account" }
 	| { name: "overview" }
+	| { name: "sites" }
+	/** `id` is null for a new site. */
+	| { name: "site"; id: string | null }
 	| { name: "order"; id: string };
 
 const PAGES = [
@@ -20,6 +23,7 @@ const PAGES = [
 	"team",
 	"account",
 	"overview",
+	"sites",
 ];
 
 export function parseRoute(hash: string): Route {
@@ -29,6 +33,9 @@ export function parseRoute(hash: string): Route {
 	}
 	const order = /^#\/orders\/([0-9a-f-]{36})$/.exec(hash);
 	if (order?.[1]) return { name: "order", id: order[1] };
+	if (hash === ROUTES.newSite) return { name: "site", id: null };
+	const site = /^#\/sites\/([0-9a-f-]{36})$/.exec(hash);
+	if (site?.[1]) return { name: "site", id: site[1] };
 	const filtered = /^#\/\?(.*)$/.exec(hash);
 	return { name: "list", query: filtered?.[1] ?? null };
 }
@@ -54,4 +61,7 @@ export const ROUTES = {
 	team: "#/team",
 	account: "#/account",
 	order: (id: string) => `#/orders/${id}`,
+	sites: "#/sites",
+	newSite: "#/sites/new",
+	site: (id: string) => `#/sites/${id}`,
 };

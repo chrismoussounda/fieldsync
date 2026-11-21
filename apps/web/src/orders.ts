@@ -12,6 +12,7 @@ export type Order = {
 	status: string;
 	assigneeId: string | null;
 	dueDate: string | null;
+	siteId: string | null;
 	notes: string;
 };
 
@@ -22,6 +23,7 @@ export const FIELD_LABELS: Record<string, string> = {
 	priority: "Priority",
 	assigneeId: "Assignee",
 	dueDate: "Due date",
+	siteId: "Site",
 	status: "Status",
 	notes: "Notes",
 };
@@ -42,7 +44,7 @@ export const PRIORITY_LABELS: Record<string, string> = {
 
 const SHORT = 80;
 
-/** A field's value as a person reads it; assignees by name. */
+/** A field's value as a person reads it; assignees and sites by name. */
 export function describeValue(
 	field: string,
 	value: unknown,
@@ -51,6 +53,7 @@ export function describeValue(
 	if (value === null || value === undefined || value === "") return "(empty)";
 	const text = String(value);
 	if (field === "assigneeId") return names.get(text) ?? "Someone";
+	if (field === "siteId") return names.get(text) ?? "A removed site";
 	if (field === "status") return STATUS_LABELS[text] ?? text;
 	if (field === "priority") return PRIORITY_LABELS[text] ?? text;
 	return text.length > SHORT ? `${text.slice(0, SHORT - 1)}…` : text;
@@ -70,6 +73,7 @@ export function toOrder(id: string, state: EntityState): Order | null {
 		status: text(f.status) || "open",
 		assigneeId: text(f.assigneeId) || null,
 		dueDate: text(f.dueDate) || null,
+		siteId: text(f.siteId) || null,
 		notes: text(f.notes),
 	};
 }

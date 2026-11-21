@@ -51,6 +51,7 @@ describe("toOrder", () => {
 			status: "open",
 			assigneeId: null,
 			dueDate: null,
+			siteId: null,
 			notes: "",
 		});
 	});
@@ -71,6 +72,7 @@ describe("byUrgency", () => {
 			status: "assigned",
 			assigneeId: null,
 			dueDate: null,
+			siteId: null,
 			notes: "",
 			...o,
 		});

@@ -12,6 +12,8 @@ import { Login } from "./screens/Login.tsx";
 import { OrderDetail } from "./screens/OrderDetail.tsx";
 import { Orders } from "./screens/Orders.tsx";
 import { Overview } from "./screens/Overview.tsx";
+import { SiteDetail } from "./screens/SiteDetail.tsx";
+import { Sites } from "./screens/Sites.tsx";
 import { SyncBadge } from "./screens/SyncBadge.tsx";
 import { Team } from "./screens/Team.tsx";
 import type { LocalDb } from "./sync/storage.ts";
@@ -58,6 +60,7 @@ function SignedIn({ db, session, user }: Props & { user: User }) {
 					FieldSync
 				</a>
 				{canManage(user.role) && <a href={ROUTES.overview}>Overview</a>}
+				<a href={ROUTES.sites}>Sites</a>
 				{canManage(user.role) && <a href={ROUTES.conflicts}>Conflicts</a>}
 				{user.role === "admin" && <a href={ROUTES.team}>Team</a>}
 				{user.role === "admin" && <a href={ROUTES.devices}>Devices</a>}
@@ -77,6 +80,16 @@ function SignedIn({ db, session, user }: Props & { user: User }) {
 						db={db}
 						user={user}
 						query={route.name === "list" ? route.query : null}
+					/>
+				) : route.name === "sites" ? (
+					<Sites db={db} user={user} />
+				) : route.name === "site" ? (
+					<SiteDetail
+						key={route.id}
+						db={db}
+						loop={sync.loop}
+						user={user}
+						id={route.id}
 					/>
 				) : route.name === "devices" ? (
 					<Devices session={session} />
