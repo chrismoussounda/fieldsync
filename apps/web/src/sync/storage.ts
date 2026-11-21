@@ -24,10 +24,19 @@ type OutboxRow = {
 // Small values kept next to the sync state: cursor, device id, clock, session.
 type MetaRow = { key: string; value: unknown };
 
+/** A photo's image on this device; `uploaded` is 0 until the server has it. */
+export type FileRow = {
+	id: string;
+	type: string;
+	bytes: ArrayBuffer;
+	uploaded: 0 | 1;
+};
+
 export class LocalDb extends Dexie {
 	entities!: Table<EntityRow, [string, string]>;
 	outbox!: EntityTable<OutboxRow, "seq">;
 	meta!: Table<MetaRow, string>;
+	files!: Table<FileRow, string>;
 
 	constructor(name = "fieldsync") {
 		super(name);
@@ -36,6 +45,7 @@ export class LocalDb extends Dexie {
 			outbox: "++seq, &opId, status, [entityType+entityId]",
 			meta: "key",
 		});
+		this.version(2).stores({ files: "id, uploaded" });
 	}
 
 	async getMeta<T>(key: string): Promise<T | undefined> {

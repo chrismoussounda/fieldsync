@@ -510,6 +510,119 @@ a.who {
 	font-weight: 600;
 }
 
+.photos {
+	display: grid;
+	gap: 0.6rem;
+}
+
+.photo-grid {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
+	gap: 0.5rem;
+}
+
+.thumb {
+	display: block;
+	width: 100%;
+	aspect-ratio: 1;
+	padding: 0;
+	overflow: hidden;
+	background: var(--bg);
+	border: 1px solid var(--line);
+}
+
+.photo {
+	position: relative;
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+
+.photo img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.photo .chip {
+	position: absolute;
+	left: 0.3rem;
+	bottom: 0.3rem;
+}
+
+.placeholder {
+	display: grid;
+	place-items: center;
+	height: 100%;
+	padding: 0.4rem;
+	font-size: 0.75rem;
+	font-weight: 500;
+	text-align: center;
+}
+
+.caption {
+	margin-top: 0.2rem;
+	font-size: 0.8rem;
+	overflow-wrap: anywhere;
+}
+
+.add-photo {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	align-items: center;
+}
+
+.add-photo input {
+	flex: 1 1 12rem;
+	margin-top: 0;
+}
+
+label.button {
+	display: inline-block;
+	border-radius: 8px;
+	padding: 0.6rem 1rem;
+	background: var(--accent);
+	color: var(--accent-text);
+	font-weight: 600;
+	cursor: pointer;
+}
+
+label.button.disabled {
+	opacity: 0.6;
+	cursor: default;
+}
+
+.viewer {
+	position: fixed;
+	inset: 0;
+	z-index: 2;
+	display: grid;
+	place-items: center;
+	padding: 1rem;
+	background: rgb(0 0 0 / 0.7);
+}
+
+.viewer-body {
+	display: grid;
+	gap: 0.6rem;
+	width: min(100%, 48rem);
+	max-height: 100%;
+	padding: 1rem;
+	border-radius: 12px;
+	background: var(--surface);
+	overflow: auto;
+}
+
+.viewer-body .photo img {
+	max-height: 70dvh;
+	object-fit: contain;
+}
+
 .member.inactive strong {
 	color: var(--muted);
 }

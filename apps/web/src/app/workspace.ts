@@ -3,6 +3,7 @@ import { type Role, Session, type User } from "../auth/session.ts";
 import { SyncLoop } from "../sync/loop.ts";
 import { DexieStorage, LocalDb } from "../sync/storage.ts";
 import { NetworkSwitch } from "../sync/switch.ts";
+import { type FileTransport, PhotoTransfer } from "./photos.ts";
 
 export const API_URL = import.meta.env.VITE_API_URL ?? "/api";
 const CLIENT_VERSION = "0.1.0";
@@ -58,11 +59,14 @@ export async function startSync(
 		client,
 		saveClock: (clock) => db.setMeta("clock", clock),
 	});
+	const photos = new PhotoTransfer(db, fileTransport(session, network));
 	const stopLoop = loop.start();
 	// Once per session, after the first sync that reaches the server.
 	let members: Promise<boolean> | null = null;
-	const stopMembers = loop.subscribe(() => {
-		if (loop.status().state !== "idle" || members) return;
+	const afterSync = loop.subscribe(() => {
+		if (loop.status().state !== "idle") return;
+		void photos.run();
+		if (members) return;
 		members = refreshMembers(db, session).then((done) => {
 			if (!done) members = null;
 			return done;
@@ -72,24 +76,65 @@ export async function startSync(
 		sync: { client, loop, network, storage },
 		stop: () => {
 			stopLoop();
-			stopMembers();
+			afterSync();
+		},
+	};
+}
+
+function fileTransport(
+	session: Session,
+	network: NetworkSwitch,
+): FileTransport {
+	const online = () => {
+		// Same error as a real failed fetch, when the debug switch cuts the network.
+		if (network.isOffline()) throw new TypeError("Failed to fetch");
+	};
+	return {
+		upload: async (id, file) => {
+			online();
+			await apiRequest(session, `/photos/${id}`, {
+				method: "PUT",
+				body: new Blob([file.bytes], { type: file.type }),
+				type: file.type,
+			});
+		},
+		download: async (id) => {
+			online();
+			try {
+				const response = await apiRequest(session, `/photos/${id}`);
+				return {
+					id,
+					type: response.headers.get("content-type") ?? "image/jpeg",
+					bytes: await response.arrayBuffer(),
+					uploaded: 1,
+				};
+			} catch (error) {
+				if (error instanceof HttpError && error.code === "PHOTO_PENDING") {
+					return null;
+				}
+				throw error;
+			}
 		},
 	};
 }
 
 /** A signed-in request to the API; throws `HttpError`, or `TypeError` offline. */
-export async function apiFetch<T>(
+export async function apiRequest(
 	session: Session,
 	path: string,
-	{ method = "GET", json }: { method?: string; json?: unknown } = {},
-): Promise<T | null> {
+	{
+		method = "GET",
+		body,
+		type,
+	}: { method?: string; body?: BodyInit; type?: string } = {},
+): Promise<Response> {
 	const token = await session.getToken();
 	const headers: Record<string, string> = { authorization: `Bearer ${token}` };
-	if (json !== undefined) headers["content-type"] = "application/json";
+	if (type) headers["content-type"] = type;
 	const response = await fetch(`${API_URL}${path}`, {
 		method,
 		headers,
-		...(json === undefined ? {} : { body: JSON.stringify(json) }),
+		...(body === undefined ? {} : { body }),
 	});
 	if (!response.ok) {
 		const payload = await response.json().catch(() => null);
@@ -97,6 +142,21 @@ export async function apiFetch<T>(
 		await session.reportFailure(error);
 		throw error;
 	}
+	return response;
+}
+
+/** `apiRequest` with JSON both ways. */
+export async function apiFetch<T>(
+	session: Session,
+	path: string,
+	{ method = "GET", json }: { method?: string; json?: unknown } = {},
+): Promise<T | null> {
+	const response = await apiRequest(session, path, {
+		method,
+		...(json === undefined
+			? {}
+			: { body: JSON.stringify(json), type: "application/json" }),
+	});
 	return response.status === 204 ? null : ((await response.json()) as T);
 }
 
