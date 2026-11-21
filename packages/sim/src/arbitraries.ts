@@ -1,4 +1,5 @@
 import fc from "fast-check";
+import { ORDERS, PHOTOS } from "./roles.ts";
 import type { Action } from "./world.ts";
 
 const FIELDS = ["status", "priority", "assignee", "notes"];
@@ -12,7 +13,7 @@ export type Scenario = {
 
 export function scenario({
 	maxDevices = 5,
-	entities = 4,
+	entities = ORDERS + PHOTOS,
 	maxSkewMs = 2 * 24 * 60 * 60 * 1000,
 	maxActions = 200,
 } = {}): fc.Arbitrary<Scenario> {

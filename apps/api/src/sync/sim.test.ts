@@ -4,6 +4,7 @@ import {
 	type SimServer,
 	scenario,
 	simAuthorize,
+	simParent,
 	simScope,
 } from "@fieldsync/sim";
 import fc from "fast-check";
@@ -14,6 +15,8 @@ import { createTestDb, emptyTestDb } from "../db/testing.ts";
 import { handleGetEntity } from "./entity.ts";
 import { handlePull } from "./pull.ts";
 import { handlePush } from "./push.ts";
+import { toState } from "./records.ts";
+import type { Scoping } from "./scope.ts";
 
 const ORG = "00000000-0000-4000-8000-000000000001";
 
@@ -25,13 +28,17 @@ beforeAll(async () => {
 
 afterAll(() => db.destroy());
 
-const scopeOf = (_type: string, state: EntityState) => simScope(state);
+const scoping: Scoping = {
+	scopeOf: (_type, state) => simScope(state),
+	parentOf: (type, id) => simParent(type, id),
+};
 
 const server: SimServer = {
 	push: (deviceId, request, now, audience) =>
 		handlePush(db, { orgId: ORG, deviceId }, request, {
-			authorize: (op, current) => simAuthorize(op, current, audience),
-			scopeOf,
+			authorize: (op, current, parent) =>
+				simAuthorize(op, current, parent, audience),
+			scoping,
 			now: () => now,
 		}),
 	pull: (deviceId, request, now, audience) =>
@@ -43,21 +50,12 @@ const server: SimServer = {
 		handleGetEntity(db, { orgId: ORG, deviceId }, request, {
 			now: () => now,
 			audience,
-			scopeOf,
+			scoping,
 		}),
 	async entities() {
 		const rows = await db.selectFrom("entities").selectAll().execute();
 		return new Map<string, EntityState>(
-			rows.map((row) => [
-				`${row.type}:${row.id}`,
-				{
-					fields: row.fields,
-					clocks: row.clocks,
-					createdHlc: row.created_hlc,
-					deletedHlc: row.deleted_hlc,
-					restoredHlc: row.restored_hlc,
-				},
-			]),
+			rows.map((row) => [`${row.type}:${row.id}`, toState(row)]),
 		);
 	},
 };
