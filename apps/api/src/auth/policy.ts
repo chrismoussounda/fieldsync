@@ -12,9 +12,12 @@ import {
 	isValidChecklistPatch,
 	isValidPatch,
 	isValidPhotoPatch,
+	isValidTimePatch,
 	mayChangeItem,
+	mayChangeTime,
 	PHOTO,
 	PHOTO_FIELDS,
+	TIME_ENTRY,
 	WORK_ORDER,
 } from "@fieldsync/work-orders";
 import type { Kysely } from "kysely";
@@ -24,7 +27,7 @@ import type { Principal } from "./session.ts";
 
 const KNOWN = new Set<string>(FIELDS);
 const KNOWN_PHOTO = new Set<string>(PHOTO_FIELDS);
-const CHILDREN = new Set([PHOTO, CHECKLIST_ITEM]);
+const CHILDREN = new Set([PHOTO, CHECKLIST_ITEM, TIME_ENTRY]);
 
 /**
  * Whether the user may apply an operation to a record, as the server holds
@@ -36,6 +39,15 @@ export function mayWrite(
 	current: EntityState | null,
 	parent: EntityState | null = null,
 ): boolean {
+	if (op.entityType === TIME_ENTRY) {
+		return mayChangeTime(
+			{ id: principal.userId, role: principal.role },
+			parent?.fields ?? null,
+			current?.fields ?? null,
+			op.patch,
+			op.kind,
+		);
+	}
 	if (op.entityType === CHECKLIST_ITEM) {
 		return mayChangeItem(
 			{ id: principal.userId, role: principal.role },
@@ -81,8 +93,8 @@ function mayWritePhoto(
 }
 
 /**
- * A work order is in the scope of its assignee; its photos and checklist
- * items belong to it and go wherever it goes.
+ * A work order is in the scope of its assignee; its photos, checklist items
+ * and time entries belong to it and go wherever it goes.
  */
 export const WORK_ORDER_SCOPING: Scoping = {
 	scopeOf: (entityType, state) =>
@@ -110,6 +122,7 @@ export function isValidRecord(
 ): boolean {
 	if (op.entityType === PHOTO) return isValidPhotoPatch(op.patch);
 	if (op.entityType === CHECKLIST_ITEM) return isValidChecklistPatch(op.patch);
+	if (op.entityType === TIME_ENTRY) return isValidTimePatch(op.patch);
 	if (!isValidPatch(op.patch)) return false;
 	const assignee = op.patch.assigneeId;
 	return typeof assignee !== "string" || technicians.has(assignee);

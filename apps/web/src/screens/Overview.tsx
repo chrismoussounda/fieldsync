@@ -1,5 +1,7 @@
+import { formatMinutes } from "@fieldsync/work-orders";
 import { useLiveQuery } from "dexie-react-hooks";
 import { ROUTES } from "../app/route.ts";
+import { entriesOf, minutesByTechnician } from "../app/timesheet.ts";
 import type { Member } from "../app/workspace.ts";
 import {
 	type Filters,
@@ -17,9 +19,12 @@ const link = (f: Partial<Filters>) => ROUTES.filtered(toQuery(f));
 export function Overview({ db }: { db: LocalDb }) {
 	const rows = useLiveQuery(() => db.entities.toArray(), [db]);
 	const members = useLiveQuery(() => db.getMeta<Member[]>("members"), [db]);
+	const entries = useLiveQuery(() => entriesOf(db), [db]);
 	if (!rows) return null;
 
 	const today = localDate();
+	const now = Date.now();
+	const worked = minutesByTechnician(entries ?? [], now - 7 * 86_400_000, now);
 	const active = rows
 		.filter((r) => r.type === WORK_ORDER)
 		.map((r) => toOrder(r.id, r.state))
@@ -69,6 +74,7 @@ export function Overview({ db }: { db: LocalDb }) {
 				started: theirs.filter((o) => o.status === "in_progress").length,
 				late: theirs.filter((o) => isOverdue(o, today)).length,
 				urgent: theirs.filter((o) => o.priority === "urgent").length,
+				week: worked.get(m.id) ?? 0,
 			};
 		})
 		.sort((a, b) => b.late - a.late || b.total - a.total);
@@ -117,6 +123,7 @@ export function Overview({ db }: { db: LocalDb }) {
 								<th scope="col">Started</th>
 								<th scope="col">Overdue</th>
 								<th scope="col">Urgent</th>
+								<th scope="col">Last 7 days</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -134,6 +141,7 @@ export function Overview({ db }: { db: LocalDb }) {
 									<td>{l.started}</td>
 									<td className={l.late > 0 ? "late" : ""}>{l.late}</td>
 									<td>{l.urgent}</td>
+									<td>{l.week > 0 ? formatMinutes(l.week) : "–"}</td>
 								</tr>
 							))}
 						</tbody>

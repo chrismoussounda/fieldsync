@@ -13,6 +13,7 @@ describe("loadConfig", () => {
 			PORT: 3000,
 			LOG_LEVEL: "info",
 			TRUST_PROXY: false,
+			LOGIN_LIMIT: 10,
 		});
 	});
 

@@ -714,3 +714,12 @@ label.button.disabled {
 	touch-action: none;
 	cursor: crosshair;
 }
+
+.time {
+	display: grid;
+	gap: 0.5rem;
+}
+
+.time .toolbar {
+	margin-bottom: 0;
+}
