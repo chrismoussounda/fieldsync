@@ -35,6 +35,8 @@ type Order = {
 	priority: "low" | "normal" | "urgent";
 	assignee: string | null;
 	status: string;
+	/** Days from the seed date; past means late, unless done. */
+	due: number;
 };
 
 const ORDERS: Order[] = [
@@ -44,6 +46,7 @@ const ORDERS: Order[] = [
 		priority: "urgent",
 		assignee: "junior@fieldsync.demo",
 		status: "assigned",
+		due: 0,
 	},
 	{
 		title: "Inspect the generator",
@@ -51,6 +54,7 @@ const ORDERS: Order[] = [
 		priority: "normal",
 		assignee: "junior@fieldsync.demo",
 		status: "in_progress",
+		due: -2,
 	},
 	{
 		title: "Fix the cold room door",
@@ -58,6 +62,7 @@ const ORDERS: Order[] = [
 		priority: "normal",
 		assignee: "merveille@fieldsync.demo",
 		status: "assigned",
+		due: 2,
 	},
 	{
 		title: "Service the air conditioning",
@@ -65,6 +70,7 @@ const ORDERS: Order[] = [
 		priority: "low",
 		assignee: "merveille@fieldsync.demo",
 		status: "done",
+		due: -5,
 	},
 	{
 		title: "Check the solar panels",
@@ -72,6 +78,7 @@ const ORDERS: Order[] = [
 		priority: "normal",
 		assignee: null,
 		status: "open",
+		due: 3,
 	},
 ];
 
@@ -127,7 +134,9 @@ async function seedOrders(db: Kysely<Database>, now: number): Promise<void> {
 			priority: order.priority,
 			status: order.status,
 			assigneeId: order.assignee ? (ids.get(order.assignee) ?? null) : null,
-			dueDate: new Date(now + (i + 1) * 86_400_000).toISOString().slice(0, 10),
+			dueDate: new Date(now + order.due * 86_400_000)
+				.toISOString()
+				.slice(0, 10),
 		},
 		base: {},
 		hlc: encode({ wall: now, counter: i, node: SEED_DEVICE.slice(0, 8) }),
