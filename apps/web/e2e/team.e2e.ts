@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { device, signIn } from "./devices.ts";
+import { blankDevice, device, signIn } from "./devices.ts";
 
 const EMAIL = "ines@fieldsync.demo";
 const FIRST = "first password for Ines";
@@ -55,7 +55,7 @@ test("an admin adds a technician, who later gets disabled", async ({
 	).toBeVisible();
 
 	// A new device is refused too, with the reason.
-	const other = await (await browser.newContext()).newPage();
+	const other = await blankDevice(browser);
 	await signIn(other, EMAIL, OWN);
 	await expect(other.getByRole("alert")).toHaveText(
 		"This account was disabled. Ask an admin to turn it on.",

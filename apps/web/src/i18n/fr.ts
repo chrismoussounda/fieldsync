@@ -1,0 +1,90 @@
+export const fr = {
+	app: {
+		tagline: "Des interventions qui continuent de fonctionner hors ligne.",
+	},
+	nav: {
+		main: "Navigation principale",
+		jobs: "Interventions",
+		overview: "Aperçu",
+		sites: "Sites",
+		conflicts: "Conflits",
+		team: "Équipe",
+		devices: "Appareils",
+		account: "Compte",
+		admin: "Administration",
+	},
+	roles: {
+		technician: "Technicien",
+		dispatcher: "Répartiteur",
+		admin: "Administrateur",
+	},
+	sync: {
+		idle: "Synchronisé",
+		syncing: "Synchronisation…",
+		offline: "Hors ligne",
+		error: "Échec de la synchro",
+		waiting: "{{count}} en attente",
+		last: "Dernière synchro à {{time}}",
+		never: "Pas encore synchronisé",
+	},
+	signOut: {
+		action: "Se déconnecter",
+		unsynced_one:
+			"{{count}} modification n'est pas synchronisée et sera perdue.",
+		unsynced_other:
+			"{{count}} modifications ne sont pas synchronisées et seront perdues.",
+		anyway: "Se déconnecter quand même",
+		cancel: "Annuler",
+	},
+	login: {
+		title: "Connexion",
+		email: "E-mail",
+		password: "Mot de passe",
+		submit: "Se connecter",
+		busy: "Connexion…",
+		UNAUTHORIZED: "E-mail ou mot de passe incorrect.",
+		ACCOUNT_DISABLED:
+			"Ce compte a été désactivé. Demandez à un administrateur de le réactiver.",
+		DEVICE_REVOKED: "Cet appareil a été révoqué par un administrateur.",
+		DEVICE_TAKEN:
+			"Des modifications d'un autre compte attendent encore sur cet appareil.",
+	},
+	revoked: {
+		title: "Appareil révoqué",
+		body: "Un administrateur a bloqué cet appareil. Sa copie des interventions ne peut plus se synchroniser.",
+		erase: "Effacer les données de cet appareil",
+	},
+	account: {
+		title: "Votre compte",
+		password: "Changer le mot de passe",
+		current: "Mot de passe actuel",
+		next: "Nouveau mot de passe",
+		repeat: "Répétez-le",
+		hint: "Au moins {{min}} caractères. Vos autres appareils vous demanderont de vous reconnecter.",
+		mismatch: "Les deux nouveaux mots de passe ne sont pas identiques.",
+		changed: "Mot de passe modifié.",
+		submit: "Changer le mot de passe",
+		saving: "Enregistrement…",
+	},
+	preferences: {
+		title: "Préférences",
+		language: "Langue",
+		theme: "Thème",
+		system: "Appareil",
+		light: "Clair",
+		dark: "Sombre",
+	},
+	languages: { fr: "Français", en: "English" },
+	errors: {
+		offline: "Pas de connexion. Cette action a besoin du réseau.",
+		refused: "Le serveur a refusé.",
+		BAD_REQUEST: "Le serveur n'a pas pu accepter ceci. Vérifiez les champs.",
+		FORBIDDEN: "Votre rôle ne permet pas de faire ceci.",
+		NOT_FOUND: "Cette personne ne fait plus partie de l'équipe.",
+		EMAIL_TAKEN: "Quelqu'un de l'équipe utilise déjà cet e-mail.",
+		OWN_ACCOUNT:
+			"Vous ne pouvez pas changer votre propre rôle ni vous désactiver.",
+		WRONG_PASSWORD: "Le mot de passe actuel n'est pas le bon.",
+		RATE_LIMITED: "Trop de tentatives. Attendez quelques minutes et réessayez.",
+	},
+};

@@ -1,7 +1,7 @@
 import { defineConfig } from "@playwright/test";
 
 export const API_PORT = 3999;
-const WEB_PORT = 5199;
+export const WEB_PORT = 5199;
 
 export default defineConfig({
 	testDir: "e2e",

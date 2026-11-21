@@ -1,15 +1,32 @@
 import { type Browser, expect, type Page } from "@playwright/test";
+import { WEB_PORT } from "../playwright.config.ts";
 
 export const JUNIOR = "Junior Nkounkou";
 export const MERVEILLE = "Merveille Bouanga";
 
-/** A signed-in device: its own browser context, so its own IndexedDB. */
+/** A fresh browser with its own IndexedDB; English unless told otherwise. */
+export async function blankDevice(browser: Browser, language = "en") {
+	const context = await browser.newContext({
+		storageState: {
+			cookies: [],
+			origins: [
+				{
+					origin: `http://localhost:${WEB_PORT}`,
+					localStorage: [{ name: "fieldsync.language", value: language }],
+				},
+			],
+		},
+	});
+	return context.newPage();
+}
+
+/** A signed-in device. */
 export async function device(
 	browser: Browser,
 	email: string,
 	password = process.env.DEMO_PASSWORD ?? "",
 ): Promise<Page> {
-	const page = await (await browser.newContext()).newPage();
+	const page = await blankDevice(browser);
 	await signIn(page, email, password);
 	await expect(page.locator(".badge")).toHaveText("Synced");
 	return page;
