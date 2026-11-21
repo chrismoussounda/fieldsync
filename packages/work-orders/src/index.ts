@@ -12,6 +12,7 @@ export const PLANNING_FIELDS = [
 	"priority",
 	"assigneeId",
 	"dueDate",
+	"siteId",
 ] as const;
 
 // Set by the technician on site.
@@ -76,6 +77,7 @@ export function isValidValue(field: string, value: unknown): boolean {
 		case "priority":
 			return (PRIORITIES as readonly string[]).includes(value);
 		case "assigneeId":
+		case "siteId":
 			return UUID.test(value);
 		case "dueDate":
 			return isDay(value);
@@ -107,4 +109,5 @@ export function isValidPatch(patch: Record<string, unknown>): boolean {
 
 export * from "./checklists.ts";
 export * from "./photos.ts";
+export * from "./sites.ts";
 export * from "./time.ts";
