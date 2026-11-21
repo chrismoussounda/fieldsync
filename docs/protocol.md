@@ -188,6 +188,12 @@ their own share of it.
 Changes written before partial sync count as made under each order's current
 assignee: a device pulling from 0 gets the whole history of its orders.
 
+### Checklists
+
+Each step of an order's checklist is a `checklist_item` record that belongs to
+the order, rather than a list inside it: two people adding steps at once never
+overwrite each other, and a tick merges like any field.
+
 ### Photos
 
 A photo is a record of type `photo` that belongs to its order (`orderId`), so
@@ -345,6 +351,10 @@ and rejects what the user's role may not do with `FORBIDDEN`.
 | Create, delete or restore a work order | no            | yes        | yes   |
 | Plan the job                           | no            | yes        | yes   |
 | Report progress                        | assigned only | yes        | yes   |
+| Add, reword or remove checklist steps  | no            | yes        | yes   |
+| Tick checklist steps                   | assigned only | yes        | yes   |
+| Add photos                             | assigned only | yes        | yes   |
+| Caption or delete a photo              | own only      | yes        | yes   |
 | Read and review the conflict log       | no            | yes        | yes   |
 | List and revoke devices                | no            | no         | yes   |
 | Add, edit and disable users            | no            | no         | yes   |

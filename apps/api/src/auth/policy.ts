@@ -1,6 +1,7 @@
 import type { EntityState } from "@fieldsync/merge";
 import type { Op } from "@fieldsync/protocol";
 import {
+	CHECKLIST_ITEM,
 	canAddPhoto,
 	canChangePhoto,
 	canManage,
@@ -8,8 +9,10 @@ import {
 	FIELDS,
 	type Field,
 	isPhotoChange,
+	isValidChecklistPatch,
 	isValidPatch,
 	isValidPhotoPatch,
+	mayChangeItem,
 	PHOTO,
 	PHOTO_FIELDS,
 	WORK_ORDER,
@@ -21,6 +24,7 @@ import type { Principal } from "./session.ts";
 
 const KNOWN = new Set<string>(FIELDS);
 const KNOWN_PHOTO = new Set<string>(PHOTO_FIELDS);
+const CHILDREN = new Set([PHOTO, CHECKLIST_ITEM]);
 
 /**
  * Whether the user may apply an operation to a record, as the server holds
@@ -32,6 +36,15 @@ export function mayWrite(
 	current: EntityState | null,
 	parent: EntityState | null = null,
 ): boolean {
+	if (op.entityType === CHECKLIST_ITEM) {
+		return mayChangeItem(
+			{ id: principal.userId, role: principal.role },
+			parent?.fields ?? null,
+			current?.fields ?? null,
+			op.patch,
+			op.kind,
+		);
+	}
 	if (op.entityType === PHOTO) {
 		return mayWritePhoto(principal, op, current, parent);
 	}
@@ -68,8 +81,8 @@ function mayWritePhoto(
 }
 
 /**
- * A work order is in the scope of its assignee; a photo belongs to its order
- * and goes wherever it goes.
+ * A work order is in the scope of its assignee; its photos and checklist
+ * items belong to it and go wherever it goes.
  */
 export const WORK_ORDER_SCOPING: Scoping = {
 	scopeOf: (entityType, state) =>
@@ -77,7 +90,7 @@ export const WORK_ORDER_SCOPING: Scoping = {
 			? state.fields.assigneeId
 			: null,
 	parentOf: (entityType, _id, state) =>
-		entityType === PHOTO && typeof state.fields.orderId === "string"
+		CHILDREN.has(entityType) && typeof state.fields.orderId === "string"
 			? { type: WORK_ORDER, id: state.fields.orderId }
 			: null,
 };
@@ -96,6 +109,7 @@ export function isValidRecord(
 	technicians: ReadonlySet<string>,
 ): boolean {
 	if (op.entityType === PHOTO) return isValidPhotoPatch(op.patch);
+	if (op.entityType === CHECKLIST_ITEM) return isValidChecklistPatch(op.patch);
 	if (!isValidPatch(op.patch)) return false;
 	const assignee = op.patch.assigneeId;
 	return typeof assignee !== "string" || technicians.has(assignee);

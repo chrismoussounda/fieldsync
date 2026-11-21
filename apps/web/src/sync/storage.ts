@@ -48,6 +48,13 @@ export class LocalDb extends Dexie {
 		this.version(2).stores({ files: "id, uploaded" });
 	}
 
+	ofType(type: string): Promise<EntityRow[]> {
+		return this.entities
+			.where("[type+id]")
+			.between([type, Dexie.minKey], [type, Dexie.maxKey])
+			.toArray();
+	}
+
 	async getMeta<T>(key: string): Promise<T | undefined> {
 		return (await this.meta.get(key))?.value as T | undefined;
 	}
