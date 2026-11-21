@@ -22,14 +22,14 @@ let db: Kysely<Database>;
 
 beforeAll(async () => {
 	container = await new PostgreSqlContainer("postgres:16-alpine").start();
-	db = new Kysely<Database>({
-		dialect: new PostgresDialect({
-			pool: new pg.Pool({
-				connectionString: container.getConnectionUri(),
-				max: DEVICES + 2,
-			}),
-		}),
+	const pool = new pg.Pool({
+		connectionString: container.getConnectionUri(),
+		max: DEVICES + 2,
 	});
+	// An idle connection can still be closing when the container stops; the
+	// pool reports that as an error, which would fail a run that passed.
+	pool.on("error", () => {});
+	db = new Kysely<Database>({ dialect: new PostgresDialect({ pool }) });
 	await migrateToLatest(db as Kysely<unknown>);
 	await db.insertInto("orgs").values({ id: ORG, name: "Demo" }).execute();
 }, 120_000);
