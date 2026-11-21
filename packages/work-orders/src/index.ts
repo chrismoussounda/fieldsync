@@ -108,6 +108,7 @@ export function isValidPatch(patch: Record<string, unknown>): boolean {
 }
 
 export * from "./checklists.ts";
+export * from "./parts.ts";
 export * from "./photos.ts";
 export * from "./sites.ts";
 export * from "./time.ts";
