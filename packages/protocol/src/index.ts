@@ -13,4 +13,5 @@ export type {
 	PushResponse,
 	RejectReason,
 } from "./push.ts";
+export { EVERYONE, inScope } from "./scope.ts";
 export { PROTOCOL_VERSION } from "./version.ts";

@@ -1,5 +1,5 @@
 import { encode } from "@fieldsync/hlc";
-import type { Op } from "@fieldsync/protocol";
+import { EVERYONE, type Op } from "@fieldsync/protocol";
 import type { Kysely } from "kysely";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { WORK_ORDER_SCOPING } from "../auth/policy.ts";
@@ -286,5 +286,62 @@ describe("records that belong to another", () => {
 			handleGetEntity(db, phone, request, { audience, scoping });
 		expect((await as("junior")).entity).not.toBeNull();
 		expect((await as("merveille")).entity).toBeNull();
+	});
+});
+
+describe("records shared with everyone", () => {
+	const ORDER = "00000000-0000-4000-8000-0000000000cc";
+	const scoping: Scoping = {
+		scopeOf: (_type, state) =>
+			state.fields.assigneeId === "all"
+				? EVERYONE
+				: WORK_ORDER_SCOPING.scopeOf("work_order", state),
+		parentOf: () => null,
+	};
+	let wall = 300;
+
+	const edit = (patch: Op["patch"]) => {
+		wall += 1;
+		return handlePush(
+			db,
+			phone,
+			{ ops: [{ ...op(wall, patch), entityId: ORDER }] },
+			{ ...openRules, scoping, now: () => NOW },
+		);
+	};
+	const as = (audience: string) =>
+		handlePull(db, phone, { cursor: 0, limit: 100 }, { audience });
+
+	it("reach every device, entering and leaving like their own", async () => {
+		await edit({ title: "Site visit" });
+		await edit({ assigneeId: "all" });
+		await edit({ assigneeId: "junior" });
+		await edit({ notes: "His now" });
+		await edit({ assigneeId: "merveille" });
+
+		const scopes = async (audience: string) =>
+			(await as(audience)).changes.map((c) => [c.seq, c.scope]);
+		expect(await scopes("junior")).toEqual([
+			[2, "enter"],
+			[3, undefined],
+			[4, undefined],
+			[5, "leave"],
+		]);
+		expect(await scopes("merveille")).toEqual([
+			[2, "enter"],
+			[3, "leave"],
+			[5, "enter"],
+		]);
+	});
+
+	it("are visible to any device", async () => {
+		await edit({ title: "Site visit", assigneeId: "all" });
+		const { entity } = await handleGetEntity(
+			db,
+			phone,
+			{ entityType: "work_order", entityId: ORDER },
+			{ audience: "junior", scoping },
+		);
+		expect(entity).not.toBeNull();
 	});
 });
