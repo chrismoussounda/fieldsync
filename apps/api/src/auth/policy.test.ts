@@ -43,6 +43,14 @@ const clockIn = {
 };
 const running = order(clockIn);
 
+const newPart = {
+	orderId: ORDER,
+	name: "Pump seal",
+	quantity: 2,
+	addedBy: ME,
+	addedAt: "2026-11-21T10:00:00.000Z",
+};
+
 const newSite = { name: "Bakery Moungali", address: "12 rue Mbochi" };
 
 type Case = {
@@ -286,6 +294,33 @@ const matrix: Case[] = [
 		admin: true,
 	},
 	{
+		action: "record a part used on an assigned order",
+		current: null,
+		parent: mine,
+		op: { entityType: "part", patch: newPart },
+		technician: true,
+		dispatcher: true,
+		admin: true,
+	},
+	{
+		action: "record a part on someone else's order",
+		current: null,
+		parent: theirs,
+		op: { entityType: "part", patch: newPart },
+		technician: false,
+		dispatcher: true,
+		admin: true,
+	},
+	{
+		action: "remove someone else's part",
+		current: order({ ...newPart, addedBy: SOMEONE }),
+		parent: mine,
+		op: { entityType: "part", kind: "delete", patch: {} },
+		technician: false,
+		dispatcher: true,
+		admin: true,
+	},
+	{
 		action: "add a customer site",
 		current: null,
 		op: { entityType: "site", patch: newSite },
@@ -342,9 +377,21 @@ it("shares customer sites with every device", () => {
 	expect(WORK_ORDER_SCOPING.scopeOf("work_order", theirs)).toBe(SOMEONE);
 });
 
-it("checks a site's values", () => {
-	const site = (patch: Op["patch"]) =>
-		({ entityType: "site", kind: "upsert", patch }) as Op;
-	expect(isValidRecord(site(newSite), new Set())).toBe(true);
-	expect(isValidRecord(site({ contactPhone: "soon" }), new Set())).toBe(false);
+it("files a part under its order", () => {
+	expect(WORK_ORDER_SCOPING.parentOf("part", "p1", order(newPart))).toEqual({
+		type: "work_order",
+		id: ORDER,
+	});
+	expect(isValidRecord(upsert("part", newPart), new Set())).toBe(true);
 });
+
+it("checks a site's values", () => {
+	expect(isValidRecord(upsert("site", newSite), new Set())).toBe(true);
+	expect(
+		isValidRecord(upsert("site", { contactPhone: "soon" }), new Set()),
+	).toBe(false);
+});
+
+function upsert(entityType: string, patch: Op["patch"]): Op {
+	return { entityType, kind: "upsert", patch } as Op;
+}

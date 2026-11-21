@@ -27,6 +27,7 @@ import type { SyncLoop } from "../sync/loop.ts";
 import type { LocalDb } from "../sync/storage.ts";
 import { OrderChecklist } from "./OrderChecklist.tsx";
 import { OrderHistory } from "./OrderHistory.tsx";
+import { OrderParts } from "./OrderParts.tsx";
 import { OrderPhotos } from "./OrderPhotos.tsx";
 import { OrderSignature } from "./OrderSignature.tsx";
 import { OrderTime } from "./OrderTime.tsx";
@@ -65,6 +66,15 @@ export function OrderDetail({ id, ...props }: Props & { id: string | null }) {
 			)}
 			{id && state && (
 				<OrderTime
+					db={props.db}
+					loop={props.loop}
+					user={props.user}
+					orderId={id}
+					order={state.fields}
+				/>
+			)}
+			{id && state && (
+				<OrderParts
 					db={props.db}
 					loop={props.loop}
 					user={props.user}

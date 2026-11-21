@@ -1,6 +1,7 @@
 import { formatMinutes, minutesBetween } from "@fieldsync/work-orders";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useState } from "react";
+import { formatQuantity } from "../app/parts.ts";
 import { reportOf } from "../app/report.ts";
 import { ROUTES } from "../app/route.ts";
 import type { Member } from "../app/workspace.ts";
@@ -28,7 +29,8 @@ export function OrderReport({ db, id }: { db: LocalDb; id: string }) {
 		);
 	}
 	const names = new Map(members?.map((m) => [m.id, m.name]));
-	const { order, site, items, entries, minutes, photos, signature } = report;
+	const { order, site, items, entries, minutes, parts, photos, signature } =
+		report;
 	const technician = order.assigneeId ? names.get(order.assigneeId) : null;
 	const lastStop = entries.flatMap((e) => e.endedAt ?? []).at(-1);
 
@@ -126,6 +128,28 @@ export function OrderReport({ db, id }: { db: LocalDb; id: string }) {
 								<th>{formatMinutes(minutes)}</th>
 							</tr>
 						</tfoot>
+					</table>
+				</section>
+			)}
+
+			{parts.length > 0 && (
+				<section>
+					<h2>Parts and materials</h2>
+					<table className="report-table">
+						<thead>
+							<tr>
+								<th>Part</th>
+								<th>Quantity</th>
+							</tr>
+						</thead>
+						<tbody>
+							{parts.map((p) => (
+								<tr key={p.id}>
+									<td>{p.name}</td>
+									<td>{formatQuantity(p)}</td>
+								</tr>
+							))}
+						</tbody>
 					</table>
 				</section>
 			)}

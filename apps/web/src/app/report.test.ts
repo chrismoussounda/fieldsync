@@ -1,6 +1,7 @@
 import "fake-indexeddb/auto";
 import {
 	CHECKLIST_ITEM,
+	PART,
 	PHOTO,
 	SITE,
 	TIME_ENTRY,
@@ -13,7 +14,7 @@ import { reportOf } from "./report.ts";
 const ORDER = "00000000-0000-4000-8000-0000000000aa";
 const SITE_ID = "00000000-0000-4000-8000-0000000000bb";
 
-it("gathers the order, its site, steps, time, photos and signature", async () => {
+it("gathers the order, its site, steps, time, parts, photos and signature", async () => {
 	const db = new LocalDb(crypto.randomUUID());
 	const put = (type: string, id: string, fields: Record<string, unknown>) =>
 		db.entities.put({
@@ -46,6 +47,13 @@ it("gathers the order, its site, steps, time, photos and signature", async () =>
 		startedAt: "2026-11-21T11:00:00.000Z",
 		endedAt: null,
 	});
+	await put(PART, "pa1", {
+		orderId: ORDER,
+		name: "Seal",
+		quantity: 2,
+		addedBy: "junior",
+		addedAt: "2026-11-21T08:30:00.000Z",
+	});
 	const photo = (id: string, takenAt: string, signer?: string) =>
 		put(PHOTO, id, { orderId: ORDER, takenAt, ...(signer ? { signer } : {}) });
 	await photo("p1", "2026-11-21T08:10:00.000Z");
@@ -61,6 +69,7 @@ it("gathers the order, its site, steps, time, photos and signature", async () =>
 	expect(report?.site?.name).toBe("Boulangerie La Paix");
 	expect(report?.items.map((i) => i.label)).toEqual(["Valve"]);
 	expect(report?.minutes).toBe(105);
+	expect(report?.parts.map((p) => p.name)).toEqual(["Seal"]);
 	expect(report?.photos.map((p) => p.id)).toEqual(["p1"]);
 	expect(report?.signature?.signer).toBe("M. Okemba");
 	expect(await reportOf(db, "missing", 0)).toBeNull();

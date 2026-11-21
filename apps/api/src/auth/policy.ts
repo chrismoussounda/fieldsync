@@ -10,13 +10,16 @@ import {
 	type Field,
 	isPhotoChange,
 	isValidChecklistPatch,
+	isValidPartPatch,
 	isValidPatch,
 	isValidPhotoPatch,
 	isValidSitePatch,
 	isValidTimePatch,
 	mayChangeItem,
+	mayChangePart,
 	mayChangeSite,
 	mayChangeTime,
+	PART,
 	PHOTO,
 	PHOTO_FIELDS,
 	SITE,
@@ -30,7 +33,7 @@ import type { Principal } from "./session.ts";
 
 const KNOWN = new Set<string>(FIELDS);
 const KNOWN_PHOTO = new Set<string>(PHOTO_FIELDS);
-const CHILDREN = new Set([PHOTO, CHECKLIST_ITEM, TIME_ENTRY]);
+const CHILDREN = new Set([PHOTO, CHECKLIST_ITEM, TIME_ENTRY, PART]);
 
 /**
  * Whether the user may apply an operation to a record, as the server holds
@@ -45,6 +48,15 @@ export function mayWrite(
 	if (op.entityType === SITE) {
 		return mayChangeSite(
 			{ id: principal.userId, role: principal.role },
+			current?.fields ?? null,
+			op.patch,
+			op.kind,
+		);
+	}
+	if (op.entityType === PART) {
+		return mayChangePart(
+			{ id: principal.userId, role: principal.role },
+			parent?.fields ?? null,
 			current?.fields ?? null,
 			op.patch,
 			op.kind,
@@ -104,8 +116,8 @@ function mayWritePhoto(
 }
 
 /**
- * A work order is in the scope of its assignee; its photos, checklist items
- * and time entries belong to it and go wherever it goes. Every device holds
+ * A work order is in the scope of its assignee; its photos, checklist items,
+ * time entries and parts belong to it and go wherever it goes. Every device holds
  * the customer sites, so a technician has the details of any job.
  */
 export const WORK_ORDER_SCOPING: Scoping = {
@@ -136,6 +148,7 @@ export function isValidRecord(
 	technicians: ReadonlySet<string>,
 ): boolean {
 	if (op.entityType === SITE) return isValidSitePatch(op.patch);
+	if (op.entityType === PART) return isValidPartPatch(op.patch);
 	if (op.entityType === PHOTO) return isValidPhotoPatch(op.patch);
 	if (op.entityType === CHECKLIST_ITEM) return isValidChecklistPatch(op.patch);
 	if (op.entityType === TIME_ENTRY) return isValidTimePatch(op.patch);
