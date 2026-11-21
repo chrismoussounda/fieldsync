@@ -4,6 +4,7 @@ import { login } from "./auth/session.ts";
 import type { Database } from "./db/schema.ts";
 import { createTestDb } from "./db/testing.ts";
 import { DEMO_ORG, resetDemo, seedDemo } from "./demo.ts";
+import { handlePull } from "./sync/pull.ts";
 
 let db: Kysely<Database>;
 
@@ -39,6 +40,24 @@ it("seeds the demo org once, with users who can sign in", async () => {
 		},
 	);
 	expect(session.user.role).toBe("dispatcher");
+});
+
+it("files each demo order under its technician, so it reaches their phone", async () => {
+	const junior = await db
+		.selectFrom("users")
+		.select("id")
+		.where("email", "=", "junior@fieldsync.demo")
+		.executeTakeFirstOrThrow();
+	const { changes } = await handlePull(
+		db,
+		{ orgId: DEMO_ORG, deviceId: crypto.randomUUID() },
+		{ cursor: 0, limit: 100 },
+		{ audience: junior.id },
+	);
+	expect(changes.map((c) => c.state?.fields.title).sort()).toEqual([
+		"Inspect the generator",
+		"Replace the water pump",
+	]);
 });
 
 it("resets the demo orders under a new epoch and keeps the users", async () => {

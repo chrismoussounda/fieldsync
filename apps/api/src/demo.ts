@@ -1,6 +1,7 @@
 import { encode } from "@fieldsync/hlc";
 import type { Op } from "@fieldsync/protocol";
 import type { Kysely } from "kysely";
+import { workOrderScope } from "./auth/policy.ts";
 import { createUser } from "./auth/users.ts";
 import type { Database, Role } from "./db/schema.ts";
 import { handlePush } from "./sync/push.ts";
@@ -146,6 +147,7 @@ async function seedOrders(db: Kysely<Database>, now: number): Promise<void> {
 		db,
 		{ orgId: DEMO_ORG, deviceId: SEED_DEVICE },
 		{ ops },
-		{ authorize: () => true, now: () => now },
+		// Filed under each order's assignee, so it reaches that technician's phone.
+		{ authorize: () => true, scopeOf: workOrderScope, now: () => now },
 	);
 }

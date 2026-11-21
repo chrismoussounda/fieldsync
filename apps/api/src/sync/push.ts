@@ -11,6 +11,7 @@ import {
 } from "@fieldsync/protocol";
 import { type Kysely, sql, type Transaction } from "kysely";
 import type { Database } from "../db/schema.ts";
+import type { ScopeOf } from "./scope.ts";
 
 export type Auth = { orgId: string; deviceId: string };
 
@@ -23,14 +24,21 @@ export type Validate = (op: Op) => boolean;
 export type PushOptions = {
 	authorize: Authorize;
 	validate?: Validate;
+	/**
+	 * Recorded on each change, so partial pulls know who it concerns. Required:
+	 * a writer that forgot it would hide its records from every technician.
+	 */
+	scopeOf: ScopeOf;
 	now?: () => number;
 };
+
+type Rules = { authorize: Authorize; validate: Validate; scopeOf: ScopeOf };
 
 export function handlePush(
 	db: Kysely<Database>,
 	auth: Auth,
 	body: PushRequest,
-	{ authorize, validate = () => true, now = Date.now }: PushOptions,
+	{ authorize, validate = () => true, scopeOf, now = Date.now }: PushOptions,
 ): Promise<PushResponse> {
 	return db.transaction().execute(async (tx) => {
 		// One writer per org at a time: change numbers are then handed out in
@@ -45,7 +53,7 @@ export function handlePush(
 		const results: OpResult[] = [];
 		for (const raw of body.ops) {
 			results.push(
-				await pushOne(tx, auth, { authorize, validate }, raw, now()),
+				await pushOne(tx, auth, { authorize, validate, scopeOf }, raw, now()),
 			);
 		}
 		return { results, serverTime: now() };
@@ -55,7 +63,7 @@ export function handlePush(
 async function pushOne(
 	tx: Transaction<Database>,
 	auth: Auth,
-	{ authorize, validate }: { authorize: Authorize; validate: Validate },
+	{ authorize, validate, scopeOf }: Rules,
 	raw: unknown,
 	now: number,
 ): Promise<OpResult> {
@@ -108,6 +116,8 @@ async function pushOne(
 			kind: op.kind,
 			patch: JSON.stringify(won),
 			hlc: op.hlc,
+			scope_before: current ? scopeOf(op.entityType, current) : null,
+			scope_after: scopeOf(op.entityType, state),
 		})
 		.execute();
 	if (conflicts.length > 0) {

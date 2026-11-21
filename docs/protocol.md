@@ -154,6 +154,33 @@ records from the operations still in its outbox, and pulls again from 0. Users
 and devices stay signed in, and the change counter keeps counting, so no
 number is reused.
 
+### Partial sync
+
+A technician's device holds only the orders assigned to them; the office's
+devices hold everything. Each change stores whose record it touched before and
+after it (`scope_before`, `scope_after`: the order's assignee). A technician
+pulls the changes where they stand on either side:
+
+- **`enter`**: the order became theirs. Its earlier changes were never sent,
+  so this change carries `state`, the server's current copy. The device takes
+  it, replays its own operations not yet accepted, and moves its clock past
+  every stamp in it.
+- **`leave`**: the order is no longer theirs. The device drops it, keeping only
+  edits not yet sent; the server refuses those, and the record goes.
+- Otherwise the change merges as usual.
+
+The cursor still moves past the changes left out: `nextCursor` is the org's
+counter when there is no further page. The counter, the changes and the copies
+are read in one snapshot, so a copy is never older than the changes sent with
+it.
+
+The epoch a technician sees is the org's plus their id. A role change gives
+their devices a new epoch, so they start over from 0 with the full set, or
+their own share of it.
+
+Changes written before partial sync count as made under each order's current
+assignee: a device pulling from 0 gets the whole history of its orders.
+
 ## Client
 
 `packages/sync-client` runs on the device. It knows nothing about the UI or the
@@ -207,10 +234,13 @@ transport that can:
 - hold a request back and deliver it later, after the device has retried it,
   so the server sees duplicates out of order.
 
-Between faults, devices edit, delete and restore four shared work orders. At
-the end the network heals and every device syncs until nothing is left to
-send. The run passes only if every device holds exactly the server's state, no
-operation was rejected, and each device's clock only moved forward.
+Between faults, devices edit, delete and restore four shared work orders, and
+reassign them. Some devices sync as technicians: they see only the orders
+assigned to them, and may only edit those, without reassigning them. At the
+end the network heals and every device syncs until nothing is left to send.
+The run passes only if every device holds exactly the server's records it may
+see, no office operation was rejected, and each device's clock only moved
+forward.
 
 fast-check generates 500 scenarios per run against an in-memory server, and 50
 against the real push and pull handlers on Postgres. When a run fails, it
@@ -290,6 +320,7 @@ and rejects what the user's role may not do with `FORBIDDEN`.
 
 | Action                                 | Technician    | Dispatcher | Admin |
 | -------------------------------------- | ------------- | ---------- | ----- |
+| Sync and read work orders              | assigned only | all        | all   |
 | Create, delete or restore a work order | no            | yes        | yes   |
 | Plan the job                           | no            | yes        | yes   |
 | Report progress                        | assigned only | yes        | yes   |

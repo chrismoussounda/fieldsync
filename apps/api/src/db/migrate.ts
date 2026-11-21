@@ -6,6 +6,7 @@ import * as conflictsIndex from "./migrations/003_conflicts_index.ts";
 import * as orgEpoch from "./migrations/004_org_epoch.ts";
 import * as userDisabled from "./migrations/005_user_disabled.ts";
 import * as changesByEntity from "./migrations/006_changes_by_entity.ts";
+import * as changeScopes from "./migrations/007_change_scopes.ts";
 
 // Listed in code instead of read from disk, so the simulator can run them in memory.
 const provider: MigrationProvider = {
@@ -16,6 +17,7 @@ const provider: MigrationProvider = {
 		"004_org_epoch": orgEpoch,
 		"005_user_disabled": userDisabled,
 		"006_changes_by_entity": changesByEntity,
+		"007_change_scopes": changeScopes,
 	}),
 };
 
