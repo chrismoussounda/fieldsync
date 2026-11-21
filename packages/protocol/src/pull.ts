@@ -1,3 +1,4 @@
+import type { EntityState } from "./entity.ts";
 import type { Op } from "./op.ts";
 
 export type Change = {
@@ -9,6 +10,13 @@ export type Change = {
 	kind: Op["kind"];
 	patch: Op["patch"];
 	hlc: string;
+	/**
+	 * Set when this change moves the record into or out of what the device
+	 * syncs, such as an order assigned to or taken from its technician.
+	 */
+	scope?: "enter" | "leave";
+	/** With `enter`: the record as the server holds it, since earlier changes were not sent. */
+	state?: EntityState;
 };
 
 export type PullRequest = { cursor: number; limit: number };

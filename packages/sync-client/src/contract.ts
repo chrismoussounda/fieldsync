@@ -117,6 +117,50 @@ export function describeStorage(
 			expect(await storage.getEpoch()).toBe("e1");
 		});
 
+		it("takes the server's copy of a record entering the device", async () => {
+			const storage = await create();
+			const mine = op(A, 5, { notes: "mine" });
+			await queue(storage, mine);
+			const server = stateOf(op(A, 3, { title: "Pump", status: "assigned" }));
+			const entering = op(A, 4, { assigneeId: "me" });
+			await storage.applyRemote(
+				[{ ...change(entering, 9), scope: "enter", state: server }],
+				9,
+				"e1",
+			);
+			// The copy plus this device's edit still on its way.
+			expect((await storage.getEntity("work_order", A))?.fields).toEqual({
+				title: "Pump",
+				status: "assigned",
+				notes: "mine",
+			});
+		});
+
+		it("drops a record leaving the device, keeping only unsent edits", async () => {
+			const storage = await create();
+			await storage.applyRemote(
+				[change(op(A, 1, { title: "Pump" }), 1), change(op(B, 2, { n: 1 }), 2)],
+				2,
+				"e1",
+			);
+			const mine = op(B, 3, { notes: "mine" });
+			await queue(storage, mine);
+			const leave = (o: Op, seq: number): Change => ({
+				...change(o, seq),
+				scope: "leave",
+			});
+			await storage.applyRemote(
+				[leave(op(A, 4, { assigneeId: "x" }), 3), leave(op(B, 5, {}), 4)],
+				4,
+				"e1",
+			);
+			expect(await storage.getEntity("work_order", A)).toBeNull();
+			expect((await storage.getEntity("work_order", B))?.fields).toEqual({
+				notes: "mine",
+			});
+			expect(await storage.getCursor()).toBe(4);
+		});
+
 		it("forgets what was pulled after a server reset, but not queued changes", async () => {
 			const storage = await create();
 			const mine = op(A, 1, { notes: "mine" });
