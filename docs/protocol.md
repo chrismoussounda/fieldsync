@@ -204,6 +204,13 @@ Each start and stop is a `time_entry` belonging to the order, with the
 technician and `startedAt`; `endedAt` stays null while the clock runs. A stop
 before its start is refused.
 
+### Parts and materials
+
+Each part used on a job is a `part` belonging to the order: a name, a quantity
+above 0 with an optional unit, who added it and when. The assigned technician
+adds parts in their own name and corrects or removes their own; the office
+corrects any.
+
 ### Customer sites
 
 A `site` keeps a customer's name, address, contact, phone and access notes
@@ -378,6 +385,8 @@ and rejects what the user's role may not do with `FORBIDDEN`.
 | Tick checklist steps                   | assigned only | yes        | yes   |
 | Clock own time on site                 | assigned only | yes        | yes   |
 | Correct or remove time entries         | no            | yes        | yes   |
+| Record parts used                      | assigned only | yes        | yes   |
+| Correct or remove parts                | own only      | yes        | yes   |
 | Add photos                             | assigned only | yes        | yes   |
 | Caption or delete a photo              | own only      | yes        | yes   |
 | Add, edit or remove customer sites     | no            | yes        | yes   |

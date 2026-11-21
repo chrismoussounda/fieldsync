@@ -2,6 +2,7 @@ import { minutesBetween, SITE, WORK_ORDER } from "@fieldsync/work-orders";
 import { type Order, toOrder } from "../orders.ts";
 import type { LocalDb } from "../sync/storage.ts";
 import { type Item, itemsOf } from "./checklists.ts";
+import { type Part, partsOf } from "./parts.ts";
 import { type Photo, photosOf } from "./photos.ts";
 import { type Site, toSite } from "./sites.ts";
 import { type Entry, entriesOf } from "./timesheet.ts";
@@ -13,6 +14,7 @@ export type Report = {
 	items: Item[];
 	entries: Entry[];
 	minutes: number;
+	parts: Part[];
 	photos: Photo[];
 	signature: Photo | null;
 };
@@ -39,6 +41,7 @@ export async function reportOf(
 			(sum, e) => sum + minutesBetween(e.startedAt, e.endedAt, now),
 			0,
 		),
+		parts: await partsOf(db, orderId),
 		photos: photos.filter((p) => !p.signer),
 		// The latest, should the customer have signed again.
 		signature: photos.filter((p) => p.signer).at(-1) ?? null,
