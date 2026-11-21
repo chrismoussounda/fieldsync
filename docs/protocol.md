@@ -204,6 +204,9 @@ the image's type and size, so the server refuses any other file for it, and a
 second upload of the same image changes nothing. Until the author's device
 sends it, `GET` answers `PHOTO_PENDING`.
 
+A customer's signature is a photo with a `signer`, the customer's name, set
+when it is taken and never changed after.
+
 ## Client
 
 `packages/sync-client` runs on the device. It knows nothing about the UI or the
