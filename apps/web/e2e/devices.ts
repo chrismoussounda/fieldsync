@@ -40,7 +40,7 @@ export async function createOrder(
 	await office.goto("/#/new");
 	await office.getByLabel("Title").fill(title);
 	await office.getByLabel("Assigned to").selectOption({ label: assignee });
-	await office.getByRole("button", { name: "Save" }).click();
+	await office.getByRole("button", { name: "Save", exact: true }).click();
 	await expect(office.locator(".badge")).toHaveText("Synced");
 }
 
@@ -52,7 +52,7 @@ export async function open(page: Page, title: string): Promise<void> {
 }
 
 export async function save(page: Page): Promise<void> {
-	await page.getByRole("button", { name: "Save" }).click();
+	await page.getByRole("button", { name: "Save", exact: true }).click();
 	await expect(
 		page.getByRole("heading", { name: "Work orders" }),
 	).toBeVisible();

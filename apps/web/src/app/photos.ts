@@ -15,6 +15,8 @@ export type Photo = {
 	id: string;
 	orderId: string;
 	caption: string | null;
+	/** Set on a customer's signature. */
+	signer: string | null;
 	takenBy: string;
 	takenAt: string;
 };
@@ -39,6 +41,7 @@ function toPhoto(id: string, state: EntityState): Photo {
 		id,
 		orderId: text(f.orderId),
 		caption: text(f.caption) || null,
+		signer: text(f.signer) || null,
 		takenBy: text(f.takenBy),
 		takenAt: text(f.takenAt),
 	};
@@ -68,12 +71,14 @@ export async function addPhoto(
 		orderId,
 		user,
 		image,
-		caption,
+		caption = null,
+		signer = null,
 	}: {
 		orderId: string;
 		user: User;
 		image: Blob;
-		caption: string | null;
+		caption?: string | null;
+		signer?: string | null;
 	},
 ): Promise<string> {
 	if (image.size > MAX_PHOTO_BYTES) throw new Error("PHOTO_TOO_LARGE");
@@ -94,6 +99,7 @@ export async function addPhoto(
 			takenBy: user.id,
 			takenAt: new Date().toISOString(),
 			...(caption ? { caption } : {}),
+			...(signer ? { signer } : {}),
 		},
 	});
 	return id;
