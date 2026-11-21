@@ -14,6 +14,7 @@ describe("parseRoute", () => {
 		expect(parseRoute(ROUTES.team)).toEqual({ name: "team" });
 		expect(parseRoute(ROUTES.account)).toEqual({ name: "account" });
 		expect(parseRoute(ROUTES.overview)).toEqual({ name: "overview" });
+		expect(parseRoute(ROUTES.report(ID))).toEqual({ name: "report", id: ID });
 		expect(parseRoute(ROUTES.sites)).toEqual({ name: "sites" });
 		expect(parseRoute(ROUTES.site(ID))).toEqual({ name: "site", id: ID });
 		expect(parseRoute(ROUTES.newSite)).toEqual({ name: "site", id: null });

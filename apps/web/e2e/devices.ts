@@ -57,3 +57,18 @@ export async function save(page: Page): Promise<void> {
 		page.getByRole("heading", { name: "Work orders" }),
 	).toBeVisible();
 }
+
+/** Draws a signature on the pad. */
+export async function scribble(page: Page) {
+	const box = await page.getByLabel("Signature pad").boundingBox();
+	if (!box) throw new Error("No signature pad");
+	await page.mouse.move(box.x + 20, box.y + box.height / 2);
+	await page.mouse.down();
+	for (let i = 1; i <= 10; i++) {
+		await page.mouse.move(
+			box.x + 20 + i * 25,
+			box.y + box.height / 2 + (i % 2 ? -20 : 20),
+		);
+	}
+	await page.mouse.up();
+}

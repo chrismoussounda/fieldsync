@@ -1,19 +1,12 @@
-import { expect, type Page, test } from "@playwright/test";
-import { createOrder, device, JUNIOR, open, sync } from "./devices.ts";
-
-async function scribble(page: Page) {
-	const box = await page.getByLabel("Signature pad").boundingBox();
-	if (!box) throw new Error("No signature pad");
-	await page.mouse.move(box.x + 20, box.y + box.height / 2);
-	await page.mouse.down();
-	for (let i = 1; i <= 10; i++) {
-		await page.mouse.move(
-			box.x + 20 + i * 25,
-			box.y + box.height / 2 + (i % 2 ? -20 : 20),
-		);
-	}
-	await page.mouse.up();
-}
+import { expect, test } from "@playwright/test";
+import {
+	createOrder,
+	device,
+	JUNIOR,
+	open,
+	scribble,
+	sync,
+} from "./devices.ts";
 
 test("the customer signs on the technician's phone, offline", async ({
 	browser,

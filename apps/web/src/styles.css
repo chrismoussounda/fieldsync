@@ -738,3 +738,123 @@ label.button.disabled {
 	flex-basis: 100%;
 	margin: 0;
 }
+
+.report {
+	display: grid;
+	gap: 1.25rem;
+	padding: 1.5rem;
+	border: 1px solid var(--line);
+	border-radius: 12px;
+	background: var(--surface);
+}
+
+.report section {
+	display: grid;
+	gap: 0.4rem;
+}
+
+.report h1 {
+	font-size: 1.5rem;
+}
+
+.report-head {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
+	gap: 1rem;
+	padding-bottom: 1rem;
+	border-bottom: 2px solid var(--accent);
+}
+
+.report-head dl {
+	display: grid;
+	grid-template-columns: auto auto;
+	gap: 0.15rem 0.75rem;
+	margin: 0;
+	font-size: 0.9rem;
+}
+
+.report-head dt {
+	color: var(--muted);
+}
+
+.report-head dd {
+	margin: 0;
+	font-weight: 600;
+}
+
+.report-grid {
+	grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+}
+
+.report .prose {
+	white-space: pre-wrap;
+}
+
+.report-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.report-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.9rem;
+}
+
+.report-table :is(th, td) {
+	padding: 0.35rem 0.5rem;
+	border-bottom: 1px solid var(--line);
+	text-align: left;
+}
+
+.report-table tfoot th {
+	border-bottom: none;
+}
+
+.report-photos {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+	gap: 0.75rem;
+}
+
+.report figure {
+	margin: 0;
+	break-inside: avoid;
+}
+
+.report figcaption {
+	font-size: 0.85rem;
+	color: var(--muted);
+}
+
+.report-signature .photo img {
+	max-width: 18rem;
+	background: #fff;
+}
+
+@media print {
+	:root {
+		--bg: #fff;
+		--surface: #fff;
+		--text: #000;
+		--muted: #444;
+		--line: #ccc;
+		color-scheme: light;
+	}
+
+	.no-print {
+		display: none;
+	}
+
+	.page {
+		max-width: none;
+		padding: 0;
+	}
+
+	.report {
+		border: none;
+		padding: 0;
+	}
+}

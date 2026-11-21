@@ -188,6 +188,7 @@ function OrderForm({
 		<form className="card form" onSubmit={save}>
 			<div className="toolbar">
 				<h2>{id ? "Work order" : "New work order"}</h2>
+				{id && <a href={ROUTES.report(id)}>Job report</a>}
 				<a href={ROUTES.list}>Back</a>
 			</div>
 			{editable.size === 0 && (
