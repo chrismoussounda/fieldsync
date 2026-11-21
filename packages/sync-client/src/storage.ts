@@ -48,8 +48,27 @@ export function applyChange(
 	state: EntityState | null,
 	change: Change,
 ): EntityState {
-	const op: Op = { ...change, base: {}, clientVersion: "" };
+	const { scope: _scope, state: _state, ...rest } = change;
+	const op: Op = { ...rest, base: {}, clientVersion: "" };
 	return merge(state, op, { detectConflicts: false }).state;
+}
+
+/**
+ * A pulled change applied to a record, given the device's operations on it not
+ * yet accepted; null once the record is gone from the device.
+ */
+export function applyPulled(
+	state: EntityState | null,
+	change: Change,
+	pending: Op[],
+): EntityState | null {
+	// Entering: the server's copy replaces what came before. Leaving: only
+	// unsent edits stay, until the server refuses them.
+	if (change.scope === "enter" && change.state) {
+		return replay(structuredClone(change.state), pending);
+	}
+	if (change.scope === "leave") return replay(null, pending);
+	return applyChange(state, change);
 }
 
 export function replay(
@@ -128,7 +147,10 @@ export class MemoryStorage implements SyncStorage {
 	): Promise<void> {
 		for (const change of changes) {
 			const k = key(change.entityType, change.entityId);
-			this.entities.set(k, applyChange(this.entities.get(k) ?? null, change));
+			const pending = this.#pending(change.entityType, change.entityId);
+			const state = applyPulled(this.entities.get(k) ?? null, change, pending);
+			if (state) this.entities.set(k, state);
+			else this.entities.delete(k);
 		}
 		this.cursor = nextCursor;
 		this.epoch = epoch;
@@ -162,7 +184,13 @@ export class MemoryStorage implements SyncStorage {
 		id: string,
 		snapshot: EntityState | null,
 	): Promise<void> {
-		const ops = this.outbox
+		const state = replay(snapshot, this.#pending(type, id));
+		if (state) this.entities.set(key(type, id), state);
+		else this.entities.delete(key(type, id));
+	}
+
+	#pending(type: string, id: string): Op[] {
+		return this.outbox
 			.filter(
 				(e) =>
 					e.status !== "dead" &&
@@ -170,9 +198,6 @@ export class MemoryStorage implements SyncStorage {
 					e.op.entityId === id,
 			)
 			.map((e) => e.op);
-		const state = replay(snapshot, ops);
-		if (state) this.entities.set(key(type, id), state);
-		else this.entities.delete(key(type, id));
 	}
 
 	async getOutbox(): Promise<OutboxEntry[]> {

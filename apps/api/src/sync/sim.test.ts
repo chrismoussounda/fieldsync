@@ -1,5 +1,11 @@
 import type { EntityState } from "@fieldsync/protocol";
-import { runScenario, type SimServer, scenario } from "@fieldsync/sim";
+import {
+	runScenario,
+	type SimServer,
+	scenario,
+	simAuthorize,
+	simScope,
+} from "@fieldsync/sim";
 import fc from "fast-check";
 import type { Kysely } from "kysely";
 import { afterAll, beforeAll, it } from "vitest";
@@ -8,7 +14,6 @@ import { createTestDb, emptyTestDb } from "../db/testing.ts";
 import { handleGetEntity } from "./entity.ts";
 import { handlePull } from "./pull.ts";
 import { handlePush } from "./push.ts";
-import { allowAll } from "./testing.ts";
 
 const ORG = "00000000-0000-4000-8000-000000000001";
 
@@ -20,16 +25,26 @@ beforeAll(async () => {
 
 afterAll(() => db.destroy());
 
+const scopeOf = (_type: string, state: EntityState) => simScope(state);
+
 const server: SimServer = {
-	push: (deviceId, request, now) =>
+	push: (deviceId, request, now, audience) =>
 		handlePush(db, { orgId: ORG, deviceId }, request, {
-			authorize: allowAll,
+			authorize: (op, current) => simAuthorize(op, current, audience),
+			scopeOf,
 			now: () => now,
 		}),
-	pull: (deviceId, request, now) =>
-		handlePull(db, { orgId: ORG, deviceId }, request, () => now),
-	entity: (deviceId, request, now) =>
-		handleGetEntity(db, { orgId: ORG, deviceId }, request, () => now),
+	pull: (deviceId, request, now, audience) =>
+		handlePull(db, { orgId: ORG, deviceId }, request, {
+			now: () => now,
+			audience,
+		}),
+	entity: (deviceId, request, now, audience) =>
+		handleGetEntity(db, { orgId: ORG, deviceId }, request, {
+			now: () => now,
+			audience,
+			scopeOf,
+		}),
 	async entities() {
 		const rows = await db.selectFrom("entities").selectAll().execute();
 		return new Map<string, EntityState>(

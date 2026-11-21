@@ -5,7 +5,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { Database } from "../db/schema.ts";
 import { createTestDb, emptyTestDb } from "../db/testing.ts";
 import { type Auth, type Authorize, handlePush } from "./push.ts";
-import { allowAll } from "./testing.ts";
+import { openRules } from "./testing.ts";
 
 const ORG = "00000000-0000-4000-8000-000000000001";
 const OTHER_ORG = "00000000-0000-4000-8000-000000000002";
@@ -54,7 +54,7 @@ function op(deviceId: string, wall: number, overrides: Partial<Op> = {}): Op {
 }
 
 function push(auth: Auth, ...ops: unknown[]) {
-	return handlePush(db, auth, { ops }, { authorize: allowAll, now: () => NOW });
+	return handlePush(db, auth, { ops }, { ...openRules, now: () => NOW });
 }
 
 function order(orgId = ORG) {
@@ -174,6 +174,7 @@ describe("handlePush", () => {
 			phone,
 			{ ops: [bad] },
 			{
+				...openRules,
 				validate: (o) => o.patch.status !== "banana",
 				authorize: () => {
 					asked = true;
@@ -197,7 +198,12 @@ describe("handlePush", () => {
 			return current === null || current.fields.assigneeId === "me";
 		};
 		const send = (o: Op) =>
-			handlePush(db, phone, { ops: [o] }, { authorize, now: () => NOW });
+			handlePush(
+				db,
+				phone,
+				{ ops: [o] },
+				{ ...openRules, authorize, now: () => NOW },
+			);
 
 		await send(op(PHONE, 1, { patch: { assigneeId: "someone" } }));
 		const refused = op(PHONE, 2, { patch: { status: "done" } });
@@ -226,7 +232,7 @@ describe("handlePush", () => {
 			phone,
 			{ ops: [early] },
 			{
-				authorize: allowAll,
+				...openRules,
 				now: () => NOW + 1,
 			},
 		);
@@ -289,7 +295,7 @@ describe("handlePush", () => {
 				{ orgId: ORDER, deviceId: PHONE },
 				{ ops: [create] },
 				{
-					authorize: allowAll,
+					...openRules,
 				},
 			),
 		).rejects.toThrow();

@@ -3,6 +3,7 @@ import { merge } from "@fieldsync/merge";
 import type {
 	EntityRequest,
 	EntityResponse,
+	EntityState,
 	Op,
 	OpResult,
 	PullRequest,
@@ -147,7 +148,11 @@ export class SyncClient {
 				await this.#storage.resetRemote();
 				continue;
 			}
-			for (const change of page.changes) this.#clock.receive(change.hlc);
+			for (const change of page.changes) {
+				this.#clock.receive(change.hlc);
+				// An entering record's copy can hold stamps newer than the change.
+				for (const hlc of stampsOf(change.state)) this.#clock.receive(hlc);
+			}
 			await this.#storage.applyRemote(
 				page.changes,
 				page.nextCursor,
@@ -191,6 +196,16 @@ export class SyncClient {
 	#correctedNow(): number {
 		return this.#now() + this.#offset;
 	}
+}
+
+function stampsOf(state: EntityState | undefined): string[] {
+	if (!state) return [];
+	return [
+		...Object.values(state.clocks),
+		state.createdHlc,
+		state.deletedHlc,
+		state.restoredHlc,
+	].filter((h): h is string => h !== null);
 }
 
 function isDrift(result: OpResult): boolean {

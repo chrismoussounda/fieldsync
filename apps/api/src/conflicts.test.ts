@@ -9,7 +9,7 @@ import type { Database, Role } from "./db/schema.ts";
 import { createTestDb, emptyTestDb } from "./db/testing.ts";
 import { ApiError } from "./errors.ts";
 import { handlePush } from "./sync/push.ts";
-import { allowAll } from "./sync/testing.ts";
+import { openRules } from "./sync/testing.ts";
 
 const ORG = "00000000-0000-4000-8000-000000000001";
 const OTHER_ORG = "00000000-0000-4000-8000-000000000002";
@@ -62,7 +62,7 @@ const push = (device: string, o: Op) =>
 		db,
 		{ orgId: ORG, deviceId: device },
 		{ ops: [o] },
-		{ authorize: allowAll, now: () => 10_000 },
+		{ ...openRules, now: () => 10_000 },
 	);
 
 beforeEach(async () => {

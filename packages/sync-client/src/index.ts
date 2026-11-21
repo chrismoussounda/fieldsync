@@ -9,6 +9,7 @@ export {
 export { HttpError, HttpTransport, type HttpTransportOptions } from "./http.ts";
 export {
 	applyChange,
+	applyPulled,
 	MemoryStorage,
 	type OutboxEntry,
 	replay,

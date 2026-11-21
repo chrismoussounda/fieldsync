@@ -71,24 +71,24 @@ async function signIn(email: string, deviceId: string) {
 	};
 }
 
-async function syncHeaders(email = "dispatch@example.com") {
-	const { accessToken } = await signIn(email, PHONE);
+async function syncHeaders(email = "dispatch@example.com", device = PHONE) {
+	const { accessToken } = await signIn(email, device);
 	return {
 		"x-protocol-version": PROTOCOL_VERSION,
 		authorization: `Bearer ${accessToken}`,
 	};
 }
 
-function op(patch: Record<string, string>) {
+function op(patch: Record<string, string>, deviceId = PHONE) {
 	return {
 		opId: crypto.randomUUID(),
-		deviceId: PHONE,
+		deviceId,
 		entityType: "work_order",
 		entityId: ORDER,
 		kind: "upsert",
 		patch,
 		base: {},
-		hlc: encode({ wall: Date.now(), counter: 0, node: "0a1b2c3d" }),
+		hlc: encode({ wall: Date.now(), counter: 0, node: deviceId.slice(0, 8) }),
 		clientVersion: "0.1.0",
 	};
 }
@@ -187,15 +187,26 @@ describe("team routes", () => {
 });
 
 describe("history route", () => {
-	it("answers any signed-in member, and checks the record id", async () => {
-		const { accessToken } = await signIn("tech@example.com", PHONE);
-		const headers = { authorization: `Bearer ${accessToken}` };
-		const ok = await app.inject({
-			url: `/history/work_order/${crypto.randomUUID()}`,
-			headers,
+	it("answers for the orders the user syncs, and checks the record id", async () => {
+		await app.inject({
+			method: "POST",
+			url: "/sync/push",
+			headers: await syncHeaders("dispatch@example.com", OFFICE),
+			payload: { ops: [op({ title: "Not his" }, OFFICE)] },
 		});
-		expect(ok.json()).toEqual({ entries: [] });
-		const bad = await app.inject({ url: "/history/work_order/42", headers });
+		const as = async (email: string, url: string) => {
+			const device = email === "tech@example.com" ? PHONE : OFFICE;
+			const { accessToken } = await signIn(email, device);
+			return app.inject({
+				url,
+				headers: { authorization: `Bearer ${accessToken}` },
+			});
+		};
+		const url = `/history/work_order/${ORDER}`;
+		const office = await as("dispatch@example.com", url);
+		expect(office.json().entries).toHaveLength(1);
+		expect((await as("tech@example.com", url)).statusCode).toBe(404);
+		const bad = await as("tech@example.com", "/history/work_order/42");
 		expect(bad.statusCode).toBe(400);
 	});
 });
@@ -316,6 +327,43 @@ describe("sync routes", () => {
 				reason: "INVALID_OP",
 			});
 		}
+	});
+
+	it("send a technician only the orders assigned to him", async () => {
+		const tech = await db
+			.selectFrom("users")
+			.select("id")
+			.where("email", "=", "tech@example.com")
+			.executeTakeFirstOrThrow();
+		const other = crypto.randomUUID();
+		const push = await app.inject({
+			method: "POST",
+			url: "/sync/push",
+			headers: await syncHeaders("dispatch@example.com", OFFICE),
+			payload: {
+				ops: [
+					op({ title: "His", assigneeId: tech.id }, OFFICE),
+					{ ...op({ title: "Not his" }, OFFICE), entityId: other },
+				],
+			},
+		});
+		expect(push.json().results).toMatchObject([
+			{ status: "applied" },
+			{ status: "applied" },
+		]);
+		const pull = await app.inject({
+			url: "/sync/pull?cursor=0",
+			headers: await syncHeaders("tech@example.com"),
+		});
+		expect(pull.json()).toMatchObject({
+			changes: [{ entityId: ORDER, scope: "enter" }],
+			nextCursor: 2,
+		});
+		const theirs = await app.inject({
+			url: `/sync/entities/work_order/${other}`,
+			headers: await syncHeaders("tech@example.com"),
+		});
+		expect(theirs.json().entity).toBeNull();
 	});
 
 	it("refuse an operation the role may not do", async () => {

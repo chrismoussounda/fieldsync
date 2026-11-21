@@ -35,6 +35,8 @@ export type Database = {
 		kind: Op["kind"];
 		patch: JSONColumnType<Op["patch"]>;
 		hlc: string;
+		scope_before: string | null;
+		scope_after: string | null;
 		created_at: CreatedAt;
 	};
 	received_ops: {

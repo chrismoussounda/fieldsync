@@ -109,6 +109,26 @@ describe("migrations", () => {
 		).rejects.toThrow();
 	});
 
+	it("file earlier changes under the order's current assignee", async () => {
+		await migrator(db as Kysely<unknown>).migrateTo("006_changes_by_entity");
+		await sql`
+			insert into entities (org_id, type, id, fields, clocks, created_hlc, updated_seq)
+			values (${ORG}, 'work_order', ${ENTITY}, ${JSON.stringify({ assigneeId: "junior" })},
+				'{}', '0000000000001-0000-0a1b2c3d', 1)
+		`.execute(db);
+		await db
+			.insertInto("changes")
+			.values(change(1, "00000000-0000-7000-8000-000000000003"))
+			.execute();
+		await migrateToLatest(db as Kysely<unknown>);
+
+		const row = await db
+			.selectFrom("changes")
+			.select(["scope_before", "scope_after"])
+			.executeTakeFirstOrThrow();
+		expect(row).toEqual({ scope_before: "junior", scope_after: "junior" });
+	});
+
 	it("refuse an unknown kind of change", async () => {
 		const bad = {
 			...change(1, "00000000-0000-7000-8000-000000000002"),

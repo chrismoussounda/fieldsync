@@ -3,7 +3,12 @@ import type { Action } from "./world.ts";
 
 const FIELDS = ["status", "priority", "assignee", "notes"];
 
-export type Scenario = { skews: number[]; actions: Action[] };
+export type Scenario = {
+	skews: number[];
+	/** Which devices sync as technicians; the first is always the office. */
+	techs?: boolean[];
+	actions: Action[];
+};
 
 export function scenario({
 	maxDevices = 5,
@@ -80,6 +85,11 @@ export function scenario({
 	return fc.record({
 		skews: fc.array(fc.integer({ min: -maxSkewMs, max: maxSkewMs }), {
 			minLength: 2,
+			maxLength: maxDevices,
+		}),
+		// Entries past the last device are ignored.
+		techs: fc.array(fc.boolean(), {
+			minLength: maxDevices,
 			maxLength: maxDevices,
 		}),
 		actions: fc.array(action, { minLength: 20, maxLength: maxActions }),

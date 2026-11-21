@@ -2,12 +2,13 @@ import { encode } from "@fieldsync/hlc";
 import type { Op } from "@fieldsync/protocol";
 import type { Kysely } from "kysely";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { workOrderScope } from "../auth/policy.ts";
 import type { Database } from "../db/schema.ts";
 import { createTestDb, emptyTestDb } from "../db/testing.ts";
 import { handlePull, MAX_PULL_LIMIT } from "./pull.ts";
 import { type Auth, handlePush } from "./push.ts";
 import { resetOrg } from "./reset.ts";
-import { allowAll } from "./testing.ts";
+import { openRules } from "./testing.ts";
 
 const ORG = "00000000-0000-4000-8000-000000000001";
 const OTHER_ORG = "00000000-0000-4000-8000-000000000002";
@@ -56,12 +57,12 @@ async function seed(count: number, auth = phone): Promise<Op[]> {
 	const ops = Array.from({ length: count }, (_, i) =>
 		op(i + 1, { title: `Job ${i + 1}` }),
 	);
-	await handlePush(db, auth, { ops }, { authorize: allowAll, now: () => NOW });
+	await handlePush(db, auth, { ops }, { ...openRules, now: () => NOW });
 	return ops;
 }
 
 function pull(cursor: number, limit = 100, auth = phone) {
-	return handlePull(db, auth, { cursor, limit }, () => NOW);
+	return handlePull(db, auth, { cursor, limit }, { now: () => NOW });
 }
 
 describe("handlePull", () => {
@@ -146,5 +147,76 @@ describe("resetOrg", () => {
 		expect(await pull(0, 100, { orgId: OTHER_ORG, deviceId: PHONE })).toEqual(
 			before,
 		);
+	});
+});
+
+describe("partial pull", () => {
+	const ORDER = "00000000-0000-4000-8000-0000000000aa";
+	let wall = 100;
+
+	// The office edits one order; Junior's devices see it only while it is his.
+	const edit = (patch: Op["patch"]) => {
+		wall += 1;
+		return handlePush(
+			db,
+			phone,
+			{ ops: [{ ...op(wall, patch), entityId: ORDER }] },
+			{ ...openRules, scopeOf: workOrderScope, now: () => NOW },
+		);
+	};
+	const asJunior = (cursor: number) =>
+		handlePull(
+			db,
+			phone,
+			{ cursor, limit: 100 },
+			{ now: () => NOW, audience: "junior" },
+		);
+
+	it("sends nothing of other people's orders, but moves the cursor past them", async () => {
+		await edit({ title: "Fix pump", assigneeId: "merveille" });
+		await edit({ notes: "Hers" });
+		expect(await asJunior(0)).toMatchObject({
+			changes: [],
+			nextCursor: 2,
+			hasMore: false,
+		});
+	});
+
+	it("sends the whole record when an order becomes his", async () => {
+		await edit({ title: "Fix pump" });
+		await edit({ assigneeId: "junior" });
+		await edit({ notes: "On my way" });
+		const { changes } = await asJunior(0);
+		expect(changes.map((c) => [c.seq, c.scope])).toEqual([
+			[2, "enter"],
+			[3, undefined],
+		]);
+		// The copy as it is now: the title he never received, and the later notes.
+		expect(changes[0]?.state?.fields).toEqual({
+			title: "Fix pump",
+			assigneeId: "junior",
+			notes: "On my way",
+		});
+	});
+
+	it("tells his devices when an order is taken from him", async () => {
+		await edit({ title: "Fix pump", assigneeId: "junior" });
+		await edit({ assigneeId: "merveille" });
+		await edit({ notes: "Hers" });
+		const { changes, nextCursor } = await asJunior(0);
+		expect(changes.map((c) => [c.seq, c.scope])).toEqual([
+			[1, "enter"],
+			[2, "leave"],
+		]);
+		expect(changes[1]?.state).toBeUndefined();
+		expect(nextCursor).toBe(3);
+	});
+
+	it("gives each audience its own epoch, so a role change starts over", async () => {
+		await edit({ title: "Fix pump" });
+		const office = await pull(0);
+		const junior = await asJunior(0);
+		expect(junior.epoch).not.toBe(office.epoch);
+		expect(junior.epoch.startsWith(office.epoch)).toBe(true);
 	});
 });

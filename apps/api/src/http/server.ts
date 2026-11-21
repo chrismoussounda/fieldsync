@@ -9,7 +9,13 @@ import Fastify, {
 import { type Kysely, sql } from "kysely";
 import { z } from "zod";
 import { listDevices, revokeDevice } from "../auth/devices.ts";
-import { isValidOrder, mayWrite, technicianIds } from "../auth/policy.ts";
+import {
+	audienceOf,
+	isValidOrder,
+	mayWrite,
+	technicianIds,
+	workOrderScope,
+} from "../auth/policy.ts";
 import {
 	type AuthConfig,
 	authenticate,
@@ -242,6 +248,14 @@ export function buildServer({
 
 		account.get("/history/:type/:id", async (request) => {
 			const { type, id } = EntityParams.parse(request.params);
+			// Only for records this user's devices sync.
+			const { entity } = await handleGetEntity(
+				db,
+				request.auth,
+				{ entityType: type, entityId: id },
+				{ audience: audienceOf(request.auth), scopeOf: workOrderScope },
+			);
+			if (!entity) throw new ApiError(404, "NOT_FOUND");
 			return { entries: await entityHistory(db, request.auth, type, id) };
 		});
 
@@ -295,12 +309,16 @@ export function buildServer({
 				return handlePush(db, request.auth, body, {
 					validate: (op) => isValidOrder(op, technicians),
 					authorize: (op, current) => mayWrite(request.auth, op, current),
+					scopeOf: workOrderScope,
 					now,
 				});
 			});
 
 			sync.get("/pull", async (request) =>
-				handlePull(db, request.auth, PullQuery.parse(request.query), now),
+				handlePull(db, request.auth, PullQuery.parse(request.query), {
+					now,
+					audience: audienceOf(request.auth),
+				}),
 			);
 
 			sync.get("/entities/:type/:id", async (request) => {
@@ -309,7 +327,7 @@ export function buildServer({
 					db,
 					request.auth,
 					{ entityType: type, entityId: id },
-					now,
+					{ now, audience: audienceOf(request.auth), scopeOf: workOrderScope },
 				);
 			});
 		},
