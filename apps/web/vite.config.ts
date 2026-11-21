@@ -17,8 +17,8 @@ export default defineConfig({
 				name: "FieldSync",
 				short_name: "FieldSync",
 				description: "Work orders that keep working offline.",
-				theme_color: "#0f7a5c",
-				background_color: "#111614",
+				theme_color: "#0f6b4f",
+				background_color: "#f4f6f4",
 				display: "standalone",
 			},
 			workbox: {

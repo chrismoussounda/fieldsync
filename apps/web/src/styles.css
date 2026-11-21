@@ -1,36 +1,15 @@
 :root {
-	--bg: #f5f6f4;
-	--surface: #ffffff;
-	--text: #1c2321;
-	--muted: #5f6b67;
-	--line: #dde2df;
-	--accent: #0f7a5c;
-	--accent-text: #ffffff;
-	--danger: #b42318;
-	--warn-bg: #fff4d6;
-	--warn-text: #7a5300;
-	--urgent-bg: #fde4e1;
-	--done-bg: #e3f3ec;
-	color-scheme: light dark;
-	font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+	--bg: var(--background);
+	--surface: var(--card);
+	--text: var(--foreground);
+	--line: var(--border);
+	--accent-text: var(--primary-foreground);
+	--danger: var(--destructive);
+	--warn-bg: color-mix(in srgb, var(--warning) 18%, var(--card));
+	--warn-text: var(--warning);
+	--urgent-bg: color-mix(in srgb, var(--status-urgent) 16%, var(--card));
+	--done-bg: color-mix(in srgb, var(--status-done) 16%, var(--card));
 	line-height: 1.45;
-}
-
-@media (prefers-color-scheme: dark) {
-	:root {
-		--bg: #111614;
-		--surface: #1a211e;
-		--text: #e7ece9;
-		--muted: #9aa7a2;
-		--line: #2c3632;
-		--accent: #3fb68e;
-		--accent-text: #0b1210;
-		--danger: #f07a6e;
-		--warn-bg: #3a2f12;
-		--warn-text: #f3cf73;
-		--urgent-bg: #4a1f1b;
-		--done-bg: #173a2d;
-	}
 }
 
 * {
@@ -58,7 +37,7 @@ p {
 }
 
 .muted {
-	color: var(--muted);
+	color: var(--muted-foreground);
 }
 
 button:not([data-slot]) {
@@ -66,7 +45,7 @@ button:not([data-slot]) {
 	border: 0;
 	border-radius: 8px;
 	padding: 0.6rem 1rem;
-	background: var(--accent);
+	background: var(--primary);
 	color: var(--accent-text);
 	font-weight: 600;
 	cursor: pointer;
@@ -79,7 +58,7 @@ button:not([data-slot]):disabled {
 
 button.link {
 	background: none;
-	color: var(--muted);
+	color: var(--muted-foreground);
 	padding: 0.25rem 0.5rem;
 	font-weight: 500;
 }
@@ -223,7 +202,7 @@ input:not([data-slot]) {
 	align-items: center;
 	gap: 0.35rem 0.75rem;
 	font-size: 0.85rem;
-	color: var(--muted);
+	color: var(--muted-foreground);
 }
 
 .chip {
@@ -251,7 +230,7 @@ input:not([data-slot]) {
 }
 
 a {
-	color: var(--accent);
+	color: var(--primary);
 	font-weight: 600;
 	text-decoration: none;
 }
@@ -262,7 +241,7 @@ a.card {
 }
 
 a.card:hover {
-	border-color: var(--accent);
+	border-color: var(--primary);
 }
 
 select,
@@ -333,7 +312,7 @@ code {
 }
 
 .facts dt {
-	color: var(--muted);
+	color: var(--muted-foreground);
 }
 
 .facts dd {
@@ -506,7 +485,7 @@ a.who {
 
 .workload thead th {
 	border-top: 0;
-	color: var(--muted);
+	color: var(--muted-foreground);
 	font-weight: 600;
 }
 
@@ -586,7 +565,7 @@ label.button {
 	display: inline-block;
 	border-radius: 8px;
 	padding: 0.6rem 1rem;
-	background: var(--accent);
+	background: var(--primary);
 	color: var(--accent-text);
 	font-weight: 600;
 	cursor: pointer;
@@ -624,7 +603,7 @@ label.button.disabled {
 }
 
 .member.inactive strong {
-	color: var(--muted);
+	color: var(--muted-foreground);
 }
 
 .checklist {
@@ -657,7 +636,7 @@ label.button.disabled {
 }
 
 .items .done {
-	color: var(--muted);
+	color: var(--muted-foreground);
 	text-decoration: line-through;
 }
 
@@ -763,7 +742,7 @@ label.button.disabled {
 	justify-content: space-between;
 	gap: 1rem;
 	padding-bottom: 1rem;
-	border-bottom: 2px solid var(--accent);
+	border-bottom: 2px solid var(--primary);
 }
 
 .report-head dl {
@@ -775,7 +754,7 @@ label.button.disabled {
 }
 
 .report-head dt {
-	color: var(--muted);
+	color: var(--muted-foreground);
 }
 
 .report-head dd {
@@ -826,7 +805,7 @@ label.button.disabled {
 
 .report figcaption {
 	font-size: 0.85rem;
-	color: var(--muted);
+	color: var(--muted-foreground);
 }
 
 .report-signature .photo img {

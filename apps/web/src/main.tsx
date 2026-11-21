@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App.tsx";
 import { openWorkspace } from "./app/workspace.ts";
+import "./lib/theme.ts";
 import "./index.css";
 
 const root = document.getElementById("root");
