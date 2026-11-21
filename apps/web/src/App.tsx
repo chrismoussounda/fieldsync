@@ -11,6 +11,7 @@ import { Devices } from "./screens/Devices.tsx";
 import { Login } from "./screens/Login.tsx";
 import { OrderDetail } from "./screens/OrderDetail.tsx";
 import { Orders } from "./screens/Orders.tsx";
+import { Overview } from "./screens/Overview.tsx";
 import { SyncBadge } from "./screens/SyncBadge.tsx";
 import { Team } from "./screens/Team.tsx";
 import type { LocalDb } from "./sync/storage.ts";
@@ -56,6 +57,7 @@ function SignedIn({ db, session, user }: Props & { user: User }) {
 				<a href={ROUTES.list} className="brand">
 					FieldSync
 				</a>
+				{canManage(user.role) && <a href={ROUTES.overview}>Overview</a>}
 				{canManage(user.role) && <a href={ROUTES.conflicts}>Conflicts</a>}
 				{user.role === "admin" && <a href={ROUTES.team}>Team</a>}
 				{user.role === "admin" && <a href={ROUTES.devices}>Devices</a>}
@@ -66,8 +68,16 @@ function SignedIn({ db, session, user }: Props & { user: User }) {
 				<SignOut session={session} pending={pending} />
 			</header>
 			<main className="page">
-				{route.name === "list" || !sync ? (
-					<Orders db={db} user={user} />
+				{route.name === "overview" && canManage(user.role) ? (
+					<Overview db={db} />
+				) : route.name === "list" || !sync ? (
+					// A new link's filters replace the current ones.
+					<Orders
+						key={route.name === "list" ? route.query : null}
+						db={db}
+						user={user}
+						query={route.name === "list" ? route.query : null}
+					/>
 				) : route.name === "devices" ? (
 					<Devices session={session} />
 				) : route.name === "team" ? (

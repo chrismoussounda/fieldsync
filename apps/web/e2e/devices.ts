@@ -44,8 +44,9 @@ export async function createOrder(
 	await expect(office.locator(".badge")).toHaveText("Synced");
 }
 
+/** Opens an order from the list, finished or not. */
 export async function open(page: Page, title: string): Promise<void> {
-	await page.goto("/#/");
+	await page.goto("/#/?status=all");
 	await page.getByRole("link", { name: title }).click();
 	await expect(page.getByLabel("Title")).toHaveValue(title);
 }
