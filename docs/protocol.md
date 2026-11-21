@@ -181,6 +181,10 @@ its parent (`parent_type`, `parent_id`), and it shares the parent's scope. An
 are filed under the parent's scope at the time. One level only: a parent has no
 parent itself.
 
+Some records are shared with every device, like customer sites: their scope is
+`*`, which every technician pulls alongside their own. A record moving into or
+out of it enters or leaves their devices like any other.
+
 The epoch a technician sees is the org's plus their id. A role change gives
 their devices a new epoch, so they start over from 0 with the full set, or
 their own share of it.
@@ -199,6 +203,14 @@ overwrite each other, and a tick merges like any field.
 Each start and stop is a `time_entry` belonging to the order, with the
 technician and `startedAt`; `endedAt` stays null while the clock runs. A stop
 before its start is refused.
+
+### Customer sites
+
+A `site` keeps a customer's name, address, contact, phone and access notes
+once. An order points to it with `siteId`; picking a site fills in the order's
+address, which stays the order's own, so it survives the site being edited or
+removed. Every device holds the sites, so a technician has the contact and
+access notes of any job, offline too. Only the office writes them.
 
 ### Photos
 
@@ -267,8 +279,9 @@ transport that can:
   so the server sees duplicates out of order.
 
 Between faults, devices edit, delete and restore four shared work orders, and
-reassign them. Some devices sync as technicians: they see only the orders
-assigned to them, and may only edit those, without reassigning them. At the
+reassign them, sometimes to everyone. Some devices sync as technicians: they see
+only the orders assigned to them or to everyone, and may only edit their own,
+without reassigning them. At the
 end the network heals and every device syncs until nothing is left to send.
 The run passes only if every device holds exactly the server's records it may
 see, no office operation was rejected, and each device's clock only moved
@@ -357,6 +370,7 @@ and rejects what the user's role may not do with `FORBIDDEN`.
 | Action                                 | Technician    | Dispatcher | Admin |
 | -------------------------------------- | ------------- | ---------- | ----- |
 | Sync and read work orders              | assigned only | all        | all   |
+| Sync and read customer sites           | all           | all        | all   |
 | Create, delete or restore a work order | no            | yes        | yes   |
 | Plan the job                           | no            | yes        | yes   |
 | Report progress                        | assigned only | yes        | yes   |
@@ -366,6 +380,7 @@ and rejects what the user's role may not do with `FORBIDDEN`.
 | Correct or remove time entries         | no            | yes        | yes   |
 | Add photos                             | assigned only | yes        | yes   |
 | Caption or delete a photo              | own only      | yes        | yes   |
+| Add, edit or remove customer sites     | no            | yes        | yes   |
 | Read and review the conflict log       | no            | yes        | yes   |
 | List and revoke devices                | no            | no         | yes   |
 | Add, edit and disable users            | no            | no         | yes   |

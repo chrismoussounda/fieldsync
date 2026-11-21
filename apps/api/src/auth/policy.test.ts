@@ -1,8 +1,8 @@
 import type { EntityState } from "@fieldsync/merge";
-import type { Op } from "@fieldsync/protocol";
+import { EVERYONE, type Op } from "@fieldsync/protocol";
 import { describe, expect, it } from "vitest";
 import type { Role } from "../db/schema.ts";
-import { mayWrite } from "./policy.ts";
+import { isValidRecord, mayWrite, WORK_ORDER_SCOPING } from "./policy.ts";
 
 const ME = "00000000-0000-4000-8000-0000000000b1";
 const SOMEONE = "00000000-0000-4000-8000-0000000000b2";
@@ -42,6 +42,8 @@ const clockIn = {
 	endedAt: null,
 };
 const running = order(clockIn);
+
+const newSite = { name: "Bakery Moungali", address: "12 rue Mbochi" };
 
 type Case = {
 	action: string;
@@ -283,6 +285,30 @@ const matrix: Case[] = [
 		dispatcher: true,
 		admin: true,
 	},
+	{
+		action: "add a customer site",
+		current: null,
+		op: { entityType: "site", patch: newSite },
+		technician: false,
+		dispatcher: true,
+		admin: true,
+	},
+	{
+		action: "edit a customer site",
+		current: order(newSite),
+		op: { entityType: "site", patch: { accessNotes: "Code 1234" } },
+		technician: false,
+		dispatcher: true,
+		admin: true,
+	},
+	{
+		action: "file an order under a site",
+		current: theirs,
+		op: { patch: { siteId: ORDER } },
+		technician: false,
+		dispatcher: true,
+		admin: true,
+	},
 ];
 
 const roles: Role[] = ["technician", "dispatcher", "admin"];
@@ -309,4 +335,16 @@ describe("mayWrite", () => {
 			});
 		}
 	}
+});
+
+it("shares customer sites with every device", () => {
+	expect(WORK_ORDER_SCOPING.scopeOf("site", order(newSite))).toBe(EVERYONE);
+	expect(WORK_ORDER_SCOPING.scopeOf("work_order", theirs)).toBe(SOMEONE);
+});
+
+it("checks a site's values", () => {
+	const site = (patch: Op["patch"]) =>
+		({ entityType: "site", kind: "upsert", patch }) as Op;
+	expect(isValidRecord(site(newSite), new Set())).toBe(true);
+	expect(isValidRecord(site({ contactPhone: "soon" }), new Set())).toBe(false);
 });

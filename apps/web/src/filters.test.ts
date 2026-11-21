@@ -31,6 +31,7 @@ const order = (o: Partial<Order>): Order => ({
 	status: "assigned",
 	assigneeId: "me",
 	dueDate: TODAY,
+	siteId: null,
 	notes: "",
 	...o,
 });

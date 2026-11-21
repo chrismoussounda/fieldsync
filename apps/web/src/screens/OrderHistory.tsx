@@ -3,6 +3,7 @@ import type { Op } from "@fieldsync/protocol";
 import { WORK_ORDER } from "@fieldsync/work-orders";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useEffect, useState } from "react";
+import { sitesOf } from "../app/sites.ts";
 import { apiFetch, type Member } from "../app/workspace.ts";
 import type { Session } from "../auth/session.ts";
 import { describeValue, FIELD_LABELS } from "../orders.ts";
@@ -34,7 +35,11 @@ export function OrderHistory({ db, session, id, stamp }: Props) {
 	const [entries, setEntries] = useState<Entry[] | null>(null);
 	const [offline, setOffline] = useState(false);
 	const members = useLiveQuery(() => db.getMeta<Member[]>("members"), [db]);
-	const names = new Map(members?.map((m) => [m.id, m.name]));
+	const sites = useLiveQuery(() => sitesOf(db), [db]);
+	const names = new Map([
+		...(members ?? []).map((m) => [m.id, m.name] as const),
+		...(sites ?? []).map((s) => [s.id, s.name] as const),
+	]);
 	const local = useLiveQuery(
 		() =>
 			db.outbox

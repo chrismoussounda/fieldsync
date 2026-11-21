@@ -6,6 +6,7 @@ import {
 	type EntityRequest,
 	type EntityResponse,
 	type EntityState,
+	inScope,
 	type Op,
 	type OpResult,
 	OpSchema,
@@ -18,7 +19,8 @@ import type { Transport } from "./client.ts";
 
 /**
  * Who a device syncs for: null sees every record, a string only the records
- * whose scope it is (a technician and the orders assigned to them).
+ * whose scope it is (a technician and the orders assigned to them) and those
+ * shared with everyone.
  */
 export type Audience = string | null;
 
@@ -31,7 +33,7 @@ export class FakeServer implements Transport {
 	// Each change's record scope before and after it, by seq - 1.
 	readonly #scopes: { before: string | null; after: string | null }[] = [];
 	reject = new Set<string>();
-	/** Whose record it is; null when only full-access devices see it. */
+	/** Whose record it is; null when only full-access devices see it, EVERYONE when all do. */
 	scopeOf: (state: EntityState) => string | null = () => null;
 	/** The `type:id` of the record this one belongs to; it shares that scope. */
 	parentOf: (
@@ -121,9 +123,7 @@ export class FakeServer implements Transport {
 		if (this.offline) throw new Error("offline");
 		const entity = this.entities.get(`${entityType}:${entityId}`) ?? null;
 		const visible =
-			entity &&
-			(audience === null ||
-				this.#scope(entityType, entityId, entity) === audience);
+			entity && inScope(this.#scope(entityType, entityId, entity), audience);
 		return {
 			entity: visible ? structuredClone(entity) : null,
 			serverTime: this.time,
@@ -172,20 +172,21 @@ export class FakeServer implements Transport {
 	}
 
 	#touches(seq: number, audience: Audience): boolean {
-		if (audience === null) return true;
 		const scope = this.#scopes[seq - 1];
-		return scope?.before === audience || scope?.after === audience;
+		return (
+			inScope(scope?.before ?? null, audience) ||
+			inScope(scope?.after ?? null, audience)
+		);
 	}
 
 	#annotate(change: Change, audience: Audience): Change {
 		const scope = this.#scopes[change.seq - 1];
-		if (audience === null || !scope || scope.before === scope.after) {
-			return change;
-		}
+		const before = inScope(scope?.before ?? null, audience);
+		if (!scope || before === inScope(scope.after, audience)) return change;
 		const children = this.#children(change.entityType, change.entityId);
 		const withChildren = (c: Change, list: ChildRecord[]): Change =>
 			list.length > 0 ? { ...c, children: list } : c;
-		if (scope.before === audience) {
+		if (before) {
 			return withChildren(
 				{ ...change, scope: "leave" },
 				children.map(({ entityType, entityId }) => ({ entityType, entityId })),

@@ -1,5 +1,5 @@
 import type { EntityState } from "@fieldsync/merge";
-import type { Op } from "@fieldsync/protocol";
+import { EVERYONE, type Op } from "@fieldsync/protocol";
 import {
 	CHECKLIST_ITEM,
 	canAddPhoto,
@@ -12,11 +12,14 @@ import {
 	isValidChecklistPatch,
 	isValidPatch,
 	isValidPhotoPatch,
+	isValidSitePatch,
 	isValidTimePatch,
 	mayChangeItem,
+	mayChangeSite,
 	mayChangeTime,
 	PHOTO,
 	PHOTO_FIELDS,
+	SITE,
 	TIME_ENTRY,
 	WORK_ORDER,
 } from "@fieldsync/work-orders";
@@ -39,6 +42,14 @@ export function mayWrite(
 	current: EntityState | null,
 	parent: EntityState | null = null,
 ): boolean {
+	if (op.entityType === SITE) {
+		return mayChangeSite(
+			{ id: principal.userId, role: principal.role },
+			current?.fields ?? null,
+			op.patch,
+			op.kind,
+		);
+	}
 	if (op.entityType === TIME_ENTRY) {
 		return mayChangeTime(
 			{ id: principal.userId, role: principal.role },
@@ -94,13 +105,17 @@ function mayWritePhoto(
 
 /**
  * A work order is in the scope of its assignee; its photos, checklist items
- * and time entries belong to it and go wherever it goes.
+ * and time entries belong to it and go wherever it goes. Every device holds
+ * the customer sites, so a technician has the details of any job.
  */
 export const WORK_ORDER_SCOPING: Scoping = {
-	scopeOf: (entityType, state) =>
-		entityType === WORK_ORDER && typeof state.fields.assigneeId === "string"
+	scopeOf: (entityType, state) => {
+		if (entityType === SITE) return EVERYONE;
+		return entityType === WORK_ORDER &&
+			typeof state.fields.assigneeId === "string"
 			? state.fields.assigneeId
-			: null,
+			: null;
+	},
 	parentOf: (entityType, _id, state) =>
 		CHILDREN.has(entityType) && typeof state.fields.orderId === "string"
 			? { type: WORK_ORDER, id: state.fields.orderId }
@@ -120,6 +135,7 @@ export function isValidRecord(
 	op: Op,
 	technicians: ReadonlySet<string>,
 ): boolean {
+	if (op.entityType === SITE) return isValidSitePatch(op.patch);
 	if (op.entityType === PHOTO) return isValidPhotoPatch(op.patch);
 	if (op.entityType === CHECKLIST_ITEM) return isValidChecklistPatch(op.patch);
 	if (op.entityType === TIME_ENTRY) return isValidTimePatch(op.patch);

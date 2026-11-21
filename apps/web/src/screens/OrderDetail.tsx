@@ -13,6 +13,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { type FormEvent, useState } from "react";
 import { itemsOf } from "../app/checklists.ts";
 import { ROUTES } from "../app/route.ts";
+import { sitesOf, telLink } from "../app/sites.ts";
 import type { Member } from "../app/workspace.ts";
 import type { Session, User } from "../auth/session.ts";
 import {
@@ -118,6 +119,7 @@ function OrderForm({
 	state,
 }: Props & { id: string | null; state: EntityState | null }) {
 	const members = useLiveQuery(() => db.getMeta<Member[]>("members"), [db]);
+	const sites = useLiveQuery(() => sitesOf(db), [db]);
 	const unticked = useLiveQuery(
 		async () =>
 			id ? (await itemsOf(db, id)).filter((i) => !i.done).length : 0,
@@ -176,6 +178,12 @@ function OrderForm({
 		onChange: (e: { target: { value: string } }) => set(name)(e.target.value),
 	});
 
+	const site = sites?.find((s) => s.id === draft.siteId);
+	const pickSite = (siteId: string) => {
+		const address = sites?.find((s) => s.id === siteId)?.address;
+		setEdits((e) => ({ ...e, siteId, ...(address ? { address } : {}) }));
+	};
+
 	return (
 		<form className="card form" onSubmit={save}>
 			<div className="toolbar">
@@ -195,6 +203,30 @@ function OrderForm({
 				Description
 				<textarea {...field("description")} rows={3} />
 			</label>
+			<label>
+				Site
+				<select {...field("siteId")} onChange={(e) => pickSite(e.target.value)}>
+					<option value="">No site</option>
+					{draft.siteId && !site && (
+						<option value={draft.siteId}>A removed site</option>
+					)}
+					{sites?.map((s) => (
+						<option key={s.id} value={s.id}>
+							{s.name}
+						</option>
+					))}
+				</select>
+			</label>
+			{site && (
+				<div className="site-info">
+					{site.contactName && <span>{site.contactName}</span>}
+					{site.contactPhone && (
+						<a href={telLink(site.contactPhone)}>{site.contactPhone}</a>
+					)}
+					{site.accessNotes && <p className="muted">{site.accessNotes}</p>}
+					<a href={ROUTES.site(site.id)}>Site page and past jobs</a>
+				</div>
+			)}
 			<label>
 				Address
 				<input {...field("address")} />

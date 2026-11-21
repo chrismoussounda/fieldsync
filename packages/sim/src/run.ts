@@ -1,4 +1,4 @@
-import type { EntityState } from "@fieldsync/protocol";
+import { type EntityState, inScope } from "@fieldsync/protocol";
 import type { Scenario } from "./arbitraries.ts";
 import { simParent, simScope } from "./roles.ts";
 import { type Audience, type SimServer, World } from "./world.ts";
@@ -6,7 +6,7 @@ import { type Audience, type SimServer, World } from "./world.ts";
 /**
  * Plays a scenario, heals the network, and checks every device holds exactly
  * the server's records it may see: all of them for the office, a technician's
- * own for each technician.
+ * own and the shared ones for each technician.
  */
 export async function runScenario(
 	server: SimServer,
@@ -33,7 +33,6 @@ function visible(
 	all: Map<string, EntityState>,
 	audience: Audience,
 ): Map<string, EntityState> {
-	if (audience === null) return all;
 	// A photo is visible with its order.
 	const scope = (key: string, state: EntityState): string | null => {
 		const [type = "", id = ""] = key.split(":");
@@ -43,7 +42,7 @@ function visible(
 		return order ? simScope(order) : null;
 	};
 	return new Map(
-		[...all].filter(([key, state]) => scope(key, state) === audience),
+		[...all].filter(([key, state]) => inScope(scope(key, state), audience)),
 	);
 }
 

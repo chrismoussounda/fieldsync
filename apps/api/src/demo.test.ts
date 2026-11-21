@@ -25,9 +25,12 @@ it("seeds the demo org once, with users who can sign in", async () => {
 		"technician",
 		"technician",
 	]);
-	const orders = await db.selectFrom("entities").selectAll().execute();
-	expect(orders).toHaveLength(5);
-	expect(orders.every((o) => o.org_id === DEMO_ORG)).toBe(true);
+	const records = await db.selectFrom("entities").selectAll().execute();
+	expect(records.map((r) => r.type).sort()).toEqual([
+		...Array(3).fill("site"),
+		...Array(5).fill("work_order"),
+	]);
+	expect(records.every((r) => r.org_id === DEMO_ORG)).toBe(true);
 
 	const session = await login(
 		db,
@@ -42,7 +45,7 @@ it("seeds the demo org once, with users who can sign in", async () => {
 	expect(session.user.role).toBe("dispatcher");
 });
 
-it("files each demo order under its technician, so it reaches their phone", async () => {
+it("files each demo order under its technician, and gives every technician the sites", async () => {
 	const junior = await db
 		.selectFrom("users")
 		.select("id")
@@ -54,9 +57,19 @@ it("files each demo order under its technician, so it reaches their phone", asyn
 		{ cursor: 0, limit: 100 },
 		{ audience: junior.id },
 	);
-	expect(changes.map((c) => c.state?.fields.title).sort()).toEqual([
+	const names = (type: string) =>
+		changes
+			.filter((c) => c.entityType === type)
+			.map((c) => c.state?.fields.title ?? c.state?.fields.name)
+			.sort();
+	expect(names("work_order")).toEqual([
 		"Inspect the generator",
 		"Replace the water pump",
+	]);
+	expect(names("site")).toEqual([
+		"Boulangerie La Paix",
+		"Clinique de Bacongo",
+		"Port Cold Store",
 	]);
 });
 
@@ -75,7 +88,7 @@ it("resets the demo orders under a new epoch and keeps the users", async () => {
 	await resetDemo(db);
 
 	expect(await epoch()).not.toBe(before);
-	expect(await db.selectFrom("entities").selectAll().execute()).toHaveLength(5);
+	expect(await db.selectFrom("entities").selectAll().execute()).toHaveLength(8);
 	expect(await db.selectFrom("users").selectAll().execute()).toHaveLength(4);
 	const assigned = await db
 		.selectFrom("entities")

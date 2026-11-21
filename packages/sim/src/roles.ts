@@ -1,4 +1,4 @@
-import type { EntityState, Op } from "@fieldsync/protocol";
+import { type EntityState, EVERYONE, type Op } from "@fieldsync/protocol";
 
 /** The simulation's records: a few orders, then a few photos of the first orders. */
 export const ORDERS = 4;
@@ -20,12 +20,16 @@ export function simParent(
 	return simEntity(Number.parseInt(entityId.slice(-12), 16) - ORDERS);
 }
 
+/** An `assignee` that shares the record with every device, like a customer site. */
+export const SHARED = 9;
+
 /**
  * The simulation's stand-in for orders and technicians: an order belongs to
  * the device whose number is in its `assignee` field.
  */
 export function simScope(state: EntityState): string | null {
 	const assignee = state.fields.assignee;
+	if (assignee === SHARED) return EVERYONE;
 	return typeof assignee === "number" ? String(assignee) : null;
 }
 

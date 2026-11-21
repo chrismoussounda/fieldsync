@@ -30,8 +30,41 @@ const USERS: { email: string; name: string; role: Role }[] = [
 	},
 ];
 
+type Site = {
+	name: string;
+	address: string;
+	contactName: string;
+	contactPhone: string;
+	accessNotes?: string;
+};
+
+const SITES: Record<string, Site> = {
+	bakery: {
+		name: "Boulangerie La Paix",
+		address: "Avenue de la Paix, Poto-Poto, Brazzaville",
+		contactName: "Mme Okemba",
+		contactPhone: "+242 06 000 0001",
+		accessNotes: "Enter through the back yard; the pump is under the stairs.",
+	},
+	clinic: {
+		name: "Clinique de Bacongo",
+		address: "Rue Mbochi, Bacongo, Brazzaville",
+		contactName: "Dr Malonga",
+		contactPhone: "+242 06 000 0002",
+	},
+	coldStore: {
+		name: "Port Cold Store",
+		address: "Boulevard Charles de Gaulle, Pointe-Noire",
+		contactName: "M. Tchicaya",
+		contactPhone: "+242 05 000 0003",
+		accessNotes: "Sign in at the port gate with the order number.",
+	},
+};
+
 type Order = {
 	title: string;
+	/** A key of SITES; without one, the address is the order's own. */
+	site?: keyof typeof SITES;
 	address: string;
 	priority: "low" | "normal" | "urgent";
 	assignee: string | null;
@@ -43,6 +76,7 @@ type Order = {
 const ORDERS: Order[] = [
 	{
 		title: "Replace the water pump",
+		site: "bakery",
 		address: "Avenue de la Paix, Poto-Poto, Brazzaville",
 		priority: "urgent",
 		assignee: "junior@fieldsync.demo",
@@ -51,6 +85,7 @@ const ORDERS: Order[] = [
 	},
 	{
 		title: "Inspect the generator",
+		site: "clinic",
 		address: "Rue Mbochi, Bacongo, Brazzaville",
 		priority: "normal",
 		assignee: "junior@fieldsync.demo",
@@ -59,6 +94,7 @@ const ORDERS: Order[] = [
 	},
 	{
 		title: "Fix the cold room door",
+		site: "coldStore",
 		address: "Boulevard Charles de Gaulle, Pointe-Noire",
 		priority: "normal",
 		assignee: "merveille@fieldsync.demo",
@@ -67,7 +103,8 @@ const ORDERS: Order[] = [
 	},
 	{
 		title: "Service the air conditioning",
-		address: "Avenue de l'Indépendance, Loandjili, Pointe-Noire",
+		site: "coldStore",
+		address: "Boulevard Charles de Gaulle, Pointe-Noire",
 		priority: "low",
 		assignee: "merveille@fieldsync.demo",
 		status: "done",
@@ -123,30 +160,50 @@ async function seedOrders(db: Kysely<Database>, now: number): Promise<void> {
 		.execute();
 	const ids = new Map(users.map((u) => [u.email, u.id]));
 
-	const ops: Op[] = ORDERS.map((order, i) => ({
+	const siteIds = new Map(
+		Object.keys(SITES).map((key) => [key, crypto.randomUUID()]),
+	);
+	const write = (
+		entityType: string,
+		entityId: string,
+		patch: Op["patch"],
+		counter: number,
+	): Op => ({
 		opId: crypto.randomUUID(),
 		deviceId: SEED_DEVICE,
-		entityType: "work_order",
-		entityId: crypto.randomUUID(),
+		entityType,
+		entityId,
 		kind: "upsert",
-		patch: {
-			title: order.title,
-			address: order.address,
-			priority: order.priority,
-			status: order.status,
-			assigneeId: order.assignee ? (ids.get(order.assignee) ?? null) : null,
-			dueDate: new Date(now + order.due * 86_400_000)
-				.toISOString()
-				.slice(0, 10),
-		},
+		patch,
 		base: {},
-		hlc: encode({ wall: now, counter: i, node: SEED_DEVICE.slice(0, 8) }),
+		hlc: encode({ wall: now, counter, node: SEED_DEVICE.slice(0, 8) }),
 		clientVersion: "seed",
-	}));
+	});
+	const sites = Object.entries(SITES).map(([key, site], i) =>
+		write("site", siteIds.get(key) ?? "", site, i),
+	);
+	const orders = ORDERS.map((order, i) =>
+		write(
+			"work_order",
+			crypto.randomUUID(),
+			{
+				title: order.title,
+				siteId: order.site ? (siteIds.get(order.site) ?? null) : null,
+				address: order.address,
+				priority: order.priority,
+				status: order.status,
+				assigneeId: order.assignee ? (ids.get(order.assignee) ?? null) : null,
+				dueDate: new Date(now + order.due * 86_400_000)
+					.toISOString()
+					.slice(0, 10),
+			},
+			sites.length + i,
+		),
+	);
 	await handlePush(
 		db,
 		{ orgId: DEMO_ORG, deviceId: SEED_DEVICE },
-		{ ops },
+		{ ops: [...sites, ...orders] },
 		// Filed under each order's assignee, so it reaches that technician's phone.
 		{ authorize: () => true, scoping: WORK_ORDER_SCOPING, now: () => now },
 	);

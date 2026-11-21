@@ -1,8 +1,10 @@
-import type {
-	Change,
-	ChildRecord,
-	PullRequest,
-	PullResponse,
+import {
+	type Change,
+	type ChildRecord,
+	EVERYONE,
+	inScope,
+	type PullRequest,
+	type PullResponse,
 } from "@fieldsync/protocol";
 import type { Kysely } from "kysely";
 import type { Database } from "../db/schema.ts";
@@ -50,10 +52,11 @@ export function handlePull(
 				.where("org_id", "=", auth.orgId)
 				.where("seq", ">", cursor);
 			if (audience !== null) {
+				const seen = [audience, EVERYONE];
 				query = query.where((eb) =>
 					eb.or([
-						eb("scope_before", "=", audience),
-						eb("scope_after", "=", audience),
+						eb("scope_before", "in", seen),
+						eb("scope_after", "in", seen),
 					]),
 				);
 			}
@@ -65,12 +68,11 @@ export function handlePull(
 			const page = rows.slice(0, size);
 			const hasMore = rows.length > size;
 
-			const entering = page.filter(
-				(r) =>
-					audience !== null &&
-					r.scope_after === audience &&
-					r.scope_before !== audience,
-			);
+			const before = (r: (typeof page)[number]) =>
+				inScope(r.scope_before, audience);
+			const after = (r: (typeof page)[number]) =>
+				inScope(r.scope_after, audience);
+			const entering = page.filter((r) => after(r) && !before(r));
 			const copies = await readEntities(
 				tx,
 				auth.orgId,
@@ -89,7 +91,7 @@ export function handlePull(
 					patch: row.patch,
 					hlc: row.hlc,
 				};
-				if (audience === null || row.scope_before === row.scope_after) {
+				if (before(row) === after(row)) {
 					changes.push(change);
 					continue;
 				}
@@ -100,7 +102,7 @@ export function handlePull(
 					row.entity_type,
 					row.entity_id,
 				);
-				if (row.scope_before === audience) {
+				if (before(row)) {
 					changes.push(
 						withChildren(
 							{ ...change, scope: "leave" },

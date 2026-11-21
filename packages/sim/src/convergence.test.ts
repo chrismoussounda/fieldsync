@@ -2,7 +2,7 @@ import { FakeServer } from "@fieldsync/sync-client/testing";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { scenario } from "./arbitraries.ts";
-import { simAuthorize, simParent, simScope } from "./roles.ts";
+import { SHARED, simAuthorize, simParent, simScope } from "./roles.ts";
 import { runScenario } from "./run.ts";
 import { type SimServer, World } from "./world.ts";
 
@@ -91,6 +91,32 @@ describe("simulation", () => {
 		expect(tech?.storage.entities.size).toBe(0);
 		expect(world.deadOps().map((d) => d.device)).toEqual([tech]);
 		expect(office?.storage.entities).toEqual(await server.entities());
+	});
+
+	it("gives a shared record to every technician, and takes it back", async () => {
+		const server = fakeServer();
+		const world = new World(server, {
+			skews: [0, 0, 0],
+			techs: [false, true, true],
+		});
+		const held = () => world.devices.map((d) => d.storage.entities.size);
+		await world.apply({
+			kind: "edit",
+			device: 0,
+			entity: 0,
+			patch: { assignee: SHARED },
+		});
+		await world.heal();
+		expect(held()).toEqual([1, 1, 1]);
+
+		await world.apply({
+			kind: "edit",
+			device: 0,
+			entity: 0,
+			patch: { assignee: 1 },
+		});
+		await world.heal();
+		expect(held()).toEqual([1, 1, 0]);
 	});
 
 	it("reports a device that diverged", async () => {
