@@ -1,5 +1,6 @@
 import rateLimit from "@fastify/rate-limit";
 import { PROTOCOL_VERSION } from "@fieldsync/protocol";
+import { MAX_PHOTO_BYTES, PHOTO_TYPES } from "@fieldsync/work-orders";
 import Fastify, {
 	type FastifyError,
 	type FastifyInstance,
@@ -11,7 +12,7 @@ import { z } from "zod";
 import { listDevices, revokeDevice } from "../auth/devices.ts";
 import {
 	audienceOf,
-	isValidOrder,
+	isValidRecord,
 	mayWrite,
 	technicianIds,
 	WORK_ORDER_SCOPING,
@@ -37,6 +38,7 @@ import { listConflicts, reviewConflict } from "../conflicts.ts";
 import type { Database } from "../db/schema.ts";
 import { ApiError } from "../errors.ts";
 import { entityHistory } from "../history.ts";
+import { readPhotoFile, storePhotoFile } from "../photos.ts";
 import { handleGetEntity } from "../sync/entity.ts";
 import { handlePull, MAX_PULL_LIMIT } from "../sync/pull.ts";
 import { handlePush } from "../sync/push.ts";
@@ -203,6 +205,37 @@ export function buildServer({
 	app.register(async (account) => {
 		secure(account);
 
+		account.addContentTypeParser(
+			[...PHOTO_TYPES],
+			{ parseAs: "buffer", bodyLimit: MAX_PHOTO_BYTES },
+			(_request, body, done) => done(null, body),
+		);
+
+		account.put("/photos/:id", async (request, reply) => {
+			const { id } = IdParams.parse(request.params);
+			if (!(request.body instanceof Buffer)) {
+				throw new ApiError(415, "UNSUPPORTED_MEDIA_TYPE");
+			}
+			await storePhotoFile(
+				db,
+				request.auth,
+				id,
+				request.headers["content-type"] ?? "",
+				request.body,
+			);
+			return reply.code(204).send();
+		});
+
+		account.get("/photos/:id", async (request, reply) => {
+			const { id } = IdParams.parse(request.params);
+			const file = await readPhotoFile(db, request.auth, id);
+			// An image never changes once stored.
+			return reply
+				.header("content-type", file.contentType)
+				.header("cache-control", "private, max-age=31536000, immutable")
+				.send(Buffer.from(file.bytes));
+		});
+
 		account.get("/users", async (request) => ({
 			users: await listMembers(db, request.auth),
 		}));
@@ -307,8 +340,9 @@ export function buildServer({
 				const body = PushBody.parse(request.body);
 				const technicians = await technicianIds(db, request.auth.orgId);
 				return handlePush(db, request.auth, body, {
-					validate: (op) => isValidOrder(op, technicians),
-					authorize: (op, current) => mayWrite(request.auth, op, current),
+					validate: (op) => isValidRecord(op, technicians),
+					authorize: (op, current, parent) =>
+						mayWrite(request.auth, op, current, parent),
 					scoping: WORK_ORDER_SCOPING,
 					now,
 				});

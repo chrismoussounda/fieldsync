@@ -15,6 +15,7 @@ export function resetOrg(db: Kysely<Database>, orgId: string): Promise<void> {
 			.executeTakeFirstOrThrow();
 		for (const table of [
 			"conflicts",
+			"photo_files",
 			"received_ops",
 			"changes",
 			"entities",

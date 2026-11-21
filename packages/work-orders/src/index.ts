@@ -104,3 +104,5 @@ export function isValidPatch(patch: Record<string, unknown>): boolean {
 		isValidValue(field, value),
 	);
 }
+
+export * from "./photos.ts";

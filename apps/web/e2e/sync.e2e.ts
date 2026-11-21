@@ -53,6 +53,7 @@ test("two edits of the same field are settled and logged for the office", async 
 	await open(office, title);
 	await office.getByLabel("Status").selectOption({ label: "Cancelled" });
 	await save(office);
+	await expect(office.locator(".badge")).toHaveText("Synced");
 
 	await tech.context().setOffline(false);
 	await expect(tech.locator(".badge")).toHaveText("Synced");

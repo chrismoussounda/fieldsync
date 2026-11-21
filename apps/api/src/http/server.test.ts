@@ -211,6 +211,113 @@ describe("history route", () => {
 	});
 });
 
+describe("photo routes", () => {
+	const PHOTO = "00000000-0000-4000-8000-0000000000cc";
+	const IMAGE = Buffer.from("not really a jpeg, but bytes all the same");
+
+	async function setUp() {
+		const office = await syncHeaders("dispatch@example.com", OFFICE);
+		const tech = await signIn("tech@example.com", PHONE);
+		await app.inject({
+			method: "POST",
+			url: "/sync/push",
+			headers: office,
+			payload: {
+				ops: [op({ title: "Fix pump", assigneeId: tech.user.id }, OFFICE)],
+			},
+		});
+		const photo = {
+			...op({}),
+			entityType: "photo",
+			entityId: PHOTO,
+			patch: {
+				orderId: ORDER,
+				contentType: "image/jpeg",
+				size: IMAGE.length,
+				takenBy: tech.user.id,
+				takenAt: new Date().toISOString(),
+			},
+		};
+		const techSync = {
+			"x-protocol-version": PROTOCOL_VERSION,
+			authorization: `Bearer ${tech.accessToken}`,
+		};
+		const pushed = await app.inject({
+			method: "POST",
+			url: "/sync/push",
+			headers: techSync,
+			payload: { ops: [photo] },
+		});
+		expect(pushed.json().results[0].status).toBe("applied");
+		return {
+			tech: { authorization: `Bearer ${tech.accessToken}` },
+			office: { authorization: office.authorization },
+		};
+	}
+
+	const upload = (
+		headers: Record<string, string>,
+		body = IMAGE,
+		type = "image/jpeg",
+	) =>
+		app.inject({
+			method: "PUT",
+			url: `/photos/${PHOTO}`,
+			headers: { ...headers, "content-type": type },
+			payload: body,
+		});
+
+	it("take the image from its author, and give it to the office", async () => {
+		const { tech, office } = await setUp();
+		const early = await app.inject({
+			url: `/photos/${PHOTO}`,
+			headers: office,
+		});
+		expect(early.statusCode).toBe(404);
+		expect(early.json()).toEqual({ error: "PHOTO_PENDING" });
+
+		expect((await upload(tech)).statusCode).toBe(204);
+		// A retry after a lost answer is fine.
+		expect((await upload(tech)).statusCode).toBe(204);
+
+		const image = await app.inject({
+			url: `/photos/${PHOTO}`,
+			headers: office,
+		});
+		expect(image.statusCode).toBe(200);
+		expect(image.headers["content-type"]).toBe("image/jpeg");
+		expect(image.rawPayload.equals(IMAGE)).toBe(true);
+	});
+
+	it("refuse a file that does not match the photo", async () => {
+		const { tech } = await setUp();
+		const other = await upload(tech, Buffer.from("something else"));
+		expect(other.statusCode).toBe(400);
+		expect(other.json()).toEqual({ error: "FILE_MISMATCH" });
+		expect((await upload(tech, IMAGE, "image/png")).statusCode).toBe(400);
+		expect((await upload(tech, IMAGE, "text/plain")).statusCode).toBe(415);
+	});
+
+	it("keep the image from anyone who cannot see the order", async () => {
+		await setUp();
+		await db
+			.updateTable("users")
+			.set({ role: "technician" })
+			.where("email", "=", "admin@example.com")
+			.execute();
+		const other = await signIn(
+			"admin@example.com",
+			"1a1b2c3d-0000-4000-8000-000000000003",
+		);
+		const stranger = { authorization: `Bearer ${other.accessToken}` };
+		expect(
+			(await app.inject({ url: `/photos/${PHOTO}`, headers: stranger }))
+				.statusCode,
+		).toBe(404);
+		expect((await upload(stranger)).statusCode).toBe(404);
+	});
+});
+
 describe("conflict routes", () => {
 	it("list conflicts for dispatchers only", async () => {
 		const asRole = async (email: string, device: string) => {

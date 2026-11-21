@@ -188,6 +188,16 @@ their own share of it.
 Changes written before partial sync count as made under each order's current
 assignee: a device pulling from 0 gets the whole history of its orders.
 
+### Photos
+
+A photo is a record of type `photo` that belongs to its order (`orderId`), so
+it syncs, and moves between technicians, with it. Its image does not go through
+the change log: the device sends it to `PUT /photos/:id` once the record is
+accepted, and other devices fetch it from `GET /photos/:id`. The record fixes
+the image's type and size, so the server refuses any other file for it, and a
+second upload of the same image changes nothing. Until the author's device
+sends it, `GET` answers `PHOTO_PENDING`.
+
 ## Client
 
 `packages/sync-client` runs on the device. It knows nothing about the UI or the
@@ -270,6 +280,8 @@ shrinks the scenario to a short one that still fails.
 | POST   | `/users/:id/password`      | `password`                   | 204                |
 | POST   | `/me/password`             | `current`, `next`            | 204                |
 | GET    | `/history/:type/:id`       |                              | a record's changes |
+| PUT    | `/photos/:id`              | the image bytes              | 204                |
+| GET    | `/photos/:id`              |                              | the image          |
 | GET    | `/conflicts`               | `open` (default `true`)      | the conflict log   |
 | POST   | `/conflicts/:id/review`    |                              | 204                |
 | GET    | `/devices`                 |                              | the org's devices  |
@@ -284,12 +296,14 @@ signed out.
 | Status | `error`                | Meaning                                    |
 | ------ | ---------------------- | ------------------------------------------ |
 | 400    | `BAD_REQUEST`          | Malformed body, query or path              |
+| 400    | `FILE_MISMATCH`        | Image type or size differs from its photo  |
 | 401    | `UNAUTHORIZED`         | Missing or invalid token                   |
 | 401    | `DEVICE_REVOKED`       | An admin locked this device out            |
 | 403    | `FORBIDDEN`            | The role may not do this                   |
 | 403    | `ACCOUNT_DISABLED`     | Right password, but the account is off     |
 | 403    | `WRONG_PASSWORD`       | The current password given does not match  |
 | 404    | `NOT_FOUND`            | No such device or user in the org          |
+| 404    | `PHOTO_PENDING`        | The photo synced, its image not yet        |
 | 409    | `DEVICE_TAKEN`         | Device id or its clock node already used   |
 | 409    | `EMAIL_TAKEN`          | Another user has this email                |
 | 409    | `OWN_ACCOUNT`          | Admins cannot demote or disable themselves |
