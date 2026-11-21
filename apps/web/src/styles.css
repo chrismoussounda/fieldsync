@@ -103,47 +103,12 @@ input:not([data-slot]) {
 	color: var(--danger);
 }
 
-.topbar {
-	position: sticky;
-	top: 0;
-	z-index: 1;
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: 0.5rem 0.75rem;
-	padding: 0.6rem 1rem;
-	background: var(--surface);
-	border-bottom: 1px solid var(--line);
-}
-
-.brand {
-	margin-right: auto;
-}
-
-.who {
-	font-size: 0.9rem;
-}
-
 .confirm {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
 	gap: 0.5rem;
 	font-size: 0.9rem;
-}
-
-.badge {
-	font-size: 0.8rem;
-	padding: 0.25rem 0.6rem;
-	border-radius: 999px;
-	background: var(--done-bg);
-	color: var(--text);
-}
-
-.badge.sync-offline,
-.badge.sync-error {
-	background: var(--warn-bg);
-	color: var(--warn-text);
 }
 
 .page {
@@ -346,18 +311,9 @@ code {
 	color: var(--danger);
 }
 
-a.brand {
-	color: var(--text);
-}
-
 .chip.refused {
 	background: var(--urgent-bg);
 	color: var(--danger);
-}
-
-a.who {
-	color: var(--text);
-	font-weight: 500;
 }
 
 .chips {

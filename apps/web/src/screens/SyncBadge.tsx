@@ -1,12 +1,14 @@
 import { useSyncExternalStore } from "react";
+import { useTranslation } from "react-i18next";
+import { cn } from "@/lib/utils";
 import { ROUTES } from "../app/route.ts";
 import type { SyncLoop } from "../sync/loop.ts";
 
-const LABELS = {
-	idle: "Synced",
-	syncing: "Syncing…",
-	offline: "Offline",
-	error: "Sync failed",
+const DOT = {
+	idle: "bg-status-done",
+	syncing: "bg-status-active animate-pulse",
+	offline: "bg-warning",
+	error: "bg-destructive",
 };
 
 export function SyncBadge({
@@ -16,17 +18,28 @@ export function SyncBadge({
 	loop: SyncLoop;
 	pending: number;
 }) {
+	const { t } = useTranslation();
 	const { state, lastSyncedAt } = useSyncExternalStore(
 		loop.subscribe,
 		loop.status,
 	);
 	const since = lastSyncedAt
-		? `Last synced ${new Date(lastSyncedAt).toLocaleTimeString()}`
-		: "Not synced yet";
+		? t("sync.last", { time: new Date(lastSyncedAt).toLocaleTimeString() })
+		: t("sync.never");
 	return (
-		<a href={ROUTES.debug} className={`badge sync-${state}`} title={since}>
-			{LABELS[state]}
-			{pending > 0 && ` · ${pending} waiting`}
+		<a
+			href={ROUTES.debug}
+			title={since}
+			className="badge flex items-center gap-2 rounded-full border bg-card px-3 py-1 text-xs font-medium text-foreground"
+		>
+			<span aria-hidden className={cn("size-2 rounded-full", DOT[state])} />
+			{t(`sync.${state}`)}
+			{pending > 0 && (
+				<span className="-ml-1 text-muted-foreground">
+					{" · "}
+					{t("sync.waiting", { count: pending })}
+				</span>
+			)}
 		</a>
 	);
 }
