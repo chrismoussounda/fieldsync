@@ -10,6 +10,7 @@ import { Debug } from "./screens/Debug.tsx";
 import { Devices } from "./screens/Devices.tsx";
 import { Login } from "./screens/Login.tsx";
 import { OrderDetail } from "./screens/OrderDetail.tsx";
+import { OrderReport } from "./screens/OrderReport.tsx";
 import { Orders } from "./screens/Orders.tsx";
 import { Overview } from "./screens/Overview.tsx";
 import { SiteDetail } from "./screens/SiteDetail.tsx";
@@ -55,7 +56,7 @@ function SignedIn({ db, session, user }: Props & { user: User }) {
 
 	return (
 		<>
-			<header className="topbar">
+			<header className="topbar no-print">
 				<a href={ROUTES.list} className="brand">
 					FieldSync
 				</a>
@@ -81,6 +82,8 @@ function SignedIn({ db, session, user }: Props & { user: User }) {
 						user={user}
 						query={route.name === "list" ? route.query : null}
 					/>
+				) : route.name === "report" ? (
+					<OrderReport db={db} id={route.id} />
 				) : route.name === "sites" ? (
 					<Sites db={db} user={user} />
 				) : route.name === "site" ? (
