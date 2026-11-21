@@ -1,6 +1,6 @@
 import type { Change, EntityState, Op, OpResult } from "@fieldsync/protocol";
 import {
-	applyChange,
+	applyPulled,
 	type OutboxEntry,
 	replay,
 	type SyncStorage,
@@ -116,15 +116,24 @@ export class DexieStorage implements SyncStorage {
 		epoch: string,
 	): Promise<void> {
 		const db = this.#db;
-		return db.transaction("rw", db.entities, db.meta, async () => {
+		return db.transaction("rw", db.entities, db.outbox, db.meta, async () => {
 			for (const change of changes) {
 				const key: [string, string] = [change.entityType, change.entityId];
 				const current = (await db.entities.get(key))?.state ?? null;
-				await db.entities.put({
-					type: change.entityType,
-					id: change.entityId,
-					state: applyChange(current, change),
-				});
+				// Only entering or leaving records replay the queue.
+				const pending = change.scope
+					? await this.#pending(change.entityType, change.entityId)
+					: [];
+				const state = applyPulled(current, change, pending);
+				if (state) {
+					await db.entities.put({
+						type: change.entityType,
+						id: change.entityId,
+						state,
+					});
+				} else {
+					await db.entities.delete(key);
+				}
 			}
 			await db.meta.put({ key: "cursor", value: nextCursor });
 			await db.meta.put({ key: "epoch", value: epoch });
@@ -172,18 +181,20 @@ export class DexieStorage implements SyncStorage {
 	): Promise<void> {
 		const db = this.#db;
 		return db.transaction("rw", db.entities, db.outbox, async () => {
-			const ops = await db.outbox
-				.where("[entityType+entityId]")
-				.equals([type, id])
-				.and((r) => r.status !== "dead")
-				.sortBy("seq");
-			const state = replay(
-				snapshot,
-				ops.map((r) => r.op),
-			);
+			const state = replay(snapshot, await this.#pending(type, id));
 			if (state) await db.entities.put({ type, id, state });
 			else await db.entities.delete([type, id]);
 		});
+	}
+
+	// Inside the caller's transaction.
+	async #pending(type: string, id: string): Promise<Op[]> {
+		const rows = await this.#db.outbox
+			.where("[entityType+entityId]")
+			.equals([type, id])
+			.and((r) => r.status !== "dead")
+			.sortBy("seq");
+		return rows.map((r) => r.op);
 	}
 
 	async discardDead(opIds: string[]): Promise<void> {
