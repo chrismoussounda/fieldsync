@@ -1,25 +1,40 @@
+import type { EntityState } from "@fieldsync/protocol";
 import type { Scenario } from "./arbitraries.ts";
-import { type SimServer, World } from "./world.ts";
+import { simScope } from "./roles.ts";
+import { type Audience, type SimServer, World } from "./world.ts";
 
-/** Plays a scenario, heals the network, and checks every device matches the server. */
+/**
+ * Plays a scenario, heals the network, and checks every device holds exactly
+ * the server's records it may see: all of them for the office, a technician's
+ * own for each technician.
+ */
 export async function runScenario(
 	server: SimServer,
-	{ skews, actions }: Scenario,
+	{ skews, techs, actions }: Scenario,
 ): Promise<void> {
-	const world = new World(server, { skews });
+	const world = new World(server, { skews, ...(techs ? { techs } : {}) });
 	for (const action of actions) await world.apply(action);
 	await world.heal();
 
-	const expected = await server.entities();
+	const all = await server.entities();
 	for (const device of world.devices) {
-		if (!sameState(device.storage.entities, expected)) {
+		if (!sameState(device.storage.entities, visible(all, device.audience))) {
 			throw new Error(`Device ${device.id} diverged from the server`);
 		}
 	}
-	const dead = world.deadOps();
-	if (dead.length > 0) {
-		throw new Error(`${dead.length} operations were rejected`);
+	// Technicians may be refused, for records not theirs; the office never.
+	const refused = world.deadOps().filter((d) => d.device.audience === null);
+	if (refused.length > 0) {
+		throw new Error(`${refused.length} office operations were rejected`);
 	}
+}
+
+function visible(
+	all: Map<string, EntityState>,
+	audience: Audience,
+): Map<string, EntityState> {
+	if (audience === null) return all;
+	return new Map([...all].filter(([, state]) => simScope(state) === audience));
 }
 
 function sameState(a: Map<string, unknown>, b: Map<string, unknown>): boolean {
