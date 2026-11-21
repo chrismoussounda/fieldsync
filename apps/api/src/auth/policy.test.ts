@@ -31,6 +31,10 @@ const newPhoto = {
 const myPhoto = order(newPhoto);
 const theirPhoto = order({ ...newPhoto, takenBy: SOMEONE });
 
+const newItem = { orderId: ORDER, label: "Close the valve", position: 1 };
+const item = order(newItem);
+const tick = { done: true, doneBy: ME, doneAt: "2026-11-21T10:00:00.000Z" };
+
 type Case = {
 	action: string;
 	current: EntityState | null;
@@ -186,6 +190,51 @@ const matrix: Case[] = [
 		technician: false,
 		dispatcher: false,
 		admin: false,
+	},
+	{
+		action: "add a checklist item",
+		current: null,
+		parent: mine,
+		op: { entityType: "checklist_item", patch: newItem },
+		technician: false,
+		dispatcher: true,
+		admin: true,
+	},
+	{
+		action: "tick an item of an assigned order",
+		current: item,
+		parent: mine,
+		op: { entityType: "checklist_item", patch: tick },
+		technician: true,
+		dispatcher: true,
+		admin: true,
+	},
+	{
+		action: "tick an item of someone else's order",
+		current: item,
+		parent: theirs,
+		op: { entityType: "checklist_item", patch: tick },
+		technician: false,
+		dispatcher: true,
+		admin: true,
+	},
+	{
+		action: "reword a checklist item",
+		current: item,
+		parent: mine,
+		op: { entityType: "checklist_item", patch: { label: "Skip it" } },
+		technician: false,
+		dispatcher: true,
+		admin: true,
+	},
+	{
+		action: "remove a checklist item",
+		current: item,
+		parent: mine,
+		op: { entityType: "checklist_item", kind: "delete", patch: {} },
+		technician: false,
+		dispatcher: true,
+		admin: true,
 	},
 ];
 
