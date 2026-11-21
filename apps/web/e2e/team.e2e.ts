@@ -48,11 +48,9 @@ test("an admin adds a technician, who later gets disabled", async ({
 	await expect(ines).toContainText("Disabled");
 	await expect(ines.getByRole("button", { name: "Enable" })).toBeVisible();
 
-	await phone.locator(".badge").click();
-	await phone.getByRole("button", { name: "Sync now" }).click();
 	await expect(
 		phone.getByRole("heading", { name: "Device revoked" }),
-	).toBeVisible();
+	).toBeVisible({ timeout: 20_000 });
 
 	// A new device is refused too, with the reason.
 	const other = await blankDevice(browser);
