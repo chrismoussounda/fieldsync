@@ -171,7 +171,7 @@ function SignedIn({ db, session, user }: Props & { user: User }) {
 					) : route.name === "team" ? (
 						<Team db={db} session={session} user={user} />
 					) : route.name === "account" ? (
-						<Account session={session} user={user} />
+						<Account session={session} user={user} pending={pending} />
 					) : route.name === "conflicts" ? (
 						<Conflicts db={db} session={session} />
 					) : route.name === "debug" ? (
