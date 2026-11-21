@@ -194,6 +194,12 @@ Each step of an order's checklist is a `checklist_item` record that belongs to
 the order, rather than a list inside it: two people adding steps at once never
 overwrite each other, and a tick merges like any field.
 
+### Time on site
+
+Each start and stop is a `time_entry` belonging to the order, with the
+technician and `startedAt`; `endedAt` stays null while the clock runs. A stop
+before its start is refused.
+
 ### Photos
 
 A photo is a record of type `photo` that belongs to its order (`orderId`), so
@@ -356,6 +362,8 @@ and rejects what the user's role may not do with `FORBIDDEN`.
 | Report progress                        | assigned only | yes        | yes   |
 | Add, reword or remove checklist steps  | no            | yes        | yes   |
 | Tick checklist steps                   | assigned only | yes        | yes   |
+| Clock own time on site                 | assigned only | yes        | yes   |
+| Correct or remove time entries         | no            | yes        | yes   |
 | Add photos                             | assigned only | yes        | yes   |
 | Caption or delete a photo              | own only      | yes        | yes   |
 | Read and review the conflict log       | no            | yes        | yes   |

@@ -35,6 +35,14 @@ const newItem = { orderId: ORDER, label: "Close the valve", position: 1 };
 const item = order(newItem);
 const tick = { done: true, doneBy: ME, doneAt: "2026-11-21T10:00:00.000Z" };
 
+const clockIn = {
+	orderId: ORDER,
+	technicianId: ME,
+	startedAt: "2026-11-21T08:00:00.000Z",
+	endedAt: null,
+};
+const running = order(clockIn);
+
 type Case = {
 	action: string;
 	current: EntityState | null;
@@ -232,6 +240,45 @@ const matrix: Case[] = [
 		current: item,
 		parent: mine,
 		op: { entityType: "checklist_item", kind: "delete", patch: {} },
+		technician: false,
+		dispatcher: true,
+		admin: true,
+	},
+	{
+		action: "start the clock on an assigned order",
+		current: null,
+		parent: mine,
+		op: { entityType: "time_entry", patch: clockIn },
+		technician: true,
+		dispatcher: true,
+		admin: true,
+	},
+	{
+		action: "start the clock on someone else's order",
+		current: null,
+		parent: theirs,
+		op: { entityType: "time_entry", patch: clockIn },
+		technician: false,
+		dispatcher: true,
+		admin: true,
+	},
+	{
+		action: "stop their clock",
+		current: running,
+		parent: mine,
+		op: {
+			entityType: "time_entry",
+			patch: { endedAt: "2026-11-21T09:00:00.000Z" },
+		},
+		technician: true,
+		dispatcher: true,
+		admin: true,
+	},
+	{
+		action: "remove a time entry",
+		current: running,
+		parent: mine,
+		op: { entityType: "time_entry", kind: "delete", patch: {} },
 		technician: false,
 		dispatcher: true,
 		admin: true,
