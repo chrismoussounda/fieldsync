@@ -2,7 +2,6 @@ import { isDeleted } from "@fieldsync/merge";
 import type { EntityState } from "@fieldsync/protocol";
 import { HttpError } from "@fieldsync/sync-client";
 import { MAX_PHOTO_BYTES, PHOTO } from "@fieldsync/work-orders";
-import { Dexie } from "dexie";
 import type { User } from "../auth/session.ts";
 import type { SyncLoop } from "../sync/loop.ts";
 import type { FileRow, LocalDb } from "../sync/storage.ts";
@@ -25,10 +24,7 @@ export async function photosOf(
 	db: LocalDb,
 	orderId?: string,
 ): Promise<Photo[]> {
-	const rows = await db.entities
-		.where("[type+id]")
-		.between([PHOTO, Dexie.minKey], [PHOTO, Dexie.maxKey])
-		.toArray();
+	const rows = await db.ofType(PHOTO);
 	return rows
 		.filter((r) => !isDeleted(r.state))
 		.map((r) => toPhoto(r.id, r.state))

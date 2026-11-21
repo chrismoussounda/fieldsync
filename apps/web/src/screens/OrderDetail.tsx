@@ -11,6 +11,7 @@ import {
 } from "@fieldsync/work-orders";
 import { useLiveQuery } from "dexie-react-hooks";
 import { type FormEvent, useState } from "react";
+import { itemsOf } from "../app/checklists.ts";
 import { ROUTES } from "../app/route.ts";
 import type { Member } from "../app/workspace.ts";
 import type { Session, User } from "../auth/session.ts";
@@ -23,6 +24,7 @@ import {
 } from "../orders.ts";
 import type { SyncLoop } from "../sync/loop.ts";
 import type { LocalDb } from "../sync/storage.ts";
+import { OrderChecklist } from "./OrderChecklist.tsx";
 import { OrderHistory } from "./OrderHistory.tsx";
 import { OrderPhotos } from "./OrderPhotos.tsx";
 
@@ -49,6 +51,15 @@ export function OrderDetail({ id, ...props }: Props & { id: string | null }) {
 	return (
 		<div className="detail">
 			<OrderForm key={id ?? "new"} id={id} state={state} {...props} />
+			{id && state && (
+				<OrderChecklist
+					db={props.db}
+					loop={props.loop}
+					user={props.user}
+					orderId={id}
+					order={state.fields}
+				/>
+			)}
 			{id && state && (
 				<OrderPhotos
 					db={props.db}
@@ -87,6 +98,11 @@ function OrderForm({
 	state,
 }: Props & { id: string | null; state: EntityState | null }) {
 	const members = useLiveQuery(() => db.getMeta<Member[]>("members"), [db]);
+	const unticked = useLiveQuery(
+		async () =>
+			id ? (await itemsOf(db, id)).filter((i) => !i.done).length : 0,
+		[db, id],
+	);
 	// Only what the user typed; every other field shows the live value, so
 	// changes synced while the form is open appear in it.
 	const [edits, setEdits] = useState<Partial<Draft>>(() =>
@@ -206,6 +222,12 @@ function OrderForm({
 				Notes
 				<textarea {...field("notes")} rows={4} />
 			</label>
+			{draft.status === "done" && (unticked ?? 0) > 0 && (
+				<p className="warning">
+					{unticked} checklist {unticked === 1 ? "step is" : "steps are"} not
+					ticked.
+				</p>
+			)}
 			{error && (
 				<p role="alert" className="error">
 					{error}

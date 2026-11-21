@@ -1,6 +1,7 @@
 import { canManage, STATUSES } from "@fieldsync/work-orders";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useState } from "react";
+import { itemsOf, progressByOrder } from "../app/checklists.ts";
 import { ROUTES } from "../app/route.ts";
 import type { Member } from "../app/workspace.ts";
 import type { User } from "../auth/session.ts";
@@ -43,6 +44,10 @@ export function Orders({ db, user, query }: Props) {
 	const rows = useLiveQuery(() => db.entities.toArray(), [db]);
 	const outbox = useLiveQuery(() => db.outbox.toArray(), [db]);
 	const members = useLiveQuery(() => db.getMeta<Member[]>("members"), [db]);
+	const checklists = useLiveQuery(
+		async () => progressByOrder(await itemsOf(db)),
+		[db],
+	);
 
 	const set = (change: Partial<Filters>) => {
 		const next = { ...filters, ...change };
@@ -175,6 +180,12 @@ export function Orders({ db, user, query }: Props) {
 										? (names.get(o.assigneeId) ?? "Assigned")
 										: "Unassigned"}
 								</span>
+								{checklists?.has(o.id) && (
+									<span>
+										Checklist {checklists.get(o.id)?.done}/
+										{checklists.get(o.id)?.total}
+									</span>
+								)}
 								{waiting.has(o.id) && (
 									<span className="chip waiting">Not synced</span>
 								)}
