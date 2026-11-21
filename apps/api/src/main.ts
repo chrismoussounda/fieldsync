@@ -3,7 +3,7 @@ import pg from "pg";
 import { loadConfig } from "./config.ts";
 import { migrateToLatest } from "./db/migrate.ts";
 import type { Database } from "./db/schema.ts";
-import { buildServer } from "./http/server.ts";
+import { buildServer, DEFAULT_LIMITS } from "./http/server.ts";
 
 const config = loadConfig();
 
@@ -20,6 +20,7 @@ const app = buildServer({
 	secret: new TextEncoder().encode(config.JWT_SECRET),
 	logger: { level: config.LOG_LEVEL },
 	trustProxy: config.TRUST_PROXY,
+	limits: { ...DEFAULT_LIMITS, login: config.LOGIN_LIMIT },
 });
 await app.listen({ host: config.HOST, port: config.PORT });
 

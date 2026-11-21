@@ -16,6 +16,8 @@ export default async function setup() {
 		HOST: "127.0.0.1",
 		PORT: String(API_PORT),
 		LOG_LEVEL: "warn",
+		// The suite signs the same demo users in many times from one address.
+		LOGIN_LIMIT: "1000",
 		DEMO_PASSWORD: randomBytes(12).toString("base64url"),
 	};
 	await exited(

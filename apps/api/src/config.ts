@@ -10,6 +10,8 @@ const Env = z.object({
 		.enum(["true", "false"])
 		.default("false")
 		.transform((v) => v === "true"),
+	// Sign-ins per account and address per 15 minutes.
+	LOGIN_LIMIT: z.coerce.number().int().min(1).default(10),
 	LOG_LEVEL: z
 		.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
 		.default("info"),
