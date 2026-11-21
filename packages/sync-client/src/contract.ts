@@ -161,6 +161,39 @@ export function describeStorage(
 			expect(await storage.getCursor()).toBe(4);
 		});
 
+		it("takes and drops the records that belong to one, with it", async () => {
+			const storage = await create();
+			const photo = stateOf(op(B, 2, { orderId: A, caption: "Pump" }));
+			const assign = op(A, 3, { assigneeId: "me" });
+			await storage.applyRemote(
+				[
+					{
+						...change(assign, 5),
+						scope: "enter",
+						state: stateOf(assign),
+						children: [{ entityType: "photo", entityId: B, state: photo }],
+					},
+				],
+				5,
+				"e1",
+			);
+			expect(await storage.getEntity("photo", B)).toEqual(photo);
+
+			await storage.applyRemote(
+				[
+					{
+						...change(op(A, 4, { assigneeId: "x" }), 6),
+						scope: "leave",
+						children: [{ entityType: "photo", entityId: B }],
+					},
+				],
+				6,
+				"e1",
+			);
+			expect(await storage.getEntity("work_order", A)).toBeNull();
+			expect(await storage.getEntity("photo", B)).toBeNull();
+		});
+
 		it("forgets what was pulled after a server reset, but not queued changes", async () => {
 			const storage = await create();
 			const mine = op(A, 1, { notes: "mine" });

@@ -1,6 +1,7 @@
 import type { Change, EntityState, Op, OpResult } from "@fieldsync/protocol";
 import {
 	applyPulled,
+	expand,
 	type OutboxEntry,
 	replay,
 	type SyncStorage,
@@ -117,7 +118,7 @@ export class DexieStorage implements SyncStorage {
 	): Promise<void> {
 		const db = this.#db;
 		return db.transaction("rw", db.entities, db.outbox, db.meta, async () => {
-			for (const change of changes) {
+			for (const change of changes.flatMap(expand)) {
 				const key: [string, string] = [change.entityType, change.entityId];
 				const current = (await db.entities.get(key))?.state ?? null;
 				// Only entering or leaving records replay the queue.
