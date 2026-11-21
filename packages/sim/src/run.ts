@@ -1,6 +1,6 @@
 import type { EntityState } from "@fieldsync/protocol";
 import type { Scenario } from "./arbitraries.ts";
-import { simScope } from "./roles.ts";
+import { simParent, simScope } from "./roles.ts";
 import { type Audience, type SimServer, World } from "./world.ts";
 
 /**
@@ -34,7 +34,17 @@ function visible(
 	audience: Audience,
 ): Map<string, EntityState> {
 	if (audience === null) return all;
-	return new Map([...all].filter(([, state]) => simScope(state) === audience));
+	// A photo is visible with its order.
+	const scope = (key: string, state: EntityState): string | null => {
+		const [type = "", id = ""] = key.split(":");
+		const parent = simParent(type, id);
+		if (!parent) return simScope(state);
+		const order = all.get(`${parent.type}:${parent.id}`);
+		return order ? simScope(order) : null;
+	};
+	return new Map(
+		[...all].filter(([key, state]) => scope(key, state) === audience),
+	);
 }
 
 function sameState(a: Map<string, unknown>, b: Map<string, unknown>): boolean {

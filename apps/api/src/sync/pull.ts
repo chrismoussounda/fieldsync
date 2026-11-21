@@ -1,12 +1,13 @@
 import type {
 	Change,
-	EntityState,
+	ChildRecord,
 	PullRequest,
 	PullResponse,
 } from "@fieldsync/protocol";
 import type { Kysely } from "kysely";
 import type { Database } from "../db/schema.ts";
 import type { Auth } from "./push.ts";
+import { readChildren, readEntities } from "./records.ts";
 import type { Audience } from "./scope.ts";
 
 export const MAX_PULL_LIMIT = 500;
@@ -70,13 +71,14 @@ export function handlePull(
 					r.scope_after === audience &&
 					r.scope_before !== audience,
 			);
-			const copies = await currentStates(
+			const copies = await readEntities(
 				tx,
 				auth.orgId,
 				entering.map((r) => [r.entity_type, r.entity_id]),
 			);
 
-			const changes = page.map((row): Change => {
+			const changes: Change[] = [];
+			for (const row of page) {
 				const change: Change = {
 					seq: Number(row.seq),
 					opId: row.op_id,
@@ -88,12 +90,39 @@ export function handlePull(
 					hlc: row.hlc,
 				};
 				if (audience === null || row.scope_before === row.scope_after) {
-					return change;
+					changes.push(change);
+					continue;
 				}
-				if (row.scope_before === audience) return { ...change, scope: "leave" };
+				// The records that belong to this one go with it, like an order's photos.
+				const children = await readChildren(
+					tx,
+					auth.orgId,
+					row.entity_type,
+					row.entity_id,
+				);
+				if (row.scope_before === audience) {
+					changes.push(
+						withChildren(
+							{ ...change, scope: "leave" },
+							children.map((c) => ({ entityType: c.type, entityId: c.id })),
+						),
+					);
+					continue;
+				}
 				const state = copies.get(`${row.entity_type}:${row.entity_id}`);
-				return state ? { ...change, scope: "enter", state } : change;
-			});
+				changes.push(
+					state
+						? withChildren(
+								{ ...change, scope: "enter", state },
+								children.map((c) => ({
+									entityType: c.type,
+									entityId: c.id,
+									state: c.state,
+								})),
+							)
+						: change,
+				);
+			}
 
 			return {
 				// A device that starts syncing for someone else, after a role
@@ -110,34 +139,6 @@ export function handlePull(
 		});
 }
 
-async function currentStates(
-	db: Kysely<Database>,
-	orgId: string,
-	keys: [string, string][],
-): Promise<Map<string, EntityState>> {
-	if (keys.length === 0) return new Map();
-	const rows = await db
-		.selectFrom("entities")
-		.selectAll()
-		.where("org_id", "=", orgId)
-		.where((eb) =>
-			eb.or(
-				keys.map(([type, id]) =>
-					eb.and([eb("type", "=", type), eb("id", "=", id)]),
-				),
-			),
-		)
-		.execute();
-	return new Map(
-		rows.map((r) => [
-			`${r.type}:${r.id}`,
-			{
-				fields: r.fields,
-				clocks: r.clocks,
-				createdHlc: r.created_hlc,
-				deletedHlc: r.deleted_hlc,
-				restoredHlc: r.restored_hlc,
-			},
-		]),
-	);
+function withChildren(change: Change, children: ChildRecord[]): Change {
+	return children.length > 0 ? { ...change, children } : change;
 }

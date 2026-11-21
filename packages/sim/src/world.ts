@@ -12,6 +12,7 @@ import {
 	SyncClient,
 	type Transport,
 } from "@fieldsync/sync-client";
+import { simEntity } from "./roles.ts";
 
 /** null: the office, which syncs everything; else a technician's number. */
 export type Audience = string | null;
@@ -246,9 +247,10 @@ export class World {
 		action: Extract<Action, { kind: "edit" | "delete" | "restore" }>,
 	): Promise<void> {
 		const device = this.#device(action.device);
+		const { type, id } = simEntity(action.entity);
 		const op = await device.client.mutate({
-			entityType: "work_order",
-			entityId: `00000000-0000-4000-8000-${action.entity.toString(16).padStart(12, "0")}`,
+			entityType: type,
+			entityId: id,
 			kind: action.kind === "edit" ? "upsert" : action.kind,
 			patch: action.kind === "edit" ? action.patch : {},
 		});

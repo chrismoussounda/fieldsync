@@ -150,8 +150,11 @@ export class SyncClient {
 			}
 			for (const change of page.changes) {
 				this.#clock.receive(change.hlc);
-				// An entering record's copy can hold stamps newer than the change.
+				// Entering copies can hold stamps newer than the change.
 				for (const hlc of stampsOf(change.state)) this.#clock.receive(hlc);
+				for (const child of change.children ?? []) {
+					for (const hlc of stampsOf(child.state)) this.#clock.receive(hlc);
+				}
 			}
 			await this.#storage.applyRemote(
 				page.changes,

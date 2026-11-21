@@ -24,6 +24,8 @@ export type Database = {
 		deleted_hlc: string | null;
 		restored_hlc: string | null;
 		updated_seq: Seq;
+		parent_type: string | null;
+		parent_id: string | null;
 	};
 	changes: {
 		org_id: string;

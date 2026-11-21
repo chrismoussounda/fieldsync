@@ -1,5 +1,12 @@
 export { type Scenario, scenario } from "./arbitraries.ts";
-export { simAuthorize, simScope } from "./roles.ts";
+export {
+	ORDERS,
+	PHOTOS,
+	simAuthorize,
+	simEntity,
+	simParent,
+	simScope,
+} from "./roles.ts";
 export { runScenario } from "./run.ts";
 export {
 	type Action,

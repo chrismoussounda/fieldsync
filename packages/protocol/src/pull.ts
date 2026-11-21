@@ -17,6 +17,17 @@ export type Change = {
 	scope?: "enter" | "leave";
 	/** With `enter`: the record as the server holds it, since earlier changes were not sent. */
 	state?: EntityState;
+	/**
+	 * With `enter` or `leave`: the records that belong to this one, like an
+	 * order's photos, which go with it. With `enter` each carries its state.
+	 */
+	children?: ChildRecord[];
+};
+
+export type ChildRecord = {
+	entityType: string;
+	entityId: string;
+	state?: EntityState;
 };
 
 export type PullRequest = { cursor: number; limit: number };

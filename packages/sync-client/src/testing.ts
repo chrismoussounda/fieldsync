@@ -2,6 +2,7 @@ import { decode, MAX_DRIFT_MS } from "@fieldsync/hlc";
 import { merge } from "@fieldsync/merge";
 import {
 	type Change,
+	type ChildRecord,
 	type EntityRequest,
 	type EntityResponse,
 	type EntityState,
@@ -32,9 +33,16 @@ export class FakeServer implements Transport {
 	reject = new Set<string>();
 	/** Whose record it is; null when only full-access devices see it. */
 	scopeOf: (state: EntityState) => string | null = () => null;
+	/** The `type:id` of the record this one belongs to; it shares that scope. */
+	parentOf: (
+		entityType: string,
+		entityId: string,
+		state: EntityState,
+	) => string | null = () => null;
 	authorize: (
 		op: Op,
 		current: EntityState | null,
+		parent: EntityState | null,
 		audience: Audience,
 	) => boolean = () => true;
 	epoch = "epoch-1";
@@ -62,9 +70,16 @@ export class FakeServer implements Transport {
 					reason: "CLOCK_DRIFT",
 				} as const;
 			}
-			const key = `${op.entityType}:${op.entityId}`;
+			const { entityType: type, entityId: id } = op;
+			const key = `${type}:${id}`;
 			const current = this.entities.get(key) ?? null;
-			if (this.reject.has(op.opId) || !this.authorize(op, current, audience)) {
+			const { state, won } = merge(current, op);
+			const parentKey = this.parentOf(type, id, state);
+			const parent = parentKey ? (this.entities.get(parentKey) ?? null) : null;
+			if (
+				this.reject.has(op.opId) ||
+				!this.authorize(op, current, parent, audience)
+			) {
 				const rejected = {
 					opId: op.opId,
 					status: "rejected",
@@ -73,23 +88,20 @@ export class FakeServer implements Transport {
 				this.#results.set(op.opId, rejected);
 				return rejected;
 			}
-			const { state, won } = merge(current, op);
+			const before = current ? this.#scope(type, id, current) : null;
 			this.entities.set(key, state);
 			const seq = this.changes.length + 1;
 			this.changes.push({
 				seq,
 				opId: op.opId,
 				deviceId: op.deviceId,
-				entityType: op.entityType,
-				entityId: op.entityId,
+				entityType: type,
+				entityId: id,
 				kind: op.kind,
 				patch: won,
 				hlc: op.hlc,
 			});
-			this.#scopes.push({
-				before: current ? this.scopeOf(current) : null,
-				after: this.scopeOf(state),
-			});
+			this.#scopes.push({ before, after: this.#scope(type, id, state) });
 			const result: OpResult = {
 				opId: op.opId,
 				status: "applied",
@@ -109,7 +121,9 @@ export class FakeServer implements Transport {
 		if (this.offline) throw new Error("offline");
 		const entity = this.entities.get(`${entityType}:${entityId}`) ?? null;
 		const visible =
-			entity && (audience === null || this.scopeOf(entity) === audience);
+			entity &&
+			(audience === null ||
+				this.#scope(entityType, entityId, entity) === audience);
 		return {
 			entity: visible ? structuredClone(entity) : null,
 			serverTime: this.time,
@@ -138,6 +152,25 @@ export class FakeServer implements Transport {
 		};
 	}
 
+	// A child takes its parent's scope.
+	#scope(type: string, id: string, state: EntityState): string | null {
+		const parentKey = this.parentOf(type, id, state);
+		if (!parentKey) return this.scopeOf(state);
+		const parent = this.entities.get(parentKey);
+		return parent ? this.scopeOf(parent) : null;
+	}
+
+	#children(type: string, id: string): Required<ChildRecord>[] {
+		const children: Required<ChildRecord>[] = [];
+		for (const [key, state] of this.entities) {
+			const [entityType = "", entityId = ""] = key.split(":");
+			if (this.parentOf(entityType, entityId, state) === `${type}:${id}`) {
+				children.push({ entityType, entityId, state });
+			}
+		}
+		return children;
+	}
+
 	#touches(seq: number, audience: Audience): boolean {
 		if (audience === null) return true;
 		const scope = this.#scopes[seq - 1];
@@ -149,9 +182,20 @@ export class FakeServer implements Transport {
 		if (audience === null || !scope || scope.before === scope.after) {
 			return change;
 		}
-		if (scope.before === audience) return { ...change, scope: "leave" };
+		const children = this.#children(change.entityType, change.entityId);
+		const withChildren = (c: Change, list: ChildRecord[]): Change =>
+			list.length > 0 ? { ...c, children: list } : c;
+		if (scope.before === audience) {
+			return withChildren(
+				{ ...change, scope: "leave" },
+				children.map(({ entityType, entityId }) => ({ entityType, entityId })),
+			);
+		}
 		const state = this.entities.get(`${change.entityType}:${change.entityId}`);
 		if (!state) return change;
-		return { ...change, scope: "enter", state: structuredClone(state) };
+		return withChildren(
+			{ ...change, scope: "enter", state: structuredClone(state) },
+			children.map((c) => ({ ...c, state: structuredClone(c.state) })),
+		);
 	}
 }

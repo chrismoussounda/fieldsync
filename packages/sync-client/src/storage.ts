@@ -48,9 +48,27 @@ export function applyChange(
 	state: EntityState | null,
 	change: Change,
 ): EntityState {
-	const { scope: _scope, state: _state, ...rest } = change;
+	const { scope: _scope, state: _state, children: _children, ...rest } = change;
 	const op: Op = { ...rest, base: {}, clientVersion: "" };
 	return merge(state, op, { detectConflicts: false }).state;
+}
+
+/**
+ * A pulled change, then one per record that belongs to it and enters or leaves
+ * with it, in the order to apply them.
+ */
+export function expand(change: Change): Change[] {
+	const { children, ...own } = change;
+	if (!children || !change.scope) return [own];
+	const scope = change.scope;
+	return [
+		own,
+		...children.map(({ entityType, entityId, state }) => {
+			const child: Change = { ...own, entityType, entityId, scope, patch: {} };
+			delete child.state;
+			return state ? { ...child, state } : child;
+		}),
+	];
 }
 
 /**
@@ -145,7 +163,7 @@ export class MemoryStorage implements SyncStorage {
 		nextCursor: number,
 		epoch: string,
 	): Promise<void> {
-		for (const change of changes) {
+		for (const change of changes.flatMap(expand)) {
 			const k = key(change.entityType, change.entityId);
 			const pending = this.#pending(change.entityType, change.entityId);
 			const state = applyPulled(this.entities.get(k) ?? null, change, pending);

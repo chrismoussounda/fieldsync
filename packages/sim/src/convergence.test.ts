@@ -2,14 +2,19 @@ import { FakeServer } from "@fieldsync/sync-client/testing";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { scenario } from "./arbitraries.ts";
-import { simAuthorize, simScope } from "./roles.ts";
+import { simAuthorize, simParent, simScope } from "./roles.ts";
 import { runScenario } from "./run.ts";
 import { type SimServer, World } from "./world.ts";
 
 function fakeServer(): SimServer {
 	const server = new FakeServer();
 	server.scopeOf = simScope;
-	server.authorize = simAuthorize;
+	server.parentOf = (type, id) => {
+		const parent = simParent(type, id);
+		return parent ? `${parent.type}:${parent.id}` : null;
+	};
+	server.authorize = (op, current, parent, audience) =>
+		simAuthorize(op, current, parent, audience);
 	return {
 		push: (_device, request, now, audience) => {
 			server.time = now;
