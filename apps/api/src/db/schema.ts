@@ -62,6 +62,13 @@ export type Database = {
 		reviewed_by: string | null;
 		reviewed_at: Date | null;
 	};
+	photo_files: {
+		org_id: string;
+		id: string;
+		content_type: string;
+		bytes: Uint8Array;
+		uploaded_at: CreatedAt;
+	};
 	users: {
 		id: string;
 		org_id: string;

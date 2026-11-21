@@ -53,6 +53,7 @@ describe("migrations", () => {
 			"devices",
 			"entities",
 			"orgs",
+			"photo_files",
 			"received_ops",
 			"refresh_tokens",
 			"users",
