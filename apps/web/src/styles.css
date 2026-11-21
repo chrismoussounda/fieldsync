@@ -1,36 +1,15 @@
 :root {
-	--bg: #f5f6f4;
-	--surface: #ffffff;
-	--text: #1c2321;
-	--muted: #5f6b67;
-	--line: #dde2df;
-	--accent: #0f7a5c;
-	--accent-text: #ffffff;
-	--danger: #b42318;
-	--warn-bg: #fff4d6;
-	--warn-text: #7a5300;
-	--urgent-bg: #fde4e1;
-	--done-bg: #e3f3ec;
-	color-scheme: light dark;
-	font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+	--bg: var(--background);
+	--surface: var(--card);
+	--text: var(--foreground);
+	--line: var(--border);
+	--accent-text: var(--primary-foreground);
+	--danger: var(--destructive);
+	--warn-bg: color-mix(in srgb, var(--warning) 18%, var(--card));
+	--warn-text: var(--warning);
+	--urgent-bg: color-mix(in srgb, var(--status-urgent) 16%, var(--card));
+	--done-bg: color-mix(in srgb, var(--status-done) 16%, var(--card));
 	line-height: 1.45;
-}
-
-@media (prefers-color-scheme: dark) {
-	:root {
-		--bg: #111614;
-		--surface: #1a211e;
-		--text: #e7ece9;
-		--muted: #9aa7a2;
-		--line: #2c3632;
-		--accent: #3fb68e;
-		--accent-text: #0b1210;
-		--danger: #f07a6e;
-		--warn-bg: #3a2f12;
-		--warn-text: #f3cf73;
-		--urgent-bg: #4a1f1b;
-		--done-bg: #173a2d;
-	}
 }
 
 * {
@@ -58,28 +37,28 @@ p {
 }
 
 .muted {
-	color: var(--muted);
+	color: var(--muted-foreground);
 }
 
-button {
+button:not([data-slot]) {
 	font: inherit;
 	border: 0;
 	border-radius: 8px;
 	padding: 0.6rem 1rem;
-	background: var(--accent);
+	background: var(--primary);
 	color: var(--accent-text);
 	font-weight: 600;
 	cursor: pointer;
 }
 
-button:disabled {
+button:not([data-slot]):disabled {
 	opacity: 0.6;
 	cursor: default;
 }
 
 button.link {
 	background: none;
-	color: var(--muted);
+	color: var(--muted-foreground);
 	padding: 0.25rem 0.5rem;
 	font-weight: 500;
 }
@@ -89,7 +68,7 @@ button.danger {
 	color: #fff;
 }
 
-input {
+input:not([data-slot]) {
 	font: inherit;
 	width: 100%;
 	margin-top: 0.3rem;
@@ -124,47 +103,12 @@ input {
 	color: var(--danger);
 }
 
-.topbar {
-	position: sticky;
-	top: 0;
-	z-index: 1;
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: 0.5rem 0.75rem;
-	padding: 0.6rem 1rem;
-	background: var(--surface);
-	border-bottom: 1px solid var(--line);
-}
-
-.brand {
-	margin-right: auto;
-}
-
-.who {
-	font-size: 0.9rem;
-}
-
 .confirm {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
 	gap: 0.5rem;
 	font-size: 0.9rem;
-}
-
-.badge {
-	font-size: 0.8rem;
-	padding: 0.25rem 0.6rem;
-	border-radius: 999px;
-	background: var(--done-bg);
-	color: var(--text);
-}
-
-.badge.sync-offline,
-.badge.sync-error {
-	background: var(--warn-bg);
-	color: var(--warn-text);
 }
 
 .page {
@@ -223,7 +167,7 @@ input {
 	align-items: center;
 	gap: 0.35rem 0.75rem;
 	font-size: 0.85rem;
-	color: var(--muted);
+	color: var(--muted-foreground);
 }
 
 .chip {
@@ -251,7 +195,7 @@ input {
 }
 
 a {
-	color: var(--accent);
+	color: var(--primary);
 	font-weight: 600;
 	text-decoration: none;
 }
@@ -262,7 +206,7 @@ a.card {
 }
 
 a.card:hover {
-	border-color: var(--accent);
+	border-color: var(--primary);
 }
 
 select,
@@ -333,7 +277,7 @@ code {
 }
 
 .facts dt {
-	color: var(--muted);
+	color: var(--muted-foreground);
 }
 
 .facts dd {
@@ -367,18 +311,9 @@ code {
 	color: var(--danger);
 }
 
-a.brand {
-	color: var(--text);
-}
-
 .chip.refused {
 	background: var(--urgent-bg);
 	color: var(--danger);
-}
-
-a.who {
-	color: var(--text);
-	font-weight: 500;
 }
 
 .chips {
@@ -506,7 +441,7 @@ a.who {
 
 .workload thead th {
 	border-top: 0;
-	color: var(--muted);
+	color: var(--muted-foreground);
 	font-weight: 600;
 }
 
@@ -586,7 +521,7 @@ label.button {
 	display: inline-block;
 	border-radius: 8px;
 	padding: 0.6rem 1rem;
-	background: var(--accent);
+	background: var(--primary);
 	color: var(--accent-text);
 	font-weight: 600;
 	cursor: pointer;
@@ -624,7 +559,7 @@ label.button.disabled {
 }
 
 .member.inactive strong {
-	color: var(--muted);
+	color: var(--muted-foreground);
 }
 
 .checklist {
@@ -657,7 +592,7 @@ label.button.disabled {
 }
 
 .items .done {
-	color: var(--muted);
+	color: var(--muted-foreground);
 	text-decoration: line-through;
 }
 
@@ -763,7 +698,7 @@ label.button.disabled {
 	justify-content: space-between;
 	gap: 1rem;
 	padding-bottom: 1rem;
-	border-bottom: 2px solid var(--accent);
+	border-bottom: 2px solid var(--primary);
 }
 
 .report-head dl {
@@ -775,7 +710,7 @@ label.button.disabled {
 }
 
 .report-head dt {
-	color: var(--muted);
+	color: var(--muted-foreground);
 }
 
 .report-head dd {
@@ -826,7 +761,7 @@ label.button.disabled {
 
 .report figcaption {
 	font-size: 0.85rem;
-	color: var(--muted);
+	color: var(--muted-foreground);
 }
 
 .report-signature .photo img {

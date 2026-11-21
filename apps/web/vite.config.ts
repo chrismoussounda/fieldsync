@@ -1,10 +1,14 @@
+import { fileURLToPath } from "node:url";
+import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
+	resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
 	plugins: [
 		react(),
+		tailwindcss(),
 		VitePWA({
 			registerType: "autoUpdate",
 			// Icons in every size, generated from the logo at build time.
@@ -13,8 +17,8 @@ export default defineConfig({
 				name: "FieldSync",
 				short_name: "FieldSync",
 				description: "Work orders that keep working offline.",
-				theme_color: "#0f7a5c",
-				background_color: "#111614",
+				theme_color: "#0f6b4f",
+				background_color: "#f4f6f4",
 				display: "standalone",
 			},
 			workbox: {

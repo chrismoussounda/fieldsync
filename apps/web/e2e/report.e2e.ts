@@ -46,7 +46,7 @@ test("the technician hands the customer a report, offline", async ({
 	await expect(report).toContainText("Mme Okemba");
 
 	await tech.emulateMedia({ media: "print" });
-	await expect(tech.locator(".topbar")).toBeHidden();
+	await expect(tech.locator("aside")).toBeHidden();
 	await expect(
 		tech.getByRole("button", { name: "Print or save as PDF" }),
 	).toBeHidden();

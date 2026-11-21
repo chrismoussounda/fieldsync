@@ -1,7 +1,20 @@
 import { canManage } from "@fieldsync/work-orders";
 import { useLiveQuery } from "dexie-react-hooks";
+import {
+	ClipboardList,
+	GitMerge,
+	LayoutDashboard,
+	type LucideIcon,
+	MapPin,
+	Smartphone,
+	UserRound,
+	Users,
+} from "lucide-react";
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { ROUTES, useRoute } from "./app/route.ts";
+import { useTranslation } from "react-i18next";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { ROUTES, type Route, useRoute } from "./app/route.ts";
 import { type Sync, startSync } from "./app/workspace.ts";
 import type { Session, User } from "./auth/session.ts";
 import { Account } from "./screens/Account.tsx";
@@ -9,10 +22,12 @@ import { Conflicts } from "./screens/Conflicts.tsx";
 import { Debug } from "./screens/Debug.tsx";
 import { Devices } from "./screens/Devices.tsx";
 import { Login } from "./screens/Login.tsx";
+import { Logo } from "./screens/Logo.tsx";
 import { OrderDetail } from "./screens/OrderDetail.tsx";
 import { OrderReport } from "./screens/OrderReport.tsx";
 import { Orders } from "./screens/Orders.tsx";
 import { Overview } from "./screens/Overview.tsx";
+import { SignOut } from "./screens/SignOut.tsx";
 import { SiteDetail } from "./screens/SiteDetail.tsx";
 import { Sites } from "./screens/Sites.tsx";
 import { SyncBadge } from "./screens/SyncBadge.tsx";
@@ -33,6 +48,7 @@ export function App({ db, session }: Props) {
 
 function SignedIn({ db, session, user }: Props & { user: User }) {
 	const [sync, setSync] = useState<Sync | null>(null);
+	const { t } = useTranslation();
 	const route = useRoute();
 	const pending =
 		useLiveQuery(
@@ -54,117 +70,207 @@ function SignedIn({ db, session, user }: Props & { user: User }) {
 		};
 	}, [db, session]);
 
+	const manage = canManage(user.role);
+	const admin = user.role === "admin";
+	const items = [
+		nav(
+			ROUTES.list,
+			t("nav.jobs"),
+			ClipboardList,
+			true,
+			"list",
+			"order",
+			"new",
+			"report",
+		),
+		nav(
+			ROUTES.overview,
+			t("nav.overview"),
+			LayoutDashboard,
+			manage,
+			"overview",
+		),
+		nav(ROUTES.sites, t("nav.sites"), MapPin, true, "sites", "site"),
+	].filter((item) => item !== null);
+	const office = [
+		nav(ROUTES.conflicts, t("nav.conflicts"), GitMerge, manage, "conflicts"),
+		nav(ROUTES.team, t("nav.team"), Users, admin, "team"),
+		nav(ROUTES.devices, t("nav.devices"), Smartphone, admin, "devices"),
+	].filter((item) => item !== null);
+	const account = nav(
+		ROUTES.account,
+		t("nav.account"),
+		UserRound,
+		true,
+		"account",
+	);
+
 	return (
-		<>
-			<header className="topbar no-print">
-				<a href={ROUTES.list} className="brand">
-					FieldSync
+		<div className="min-h-dvh md:grid md:grid-cols-[16rem_1fr]">
+			<aside className="print:hidden! sticky top-0 hidden h-dvh flex-col gap-6 border-r bg-sidebar p-4 md:flex">
+				<a href={ROUTES.list}>
+					<Logo />
 				</a>
-				{canManage(user.role) && <a href={ROUTES.overview}>Overview</a>}
-				<a href={ROUTES.sites}>Sites</a>
-				{canManage(user.role) && <a href={ROUTES.conflicts}>Conflicts</a>}
-				{user.role === "admin" && <a href={ROUTES.team}>Team</a>}
-				{user.role === "admin" && <a href={ROUTES.devices}>Devices</a>}
-				{sync && <SyncBadge loop={sync.loop} pending={pending} />}
-				<a href={ROUTES.account} className="who">
-					{user.name} <span className="muted">· {user.role}</span>
-				</a>
-				<SignOut session={session} pending={pending} />
-			</header>
-			<main className="page">
-				{route.name === "overview" && canManage(user.role) ? (
-					<Overview db={db} />
-				) : route.name === "list" || !sync ? (
-					// A new link's filters replace the current ones.
-					<Orders
-						key={route.name === "list" ? route.query : null}
-						db={db}
-						user={user}
-						query={route.name === "list" ? route.query : null}
-					/>
-				) : route.name === "report" ? (
-					<OrderReport db={db} id={route.id} />
-				) : route.name === "sites" ? (
-					<Sites db={db} user={user} />
-				) : route.name === "site" ? (
-					<SiteDetail
-						key={route.id}
-						db={db}
-						loop={sync.loop}
-						user={user}
-						id={route.id}
-					/>
-				) : route.name === "devices" ? (
-					<Devices session={session} />
-				) : route.name === "team" ? (
-					<Team db={db} session={session} user={user} />
-				) : route.name === "account" ? (
-					<Account session={session} user={user} />
-				) : route.name === "conflicts" ? (
-					<Conflicts db={db} session={session} />
-				) : route.name === "debug" ? (
-					<Debug db={db} sync={sync} />
-				) : (
-					<OrderDetail
-						db={db}
-						loop={sync.loop}
-						session={session}
-						user={user}
-						id={route.name === "order" ? route.id : null}
-					/>
-				)}
-			</main>
-		</>
+				<nav aria-label={t("nav.main")} className="grid gap-1">
+					{[...items, ...office].map((item) => (
+						<SideLink key={item.href} item={item} route={route.name} />
+					))}
+				</nav>
+				<div className="mt-auto grid gap-3">
+					<a
+						href={ROUTES.account}
+						className="flex items-center gap-3 rounded-xl p-2 text-foreground hover:bg-sidebar-accent"
+					>
+						<span className="grid size-9 place-items-center rounded-full bg-accent font-semibold text-accent-foreground">
+							{initials(user.name)}
+						</span>
+						<span className="grid text-sm leading-tight">
+							<span className="font-medium">{user.name}</span>
+							<span className="text-muted-foreground">
+								{t(`roles.${user.role}`)}
+							</span>
+						</span>
+					</a>
+					<SignOut session={session} pending={pending} />
+				</div>
+			</aside>
+			<div className="min-w-0">
+				<header className="print:hidden! sticky top-0 z-10 flex h-14 items-center gap-3 border-b bg-background/85 px-4 backdrop-blur">
+					<a href={ROUTES.list} className="md:hidden">
+						<Logo />
+					</a>
+					<div className="ml-auto">
+						{sync && <SyncBadge loop={sync.loop} pending={pending} />}
+					</div>
+				</header>
+				<main className="page pb-28 md:pb-8">
+					{route.name === "overview" && canManage(user.role) ? (
+						<Overview db={db} />
+					) : route.name === "list" || !sync ? (
+						// A new link's filters replace the current ones.
+						<Orders
+							key={route.name === "list" ? route.query : null}
+							db={db}
+							user={user}
+							query={route.name === "list" ? route.query : null}
+						/>
+					) : route.name === "report" ? (
+						<OrderReport db={db} id={route.id} />
+					) : route.name === "sites" ? (
+						<Sites db={db} user={user} />
+					) : route.name === "site" ? (
+						<SiteDetail
+							key={route.id}
+							db={db}
+							loop={sync.loop}
+							user={user}
+							id={route.id}
+						/>
+					) : route.name === "devices" ? (
+						<Devices session={session} />
+					) : route.name === "team" ? (
+						<Team db={db} session={session} user={user} />
+					) : route.name === "account" ? (
+						<Account session={session} user={user} pending={pending} />
+					) : route.name === "conflicts" ? (
+						<Conflicts db={db} session={session} />
+					) : route.name === "debug" ? (
+						<Debug db={db} sync={sync} />
+					) : (
+						<OrderDetail
+							db={db}
+							loop={sync.loop}
+							session={session}
+							user={user}
+							id={route.name === "order" ? route.id : null}
+						/>
+					)}
+				</main>
+			</div>
+			<nav
+				aria-label={t("nav.main")}
+				className="print:hidden! fixed inset-x-3 bottom-3 z-20 grid auto-cols-fr grid-flow-col rounded-2xl border bg-card/95 p-1.5 shadow-lg backdrop-blur md:hidden"
+			>
+				{[...items, account]
+					.filter((item) => item !== null)
+					.map((item) => (
+						<TabLink key={item.href} item={item} route={route.name} />
+					))}
+			</nav>
+		</div>
 	);
 }
 
-function SignOut({ session, pending }: { session: Session; pending: number }) {
-	const [asking, setAsking] = useState(false);
-	if (!asking) {
-		return (
-			<button
-				type="button"
-				className="link"
-				onClick={() => (pending > 0 ? setAsking(true) : void session.signOut())}
-			>
-				Sign out
-			</button>
-		);
-	}
+function nav(
+	href: string,
+	label: string,
+	icon: LucideIcon,
+	shown: boolean,
+	...active: Route["name"][]
+): NavItem | null {
+	return shown ? { href, label, icon, active } : null;
+}
+
+type NavItem = {
+	href: string;
+	label: string;
+	icon: LucideIcon;
+	active: Route["name"][];
+};
+
+function SideLink({ item, route }: { item: NavItem; route: Route["name"] }) {
+	const Icon = item.icon;
+	const current = item.active.includes(route);
 	return (
-		<span className="confirm">
-			{pending} {pending === 1 ? "change is" : "changes are"} not synced and
-			will be lost.
-			<button
-				type="button"
-				className="danger"
-				onClick={() => void session.signOut()}
-			>
-				Sign out anyway
-			</button>
-			<button type="button" className="link" onClick={() => setAsking(false)}>
-				Cancel
-			</button>
-		</span>
+		<a
+			href={item.href}
+			aria-current={current ? "page" : undefined}
+			className={cn(
+				"flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+				current && "bg-sidebar-accent text-sidebar-accent-foreground",
+			)}
+		>
+			<Icon className="size-4" aria-hidden />
+			{item.label}
+		</a>
 	);
 }
+
+function TabLink({ item, route }: { item: NavItem; route: Route["name"] }) {
+	const Icon = item.icon;
+	const current = item.active.includes(route);
+	return (
+		<a
+			href={item.href}
+			aria-current={current ? "page" : undefined}
+			className={cn(
+				"grid min-h-12 place-items-center gap-0.5 rounded-xl px-1 py-1.5 text-[0.7rem] font-medium text-muted-foreground",
+				current && "bg-accent text-accent-foreground",
+			)}
+		>
+			<Icon className="size-5" aria-hidden />
+			{item.label}
+		</a>
+	);
+}
+
+const initials = (name: string) =>
+	name
+		.split(/\s+/)
+		.slice(0, 2)
+		.map((part) => part[0]?.toUpperCase())
+		.join("");
 
 function Revoked({ session }: { session: Session }) {
+	const { t } = useTranslation();
 	return (
-		<main className="login">
-			<div className="card">
-				<h1>Device revoked</h1>
-				<p className="muted">
-					An admin locked this device out. Its copy of the work orders can no
-					longer sync.
-				</p>
-				<button
-					type="button"
-					className="danger"
-					onClick={() => void session.signOut()}
-				>
-					Erase this device's data
-				</button>
+		<main className="grid min-h-dvh place-items-center p-4">
+			<div className="grid w-full max-w-sm gap-4 rounded-2xl border bg-card p-6">
+				<h1 className="text-xl font-semibold">{t("revoked.title")}</h1>
+				<p className="text-sm text-muted-foreground">{t("revoked.body")}</p>
+				<Button variant="destructive" onPress={() => void session.signOut()}>
+					{t("revoked.erase")}
+				</Button>
 			</div>
 		</main>
 	);
