@@ -437,8 +437,56 @@ export const en: Messages<typeof fr> = {
 		revokedToast: "Device revoked.",
 		empty: "No devices.",
 	},
+	landing: {
+		signIn: "Sign in",
+		badge: "Works without a network",
+		title: "Field work orders, even without a signal.",
+		subtitle:
+			"FieldSync gives your technicians everything they need on site: the checklist, time spent, parts, photos and the customer's signature. Everything is saved on the phone and syncs as soon as the network is back.",
+		start: "Get started",
+		how: "See how it works",
+		previewJob: "Replace the water pump",
+		previewSite: "La Paix bakery · Poto-Poto",
+		previewOffline: "Offline · 3 waiting",
+		previewClock: "On site since 09:12",
+		previewSteps: "2 of 3 steps done",
+		featuresTitle: "Built for the field",
+		featuresSubtitle:
+			"The office plans, the technician does the job, and nobody waits for the network.",
+		offlineTitle: "Offline first",
+		offlineBody:
+			"Every change is saved on the device, then sent as soon as possible. Nothing gets lost in the basement.",
+		syncTitle: "Sync without conflicts",
+		syncBody:
+			"When two people change the same thing, the latest wins and the office sees what was overwritten.",
+		reportTitle: "Signed report",
+		reportBody:
+			"Checklist, time, parts, photos and the customer's signature in a report ready to print or save as PDF.",
+		timeTitle: "Time and parts",
+		timeBody:
+			"The technician starts the clock on arrival and records the parts used, even offline.",
+		teamTitle: "Teams and roles",
+		teamBody:
+			"Technicians, dispatchers and admins each see what they need. A lost phone is locked out in one click.",
+		languageTitle: "French and English",
+		languageBody:
+			"The whole app and its reports exist in both languages, light or dark.",
+		stepsTitle: "How it works",
+		step1Title: "The office creates the job",
+		step1Body: "Site, technician, due date and checklist.",
+		step2Title: "The technician gets it on their phone",
+		step2Body: "Even with no signal on arrival.",
+		step3Title: "The customer signs, the office sees it all",
+		step3Body: "The report arrives as soon as the phone reconnects.",
+		ctaTitle: "Ready to try it?",
+		ctaBody: "Sign in with a demo account.",
+		footer: "FieldSync, an offline-sync demo project.",
+		source: "Source code",
+		theme: "Change theme",
+	},
 	login: {
 		title: "Sign in",
+		home: "Home",
 		email: "Email",
 		password: "Password",
 		submit: "Sign in",

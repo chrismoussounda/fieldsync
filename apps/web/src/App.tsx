@@ -9,6 +9,7 @@ import { AppContext } from "./app/context.ts";
 import { type Sync, startSync } from "./app/workspace.ts";
 import type { Session, User } from "./auth/session.ts";
 import { router } from "./routes.tsx";
+import { Landing } from "./screens/Landing.tsx";
 import { Login } from "./screens/Login.tsx";
 import { Logo } from "./screens/Logo.tsx";
 import type { LocalDb } from "./sync/storage.ts";
@@ -28,10 +29,22 @@ export function App({ db, session }: Props) {
 			) : user ? (
 				<SignedIn key={user.id} db={db} session={session} user={user} />
 			) : (
-				<Login session={session} />
+				<Public session={session} />
 			)}
 		</I18nProvider>
 	);
+}
+
+const subscribe = (listener: () => void) => {
+	window.addEventListener("hashchange", listener);
+	return () => window.removeEventListener("hashchange", listener);
+};
+
+/** The landing page at the root; any other link asks to sign in first. */
+function Public({ session }: { session: Session }) {
+	const hash = useSyncExternalStore(subscribe, () => window.location.hash);
+	const home = hash === "" || hash === "#" || hash === "#/";
+	return home ? <Landing /> : <Login session={session} />;
 }
 
 function SignedIn({ db, session, user }: Props & { user: User }) {

@@ -6,6 +6,12 @@ test("speaks French first, then keeps the chosen language and theme", async ({
 	const page = await (await browser.newContext()).newPage();
 	await page.goto("/");
 	await expect(page.locator("html")).toHaveAttribute("lang", "fr");
+	await expect(
+		page.getByRole("heading", {
+			name: "Les interventions terrain, même sans réseau.",
+		}),
+	).toBeVisible();
+	await page.getByRole("link", { name: "Commencer" }).click();
 	await page.getByLabel("E-mail").fill("junior@fieldsync.demo");
 	await page.getByLabel("Mot de passe").fill(process.env.DEMO_PASSWORD ?? "");
 	await page.getByRole("button", { name: "Se connecter" }).click();

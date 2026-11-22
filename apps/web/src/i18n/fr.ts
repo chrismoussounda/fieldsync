@@ -433,8 +433,57 @@ export const fr = {
 		revokedToast: "Appareil révoqué.",
 		empty: "Aucun appareil.",
 	},
+	landing: {
+		signIn: "Se connecter",
+		badge: "Fonctionne sans réseau",
+		title: "Les interventions terrain, même sans réseau.",
+		subtitle:
+			"FieldSync donne à vos techniciens tout ce qu'il faut sur place : la checklist, le temps passé, les pièces, les photos et la signature du client. Tout est enregistré sur le téléphone et se synchronise dès que le réseau revient.",
+		start: "Commencer",
+		how: "Voir comment ça marche",
+		previewJob: "Remplacer la pompe à eau",
+		previewSite: "Boulangerie La Paix · Poto-Poto",
+		previewOffline: "Hors ligne · 3 en attente",
+		previewClock: "Sur place depuis 09:12",
+		previewSteps: "2 sur 3 étapes faites",
+		featuresTitle: "Pensé pour le terrain",
+		featuresSubtitle:
+			"Le bureau planifie, le technicien exécute, et personne n'attend le réseau.",
+		offlineTitle: "Hors ligne d'abord",
+		offlineBody:
+			"Chaque modification est enregistrée sur l'appareil puis envoyée dès que possible. Rien ne se perd au sous-sol.",
+		syncTitle: "Synchronisation sans conflit",
+		syncBody:
+			"Quand deux personnes modifient la même chose, la plus récente l'emporte et le bureau voit ce qui a été écrasé.",
+		reportTitle: "Rapport signé",
+		reportBody:
+			"Checklist, temps, pièces, photos et signature du client dans un rapport prêt à imprimer ou à enregistrer en PDF.",
+		timeTitle: "Temps et pièces",
+		timeBody:
+			"Le technicien démarre le chrono en arrivant et note les pièces utilisées, même sans réseau.",
+		teamTitle: "Équipes et rôles",
+		teamBody:
+			"Techniciens, répartiteurs et administrateurs voient chacun ce dont ils ont besoin. Un téléphone perdu se bloque en un clic.",
+		languageTitle: "Français et anglais",
+		languageBody:
+			"Toute l'application et les rapports existent dans les deux langues, en clair ou en sombre.",
+		stepsTitle: "Comment ça marche",
+		step1Title: "Le bureau crée l'intervention",
+		step1Body: "Site, technicien, échéance et checklist.",
+		step2Title: "Le technicien la reçoit sur son téléphone",
+		step2Body: "Même s'il n'a plus de réseau en arrivant.",
+		step3Title: "Le client signe, le bureau voit tout",
+		step3Body: "Le rapport arrive dès que le téléphone se reconnecte.",
+		ctaTitle: "Prêt à essayer ?",
+		ctaBody: "Connectez-vous avec un compte de démonstration.",
+		footer:
+			"FieldSync, un projet de démonstration de synchronisation hors ligne.",
+		source: "Code source",
+		theme: "Changer de thème",
+	},
 	login: {
 		title: "Connexion",
+		home: "Accueil",
 		email: "E-mail",
 		password: "Mot de passe",
 		submit: "Se connecter",

@@ -43,7 +43,9 @@ export function Login({ session }: { session: Session }) {
 				className="grid w-full max-w-sm gap-5 rounded-2xl border bg-card p-6 shadow-sm"
 			>
 				<div className="grid gap-2">
-					<Logo />
+					<a href="#/" aria-label={t("login.home")} className="w-fit">
+						<Logo />
+					</a>
 					<h1 className="text-xl font-semibold">{t("login.title")}</h1>
 					<p className="text-sm text-muted-foreground">{t("app.tagline")}</p>
 				</div>
