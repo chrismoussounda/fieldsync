@@ -2,7 +2,7 @@ import "leaflet/dist/leaflet.css";
 import type { Location } from "@fieldsync/work-orders";
 import { cn } from "cn";
 import L from "leaflet";
-import { Crosshair, LocateFixed, MapPinned, X } from "lucide-react";
+import { LocateFixed, MapPinned, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -16,12 +16,7 @@ import {
 import { toast } from "sonner";
 import { Field } from "@/components/fields";
 import { Button } from "@/components/ui/button";
-import {
-	currentPosition,
-	DEFAULT_CENTER,
-	findAddress,
-	formatLocation,
-} from "@/lib/maps";
+import { currentPosition, DEFAULT_CENTER, formatLocation } from "@/lib/maps";
 import { usePhone } from "@/lib/use-phone";
 
 const PIN = L.divIcon({
@@ -105,51 +100,35 @@ export function MapView({
 	);
 }
 
-/** Picks the exact door on a map: tap to place, drag to adjust, or start from the address. */
+/** Picks the exact door on a map: tap to place, drag to adjust, or use where the device is. */
 export function LocationField({
 	id,
 	label,
 	value,
 	onChange,
-	address,
 }: {
 	id: string;
 	label: string;
 	value: Location | null;
 	onChange: (value: Location | null) => void;
-	/** The address typed in the same form, to look up. */
-	address: string;
 }) {
 	const { t } = useTranslation();
 	const [map, setMap] = useState<L.Map | null>(null);
-	const [busy, setBusy] = useState<"address" | "here" | null>(null);
+	const [locating, setLocating] = useState(false);
 
 	function place(l: Location) {
 		onChange(l);
 		map?.flyTo(at(l), Math.max(map.getZoom(), CLOSE), { duration: 0.6 });
 	}
 
-	async function fromAddress() {
-		setBusy("address");
-		try {
-			const hit = await findAddress(address.trim());
-			if (hit) place(hit);
-			else toast.error(t("map.notFound"));
-		} catch {
-			toast.error(t("map.lookupFailed"));
-		} finally {
-			setBusy(null);
-		}
-	}
-
 	async function fromHere() {
-		setBusy("here");
+		setLocating(true);
 		try {
 			place(await currentPosition());
 		} catch {
 			toast.error(t("map.noPosition"));
 		} finally {
-			setBusy(null);
+			setLocating(false);
 		}
 	}
 
@@ -196,20 +175,11 @@ export function LocationField({
 				<Button
 					variant="outline"
 					size="sm"
-					isDisabled={!address.trim() || busy !== null}
-					onPress={() => void fromAddress()}
-				>
-					<Crosshair aria-hidden />
-					{busy === "address" ? t("map.looking") : t("map.fromAddress")}
-				</Button>
-				<Button
-					variant="outline"
-					size="sm"
-					isDisabled={busy !== null}
+					isDisabled={locating}
 					onPress={() => void fromHere()}
 				>
 					<LocateFixed aria-hidden />
-					{busy === "here" ? t("map.locating") : t("map.here")}
+					{locating ? t("map.locating") : t("map.here")}
 				</Button>
 				{value && (
 					<>

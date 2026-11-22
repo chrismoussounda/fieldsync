@@ -87,9 +87,9 @@ export function SiteDetail({ db, loop, user, id }: Props) {
 							{t("sites.call")}
 						</LinkButton>
 					)}
-					{(site.address || site.location) && (
+					{site.location && (
 						<LinkButton
-							href={directionsUrl(site.location, site.address)}
+							href={directionsUrl(site.location)}
 							target="_blank"
 							rel="noreferrer"
 							variant="outline"

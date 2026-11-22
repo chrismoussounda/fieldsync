@@ -4,7 +4,7 @@ import {
 	MAX_SITE_LENGTH,
 	SITE,
 } from "@fieldsync/work-orders";
-import { useForm, useStore } from "@tanstack/react-form";
+import { useForm } from "@tanstack/react-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { TextAreaField, TextField } from "@/components/fields";
@@ -64,8 +64,6 @@ export function SiteSheet({ open, onOpenChange, loop, site }: Props) {
 		},
 	});
 
-	const address = useStore(form.store, (s) => s.values.address);
-
 	return (
 		<FormSheet
 			open={open}
@@ -115,7 +113,6 @@ export function SiteSheet({ open, onOpenChange, loop, site }: Props) {
 						label={t("sites.form.location")}
 						value={field.state.value}
 						onChange={field.handleChange}
-						address={address}
 					/>
 				)}
 			</form.Field>
