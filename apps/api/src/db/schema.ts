@@ -62,6 +62,11 @@ export type Database = {
 		reviewed_by: string | null;
 		reviewed_at: Date | null;
 	};
+	rate_limits: {
+		key: string;
+		hits: number;
+		reset_at: Date;
+	};
 	photo_files: {
 		org_id: string;
 		id: string;

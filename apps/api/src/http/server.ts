@@ -42,6 +42,7 @@ import { readPhotoFile, storePhotoFile } from "../photos.ts";
 import { handleGetEntity } from "../sync/entity.ts";
 import { handlePull, MAX_PULL_LIMIT } from "../sync/pull.ts";
 import { handlePush } from "../sync/push.ts";
+import { postgresStore } from "./rate-store.ts";
 
 /** Requests allowed: sign-ins per account and address per 15 minutes,
  * refreshes per address and sync requests per device, per minute. */
@@ -163,6 +164,7 @@ export function buildServer({
 		// After parsing, so a sign-in is counted per account, not only per address.
 		await auth.register(rateLimit, {
 			global: false,
+			store: postgresStore(db),
 			hook: "preHandler",
 			errorResponseBuilder: rateLimited,
 		});

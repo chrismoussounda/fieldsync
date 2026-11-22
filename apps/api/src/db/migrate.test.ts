@@ -54,6 +54,7 @@ describe("migrations", () => {
 			"entities",
 			"orgs",
 			"photo_files",
+			"rate_limits",
 			"received_ops",
 			"refresh_tokens",
 			"users",

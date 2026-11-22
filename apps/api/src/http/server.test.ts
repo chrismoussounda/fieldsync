@@ -648,6 +648,29 @@ describe("rate limits", () => {
 		expect((await attempt("dispatch@example.com")).statusCode).toBe(401);
 	});
 
+	it("keep counting sign-ins across copies of the server", async () => {
+		// Hosting may run several copies at once, or a fresh one per request.
+		const other = buildServer({
+			db,
+			secret: SECRET,
+			limits: { login: 2, refresh: 2, sync: 2 },
+		});
+		await attempt("admin@example.com");
+		await attempt("admin@example.com");
+		const blocked = await other.inject({
+			method: "POST",
+			url: "/auth/login",
+			payload: {
+				email: "admin@example.com",
+				password: "wrong",
+				deviceId: PHONE,
+				deviceName: "Phone",
+			},
+		});
+		await other.close();
+		expect(blocked.statusCode).toBe(429);
+	});
+
 	it("count sync requests per device", async () => {
 		const headers = await syncHeaders();
 		const pull = () => limited.inject({ url: "/sync/pull?cursor=0", headers });

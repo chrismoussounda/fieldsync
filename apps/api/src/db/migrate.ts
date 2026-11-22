@@ -9,6 +9,7 @@ import * as changesByEntity from "./migrations/006_changes_by_entity.ts";
 import * as changeScopes from "./migrations/007_change_scopes.ts";
 import * as entityParents from "./migrations/008_entity_parents.ts";
 import * as photoFiles from "./migrations/009_photo_files.ts";
+import * as rateLimits from "./migrations/010_rate_limits.ts";
 
 // Listed in code instead of read from disk, so the simulator can run them in memory.
 const provider: MigrationProvider = {
@@ -22,6 +23,7 @@ const provider: MigrationProvider = {
 		"007_change_scopes": changeScopes,
 		"008_entity_parents": entityParents,
 		"009_photo_files": photoFiles,
+		"010_rate_limits": rateLimits,
 	}),
 };
 
