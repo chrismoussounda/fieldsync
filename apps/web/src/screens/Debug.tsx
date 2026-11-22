@@ -1,15 +1,5 @@
 import { decode } from "@fieldsync/hlc";
-import type { Op } from "@fieldsync/protocol";
-import {
-	CHECKLIST_ITEM,
-	PART,
-	PHOTO,
-	SITE,
-	TIME_ENTRY,
-	WORK_ORDER,
-} from "@fieldsync/work-orders";
 import { useLiveQuery } from "dexie-react-hooks";
-import i18n from "i18next";
 import { ChevronDown, RefreshCw, Trash2, WifiOff } from "lucide-react";
 import { type ReactNode, useState, useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
@@ -17,10 +7,9 @@ import { PageHeader } from "@/components/page-header";
 import { Section } from "@/components/section";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
-import type { fr } from "@/i18n/fr";
 import { cn } from "@/lib/utils";
+import { changeText, type Fields, reasonOf } from "../app/changes.ts";
 import type { Sync } from "../app/workspace.ts";
-import { fieldLabel } from "../orders.ts";
 import type { LocalDb } from "../sync/storage.ts";
 
 const TONE = {
@@ -28,9 +17,6 @@ const TONE = {
 	inflight: "bg-status-active/12 text-status-active",
 	dead: "bg-destructive/10 text-destructive",
 };
-
-type Fields = Record<string, unknown>;
-type Change = keyof typeof fr.debug.change;
 
 /** What the sync engine is doing on this device, for demos and support. */
 export function Debug({ db, sync }: { db: LocalDb; sync: Sync }) {
@@ -210,67 +196,4 @@ function Facts({
 			))}
 		</dl>
 	);
-}
-
-const REASONS = ["FORBIDDEN", "INVALID_OP", "CLOCK_DRIFT"] as const;
-const reasonOf = (reason: string) =>
-	REASONS.find((r) => r === reason) ?? "other";
-
-const named = (text: unknown) =>
-	typeof text === "string" && text ? text : i18n.t("debug.change.untitled");
-
-/** One waiting change as a sentence: what was done, and to which job or site. */
-function changeText(
-	op: Op,
-	records: ReadonlyMap<string, Fields> | undefined,
-): string {
-	const own: Fields = { ...records?.get(op.entityId), ...op.patch };
-	const changed = (field: string) => field in op.patch;
-	const orderId = op.entityType === WORK_ORDER ? op.entityId : own.orderId;
-	const order = named(records?.get(String(orderId))?.title ?? own.title);
-	const say = (key: Change, values: Record<string, string> = {}) =>
-		i18n.t(`debug.change.${key}`, { order, ...values });
-
-	switch (op.entityType) {
-		case WORK_ORDER:
-			if (op.kind === "delete") return say("orderDeleted");
-			if (op.kind === "restore") return say("orderRestored");
-			if (changed("title") && changed("status")) return say("orderCreated");
-			return say("orderEdited", {
-				fields: Object.keys(op.patch)
-					.map((f) => fieldLabel(f).toLowerCase())
-					.join(", "),
-			});
-		case CHECKLIST_ITEM:
-			if (op.kind === "delete") return say("stepDeleted");
-			if (changed("done")) {
-				return say(own.done ? "stepTicked" : "stepUnticked", {
-					step: named(own.label),
-				});
-			}
-			return say("stepSaved", { step: named(own.label) });
-		case PART:
-			return say(op.kind === "delete" ? "partDeleted" : "partSaved", {
-				part: named(own.name),
-			});
-		case TIME_ENTRY:
-			if (op.kind === "delete") return say("timeDeleted");
-			return say(
-				changed("endedAt") && own.endedAt ? "timeStopped" : "timeStarted",
-			);
-		case PHOTO:
-			if (op.kind === "delete") {
-				return say(own.signer ? "signatureDeleted" : "photoDeleted");
-			}
-			if (own.signer) return say("signed", { name: String(own.signer) });
-			return say(changed("orderId") ? "photoAdded" : "captionSaved");
-		case SITE: {
-			const site = named(own.name);
-			if (op.kind === "delete") return say("siteDeleted", { site });
-			if (op.kind === "restore") return say("siteRestored", { site });
-			return say("siteSaved", { site });
-		}
-		default:
-			return say("other");
-	}
 }
