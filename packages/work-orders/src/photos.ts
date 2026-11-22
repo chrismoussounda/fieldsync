@@ -5,7 +5,9 @@ export const PHOTO = "photo";
 
 export const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 
-export const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+// Under the 4.5 MB a hosted function accepts in one request; phones shrink
+// photos well below this before sending.
+export const MAX_PHOTO_BYTES = 4 * 1024 * 1024;
 
 export const MAX_CAPTION = 200;
 export const MAX_SIGNER = 100;
