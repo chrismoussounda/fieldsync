@@ -1,4 +1,18 @@
-import { useCallback, useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Smartphone } from "lucide-react";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
+import { Confirm } from "@/components/confirm";
+import { columnHelper, DataTable } from "@/components/data-table";
+import { Offline } from "@/components/offline";
+import { PageHeader } from "@/components/page-header";
+import { Person } from "@/components/person";
+import { Button } from "@/components/ui/button";
+import { formatDay } from "@/lib/format";
+import { usePhone } from "@/lib/use-phone";
+import { cn } from "@/lib/utils";
+import { messageFor } from "../app/errors.ts";
 import { ago } from "../app/time.ts";
 import { apiFetch } from "../app/workspace.ts";
 import type { Session } from "../auth/session.ts";
@@ -14,96 +28,152 @@ type Device = {
 
 /** Every device signed in to the org, so an admin can lock out a lost one. */
 export function Devices({ session }: { session: Session }) {
-	const [devices, setDevices] = useState<Device[] | null>(null);
-	const [offline, setOffline] = useState(false);
-	const [mine, setMine] = useState<string | null>(null);
-	const [confirming, setConfirming] = useState<string | null>(null);
+	const { t, i18n } = useTranslation();
+	const phone = usePhone();
+	const client = useQueryClient();
+	const [revoking, setRevoking] = useState<Device | null>(null);
+	const devices = useQuery({
+		queryKey: ["devices"],
+		queryFn: async () =>
+			(await apiFetch<{ devices: Device[] }>(session, "/devices"))?.devices ??
+			[],
+	});
+	const mine = useQuery({
+		queryKey: ["device-id"],
+		queryFn: () => session.deviceId(),
+	});
 
-	const load = useCallback(async () => {
+	async function revoke(device: Device) {
 		try {
-			const result = await apiFetch<{ devices: Device[] }>(session, "/devices");
-			setDevices(result?.devices ?? []);
-			setOffline(false);
-		} catch {
-			setOffline(true);
+			await apiFetch(session, `/devices/${device.id}/revoke`, {
+				method: "POST",
+			});
+			toast.success(t("devices.revokedToast"));
+			await client.invalidateQueries({ queryKey: ["devices"] });
+		} catch (e) {
+			toast.error(messageFor(e));
 		}
-	}, [session]);
-
-	useEffect(() => {
-		void load();
-		void session.deviceId().then(setMine);
-	}, [load, session]);
-
-	async function revoke(id: string) {
-		await apiFetch(session, `/devices/${id}/revoke`, { method: "POST" });
-		setConfirming(null);
-		await load();
 	}
 
 	// Active devices first, most recently seen on top.
-	const sorted = [...(devices ?? [])].sort(
+	const sorted = [...(devices.data ?? [])].sort(
 		(a, b) =>
 			Number(a.revokedAt !== null) - Number(b.revokedAt !== null) ||
 			(b.lastSeenAt ?? "").localeCompare(a.lastSeenAt ?? ""),
 	);
+	const seen = (d: Device) =>
+		d.lastSeenAt
+			? ago(d.lastSeenAt, Date.now(), i18n.language)
+			: t("devices.never");
+	const added = (d: Device) => formatDay(d.registeredAt.slice(0, 10));
+	const state = (d: Device) =>
+		d.revokedAt ? (
+			<span className="rounded-full bg-destructive/10 px-2.5 py-0.5 text-xs font-medium text-destructive">
+				{t("devices.revoked")}
+			</span>
+		) : d.id === mine.data ? (
+			<span className="rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-accent-foreground">
+				{t("devices.thisDevice")}
+			</span>
+		) : (
+			<Button
+				variant="outline"
+				size="sm"
+				onPress={() => setRevoking(d)}
+				aria-label={`${t("devices.revoke")} ${d.name}, ${d.user.name}`}
+			>
+				{t("devices.revoke")}
+			</Button>
+		);
+	const helper = columnHelper<Device>();
+	const columns = helper.columns([
+		helper.accessor("name", {
+			header: t("devices.device"),
+			cell: ({ row }) => (
+				<span className="flex items-center gap-2.5 font-medium">
+					<Smartphone aria-hidden className="size-4 text-muted-foreground" />
+					{row.original.name}
+				</span>
+			),
+		}),
+		helper.accessor((d) => d.user.name, {
+			id: "user",
+			header: t("devices.user"),
+			cell: ({ row }) => <Person name={row.original.user.name} />,
+		}),
+		helper.accessor((d) => d.lastSeenAt ?? "", {
+			id: "lastSeen",
+			header: t("devices.lastSeen"),
+			cell: ({ row }) => seen(row.original),
+		}),
+		helper.accessor("registeredAt", {
+			header: t("devices.added"),
+			cell: ({ row }) => added(row.original),
+		}),
+		helper.display({
+			id: "state",
+			header: () => <span className="sr-only">{t("common.actions")}</span>,
+			cell: ({ row }) => state(row.original),
+			meta: { className: "text-right" },
+		}),
+	]);
 
 	return (
-		<section>
-			<div className="toolbar">
-				<h2>Devices</h2>
-			</div>
-			{offline && (
-				<p className="muted empty">The device list needs the network.</p>
-			)}
-			<ul className="orders">
-				{sorted.map((d) => (
-					<li key={d.id} className="card order">
-						<div className="order-head">
-							<strong>{d.name}</strong>
-							{d.id === mine && <span className="chip">This device</span>}
-							{d.revokedAt && <span className="chip refused">Revoked</span>}
-						</div>
-						<p className="meta">
-							<span>{d.user.name}</span>
-							<span>
-								{d.lastSeenAt ? `Seen ${ago(d.lastSeenAt)}` : "Never synced"}
-							</span>
-							<span>Added {new Date(d.registeredAt).toLocaleDateString()}</span>
-						</p>
-						{!d.revokedAt && d.id !== mine && (
-							<div className="actions">
-								{confirming === d.id ? (
-									<span className="confirm">
-										Lock {d.user.name} out on this device?
-										<button
-											type="button"
-											className="danger"
-											onClick={() => void revoke(d.id)}
-										>
-											Revoke
-										</button>
-										<button
-											type="button"
-											className="link"
-											onClick={() => setConfirming(null)}
-										>
-											Cancel
-										</button>
-									</span>
-								) : (
-									<button
-										type="button"
-										className="link"
-										onClick={() => setConfirming(d.id)}
-									>
-										Revoke
-									</button>
-								)}
+		<div className="grid gap-6">
+			<PageHeader
+				title={t("devices.title")}
+				description={t("devices.description")}
+			/>
+			{devices.isError ? (
+				<Offline
+					text={t("devices.offline")}
+					onRetry={() => void devices.refetch()}
+				/>
+			) : phone ? (
+				<ul className="grid gap-2">
+					{sorted.map((d) => (
+						<li
+							key={d.id}
+							className={cn(
+								"grid gap-3 rounded-2xl border bg-card p-4",
+								d.revokedAt && "text-muted-foreground",
+							)}
+						>
+							<div className="flex items-center justify-between gap-3">
+								<span className="flex items-center gap-2.5 font-medium">
+									<Smartphone aria-hidden className="size-4" />
+									{d.name}
+								</span>
+								{state(d)}
 							</div>
-						)}
-					</li>
-				))}
-			</ul>
-		</section>
+							<div className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
+								<Person name={d.user.name} />
+								<span>{seen(d)}</span>
+							</div>
+						</li>
+					))}
+				</ul>
+			) : (
+				<DataTable
+					label={t("devices.title")}
+					data={sorted}
+					columns={columns}
+					getRowId={(d) => d.id}
+					muted={(d) => d.revokedAt !== null}
+					empty={t("devices.empty")}
+				/>
+			)}
+			<Confirm
+				open={revoking !== null}
+				onOpenChange={(next) => !next && setRevoking(null)}
+				title={t("devices.revokeTitle")}
+				description={t("devices.revokeBody", {
+					name: revoking?.user.name ?? "",
+					device: revoking?.name ?? "",
+				})}
+				confirmLabel={t("devices.revoke")}
+				onConfirm={() => revoking && void revoke(revoking)}
+			/>
+		</div>
 	);
 }

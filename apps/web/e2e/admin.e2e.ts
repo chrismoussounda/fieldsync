@@ -6,15 +6,18 @@ test("an admin locks a lost phone out", async ({ browser }) => {
 	const phone = await device(browser, "merveille@fieldsync.demo");
 
 	await admin.getByRole("link", { name: "Devices" }).click();
-	const mine = admin.locator("li", { hasText: "This device" });
+	const mine = admin.getByRole("row").filter({ hasText: "This device" });
 	await expect(mine).toContainText("Ange Moukala");
-	await expect(mine.getByRole("button", { name: "Revoke" })).toHaveCount(0);
+	await expect(mine.getByRole("button", { name: /Revoke/ })).toHaveCount(0);
 
-	const lost = admin.locator("li", { hasText: MERVEILLE });
+	const lost = admin.getByRole("row").filter({ hasText: MERVEILLE });
 	await expect(lost).toContainText("Chrome on");
-	await expect(lost).toContainText("Seen just now");
-	await lost.getByRole("button", { name: "Revoke" }).click();
-	await lost.getByRole("button", { name: "Revoke" }).click();
+	await expect(lost).toContainText("now");
+	await lost.getByRole("button", { name: /Revoke/ }).click();
+	await admin
+		.getByRole("alertdialog")
+		.getByRole("button", { name: "Revoke" })
+		.click();
 	await expect(lost).toContainText("Revoked");
 
 	// Her next sync is refused, and the app locks at once.
