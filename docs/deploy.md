@@ -8,31 +8,36 @@ Everything runs on free plans:
 
 `node scripts/vercel-build.ts` builds both parts in Vercel's [Build Output](https://vercel.com/docs/build-output-api/v3) format; `vercel.json` tells Vercel to run it. CI runs the same build on every pull request.
 
-## 1. The database, on Neon
+## 1. The project, on Vercel
 
-1. Create a Neon project in the same region as the Vercel function (**Settings → Functions → Function Region** on Vercel). Every request crosses between the two, so being apart adds to each one. For users in Central Africa, Frankfurt for both is the closest.
-2. In **Connect**, turn on **Connection pooling** and copy the connection string. The pooled one (its host contains `-pooler`) matters: every copy of the function opens its own connections.
+1. **Add New → Project**, import the GitHub repository, or run `npx vercel link` at its root.
+2. Leave **Root Directory** at the repository root and **Framework Preset** on **Other**. The build and install commands, and the Frankfurt region (`fra1`), come from `vercel.json`.
 
-Nothing else: the API creates its tables on its first request.
+## 2. The database, Neon through Vercel
 
-## 2. The app, on Vercel
+**Storage → Create Database → Neon**, on the free plan, in Frankfurt like the function: every request crosses between the two. Or from the command line:
 
-1. **Add New → Project**, import the GitHub repository.
-2. Leave **Root Directory** at the repository root and **Framework Preset** on **Other**. The build and install commands come from `vercel.json`.
-3. Add these **Environment Variables** (Production):
+```sh
+npx vercel integration add neon --meta region=fra1 --billing-plan free_v3 --name fieldsync-db
+```
 
-| Name            | Value                                                                               |
-| --------------- | ----------------------------------------------------------------------------------- |
-| `DATABASE_URL`  | Neon's pooled connection string                                                     |
-| `JWT_SECRET`    | 32 characters or more: `openssl rand -base64 32`                                    |
-| `DEMO_PASSWORD` | The password of every demo user, 8 characters or more                               |
-| `CRON_SECRET`   | 16 characters or more: `openssl rand -hex 16`. Vercel sends it with the nightly job |
-| `TRUST_PROXY`   | `true`, so sign-in limits see each visitor's own address                            |
-| `DB_POOL_MAX`   | `3`                                                                                 |
+Vercel connects it to the project and adds `DATABASE_URL`, the pooled connection that every copy of the function can share. The API creates its tables on its first request.
 
-4. **Deploy.** Every push to `main` deploys again; pull requests get preview deployments.
+## 3. The settings
 
-## 3. Check it
+Add these to Production and Preview (**Settings → Environment Variables**, or `npx vercel env add NAME production`):
+
+| Name            | Value                                                                                                  |
+| --------------- | ------------------------------------------------------------------------------------------------------ |
+| `JWT_SECRET`    | 32 characters or more: `openssl rand -base64 48`. Mark it sensitive                                    |
+| `CRON_SECRET`   | 16 characters or more: `openssl rand -hex 24`. Vercel sends it with the nightly job. Mark it sensitive |
+| `DEMO_PASSWORD` | The password of every demo user, 8 characters or more                                                  |
+| `TRUST_PROXY`   | `true`, so sign-in limits see each visitor's own address                                               |
+| `DB_POOL_MAX`   | `3`                                                                                                    |
+
+Every push to `main` then deploys to production; other branches get preview deployments.
+
+## 4. Check it
 
 - `https://<your-app>.vercel.app/api/healthz` answers `{"status":"ok"}`: the function runs.
 - `https://<your-app>.vercel.app/api/readyz` answers `{"status":"ok"}`: it reaches the database. The first call also creates the tables and the demo org, so it can take a few seconds.
