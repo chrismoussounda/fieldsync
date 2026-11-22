@@ -12,7 +12,8 @@ test("the office finds work from the overview and the filters", async ({
 	await office.getByRole("link", { name: "Overview" }).click();
 	await expect(office.getByRole("heading", { name: "Overview" })).toBeVisible();
 	await office.getByRole("link", { name: /^\d+ Unassigned$/ }).click();
-	await expect(office.getByLabel("Assigned to")).toHaveValue("none");
+	const assignee = office.getByRole("button", { name: /Assigned to/ });
+	await expect(assignee).toContainText("Unassigned");
 	await expect(office.getByRole("link", { name: title })).toBeVisible();
 	await expect(
 		office.getByRole("link", { name: /Check the solar panels/ }),
@@ -34,14 +35,16 @@ test("the office finds work from the overview and the filters", async ({
 	const row = office.getByRole("row", { name: new RegExp(JUNIOR) });
 	await expect(row.getByRole("cell").nth(2)).not.toHaveText("0");
 	await row.getByRole("link", { name: JUNIOR }).click();
-	const late = office.getByRole("link", { name: /Inspect the generator/ });
+	const late = office
+		.getByRole("row")
+		.filter({ hasText: "Inspect the generator" });
 	await expect(late).toContainText("Overdue");
 	await expect(office.getByLabel("Search")).toHaveValue("");
 
 	// The filters stay when coming back from an order.
-	await late.click();
+	await late.getByRole("link").click();
 	await office.getByRole("link", { name: "Back" }).click();
-	await expect(office.getByLabel("Assigned to")).not.toHaveValue("all");
+	await expect(assignee).not.toContainText("Anyone");
 	await office.getByRole("button", { name: "Clear filters" }).click();
-	await expect(office.getByLabel("Assigned to")).toHaveValue("all");
+	await expect(assignee).toContainText("Anyone");
 });
