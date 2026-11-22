@@ -1,5 +1,9 @@
 import { z } from "zod";
 
+// An empty line in a .env file means unset, as if the variable were absent.
+const unsetIfEmpty = <T extends z.ZodType>(schema: T) =>
+	z.preprocess((v) => (v === "" ? undefined : v), schema.optional());
+
 const Env = z.object({
 	DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
 	JWT_SECRET: z.string().min(32),
@@ -12,6 +16,12 @@ const Env = z.object({
 		.transform((v) => v === "true"),
 	// Sign-ins per account and address per 15 minutes.
 	LOGIN_LIMIT: z.coerce.number().int().min(1).default(10),
+	// Open connections per copy of the server; small on hosted functions.
+	DB_POOL_MAX: z.coerce.number().int().min(1).default(10),
+	// Seeds the demo org on start when set; nothing happens if it exists.
+	DEMO_PASSWORD: unsetIfEmpty(z.string().min(8)),
+	// Lets a scheduled job reset the demo, sent as "Authorization: Bearer …".
+	CRON_SECRET: unsetIfEmpty(z.string().min(16)),
 	LOG_LEVEL: z
 		.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
 		.default("info"),

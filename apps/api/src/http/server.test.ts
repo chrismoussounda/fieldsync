@@ -12,6 +12,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createUser } from "../auth/users.ts";
 import type { Database, Role } from "../db/schema.ts";
 import { createTestDb, emptyTestDb } from "../db/testing.ts";
+import { DEMO_ORG, seedDemo } from "../demo.ts";
 import { buildServer } from "./server.ts";
 
 const ORG = "00000000-0000-4000-8000-000000000001";
@@ -648,11 +649,64 @@ describe("rate limits", () => {
 		expect((await attempt("dispatch@example.com")).statusCode).toBe(401);
 	});
 
+	it("keep counting sign-ins across copies of the server", async () => {
+		// Hosting may run several copies at once, or a fresh one per request.
+		const other = buildServer({
+			db,
+			secret: SECRET,
+			limits: { login: 2, refresh: 2, sync: 2 },
+		});
+		await attempt("admin@example.com");
+		await attempt("admin@example.com");
+		const blocked = await other.inject({
+			method: "POST",
+			url: "/auth/login",
+			payload: {
+				email: "admin@example.com",
+				password: "wrong",
+				deviceId: PHONE,
+				deviceName: "Phone",
+			},
+		});
+		await other.close();
+		expect(blocked.statusCode).toBe(429);
+	});
+
 	it("count sync requests per device", async () => {
 		const headers = await syncHeaders();
 		const pull = () => limited.inject({ url: "/sync/pull?cursor=0", headers });
 		expect((await pull()).statusCode).toBe(200);
 		expect((await pull()).statusCode).toBe(200);
 		expect((await pull()).statusCode).toBe(429);
+	});
+});
+
+describe("demo reset", () => {
+	const CRON = "a cron secret, long enough";
+
+	it("puts the demo back for the scheduled job, and no one else", async () => {
+		const cron = buildServer({ db, secret: SECRET, cronSecret: CRON });
+		await seedDemo(db, "demo password");
+		await db.deleteFrom("entities").where("org_id", "=", DEMO_ORG).execute();
+		const reset = (authorization?: string) =>
+			cron.inject({
+				url: "/demo/reset",
+				headers: authorization ? { authorization } : {},
+			});
+
+		expect((await reset()).statusCode).toBe(401);
+		expect((await reset("Bearer not the secret")).statusCode).toBe(401);
+		expect((await reset(`Bearer ${CRON}`)).statusCode).toBe(200);
+		const orders = await db
+			.selectFrom("entities")
+			.select("id")
+			.where("org_id", "=", DEMO_ORG)
+			.execute();
+		expect(orders.length).toBeGreaterThan(0);
+		await cron.close();
+	});
+
+	it("does not exist without a secret", async () => {
+		expect((await app.inject("/demo/reset")).statusCode).toBe(404);
 	});
 });

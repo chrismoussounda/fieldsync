@@ -1,5 +1,6 @@
 import { encode } from "@fieldsync/hlc";
 import type { Op } from "@fieldsync/protocol";
+import { hash, verify } from "@node-rs/argon2";
 import type { Kysely } from "kysely";
 import { WORK_ORDER_SCOPING } from "./auth/policy.ts";
 import { createUser } from "./auth/users.ts";
@@ -138,13 +139,41 @@ export async function seedDemo(
 		.select("id")
 		.where("id", "=", DEMO_ORG)
 		.executeTakeFirst();
-	if (exists) return;
+	if (exists) return keepDemoPassword(db, password);
 
 	await db.insertInto("orgs").values({ id: DEMO_ORG, name: "Demo" }).execute();
 	for (const user of USERS) {
 		await createUser(db, { ...user, orgId: DEMO_ORG, password });
 	}
 	await seedOrders(db, now);
+}
+
+/**
+ * The demo users share the configured password: changing it in the settings
+ * changes theirs, and a visitor who changed one gets it back.
+ */
+async function keepDemoPassword(
+	db: Kysely<Database>,
+	password: string,
+): Promise<void> {
+	const emails = USERS.map((u) => u.email);
+	const users = await db
+		.selectFrom("users")
+		.select(["id", "password_hash"])
+		.where("org_id", "=", DEMO_ORG)
+		.where("email", "in", emails)
+		.execute();
+	const checks = await Promise.all(
+		users.map((u) => verify(u.password_hash, password)),
+	);
+	if (checks.every(Boolean)) return;
+	const passwordHash = await hash(password);
+	await db
+		.updateTable("users")
+		.set({ password_hash: passwordHash })
+		.where("org_id", "=", DEMO_ORG)
+		.where("email", "in", emails)
+		.execute();
 }
 
 /**

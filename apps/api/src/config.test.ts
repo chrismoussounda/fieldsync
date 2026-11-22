@@ -25,6 +25,15 @@ describe("loadConfig", () => {
 		expect(load).not.toThrow(secret);
 	});
 
+	it("treats empty optional lines as unset, and checks the ones given", () => {
+		const config = loadConfig({ ...valid, DEMO_PASSWORD: "", CRON_SECRET: "" });
+		expect(config.DEMO_PASSWORD).toBeUndefined();
+		expect(config.CRON_SECRET).toBeUndefined();
+		expect(() => loadConfig({ ...valid, CRON_SECRET: "short" })).toThrow(
+			"Invalid environment: CRON_SECRET",
+		);
+	});
+
 	it("requires a Postgres URL", () => {
 		expect(() =>
 			loadConfig({ ...valid, DATABASE_URL: "mysql://localhost/db" }),
