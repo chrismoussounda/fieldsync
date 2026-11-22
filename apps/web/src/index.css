@@ -123,6 +123,17 @@
 	a {
 		@apply font-medium text-primary underline-offset-4;
 	}
+	/* Tailwind v4 leaves buttons with the default arrow. */
+	button:not(:disabled),
+	[role="button"]:not([aria-disabled="true"]),
+	[role="option"]:not([aria-disabled="true"]),
+	[role^="menuitem"]:not([aria-disabled="true"]),
+	[role="tab"],
+	label:has(input:not(:disabled)),
+	[data-slot="checkbox"]:not([data-disabled]),
+	[data-slot="toggle"]:not([data-disabled]) {
+		cursor: pointer;
+	}
 }
 
 /* Paper is white: a report prints the same from a dark screen. */
