@@ -59,7 +59,7 @@ export async function createOrder(
 	title: string,
 	assignee: string,
 ): Promise<void> {
-	await office.goto("/#/new");
+	await office.goto("/#/?new=1");
 	await office.getByRole("dialog").getByLabel("Title").fill(title);
 	await pick(office, "Assigned to", assignee);
 	await saveSheet(office);

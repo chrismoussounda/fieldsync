@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Toggle } from "@/components/ui/toggle";
 import { formatDay } from "@/lib/format";
 import { usePhone } from "@/lib/use-phone";
+import { useOpeningKey } from "@/lib/use-sheet";
 import { cn } from "@/lib/utils";
 import { itemsOf, progressByOrder } from "../app/checklists.ts";
 import { ROUTES } from "../app/route.ts";
@@ -92,6 +93,7 @@ export function Orders({ db, loop, user, query, creating }: Props) {
 	const phone = usePhone();
 	const [filters, setFilters] = useState(() => initial(user, query));
 	const [filtering, setFiltering] = useState(false);
+	const opening = useOpeningKey(creating);
 	const rows = useLiveQuery(() => db.entities.toArray(), [db]);
 	const outbox = useLiveQuery(() => db.outbox.toArray(), [db]);
 	const members = useLiveQuery(() => db.getMeta<Member[]>("members"), [db]);
@@ -275,9 +277,10 @@ export function Orders({ db, loop, user, query, creating }: Props) {
 			) : (
 				<OrderTable orders={orders} empty={empty()} />
 			)}
-			{creating && loop && (
+			{loop && (
 				<OrderSheet
-					open
+					key={opening}
+					open={creating}
 					onOpenChange={(open) => {
 						if (!open) window.location.hash = ROUTES.list;
 					}}

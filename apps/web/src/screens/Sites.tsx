@@ -13,6 +13,7 @@ import { useTranslation } from "react-i18next";
 import { PageHeader } from "@/components/page-header";
 import { LinkButton } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useOpeningKey } from "@/lib/use-sheet";
 import { ROUTES } from "../app/route.ts";
 import { type Site, sitesOf } from "../app/sites.ts";
 import type { User } from "../auth/session.ts";
@@ -26,6 +27,7 @@ export function Sites({ db, loop, user, creating }: Props) {
 	const { t } = useTranslation();
 	const sites = useLiveQuery(() => sitesOf(db), [db]);
 	const [search, setSearch] = useState("");
+	const opening = useOpeningKey(creating);
 	if (!sites) return null;
 	const words = search.toLowerCase().split(/\s+/).filter(Boolean);
 	const shown = sites.filter((s) => {
@@ -85,6 +87,7 @@ export function Sites({ db, loop, user, creating }: Props) {
 			)}
 			{manage && (
 				<SiteSheet
+					key={opening}
 					open={creating}
 					onOpenChange={(open) => {
 						if (!open) window.location.hash = ROUTES.sites;

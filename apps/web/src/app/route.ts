@@ -3,7 +3,7 @@ export const ROUTES = {
 	list: "#/",
 	filtered: (query: string) => `#/?${query}`,
 	overview: "#/overview",
-	new: "#/new",
+	new: "#/?new=1",
 	debug: "#/debug",
 	conflicts: "#/conflicts",
 	devices: "#/devices",
@@ -12,6 +12,6 @@ export const ROUTES = {
 	order: (id: string) => `#/orders/${id}`,
 	report: (id: string) => `#/orders/${id}/report`,
 	sites: "#/sites",
-	newSite: "#/sites/new",
+	newSite: "#/sites?new=1",
 	site: (id: string) => `#/sites/${id}`,
 };

@@ -20,7 +20,7 @@ test("an admin adds a technician, who later gets disabled", async ({
 	await expect(ines).toContainText("Technician");
 
 	// She can be assigned work right away.
-	await admin.goto("/#/new");
+	await admin.goto("/#/?new=1");
 	await admin
 		.getByRole("dialog")
 		.getByRole("button", { name: "Assigned to" })

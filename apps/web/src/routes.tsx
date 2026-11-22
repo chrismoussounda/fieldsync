@@ -34,19 +34,30 @@ function Only({ when, children }: { when: boolean; children: ReactNode }) {
 	return when ? children : home;
 }
 
-function OrderList({ creating }: { creating: boolean }) {
-	const { db, sync, user } = useApp();
-	// A link's filters replace the ones in use.
-	const query = useRouterState({
-		select: (s) => s.location.searchStr.replace(/^\?/, "") || null,
+/** `?new=1` opens the create sheet over the list, so the list stays put. */
+function useCreating(): { creating: boolean; rest: string | null } {
+	return useRouterState({
+		select: (s) => {
+			const params = new URLSearchParams(s.location.searchStr);
+			const creating = params.get("new") === "1";
+			params.delete("new");
+			return { creating, rest: params.toString() || null };
+		},
+		structuralSharing: true,
 	});
+}
+
+function OrderList() {
+	const { db, sync, user } = useApp();
+	const { creating, rest } = useCreating();
 	return (
+		// A link's filters replace the ones in use.
 		<Orders
-			key={query}
+			key={rest}
 			db={db}
 			loop={sync.loop}
 			user={user}
-			query={creating ? null : query}
+			query={rest}
 			creating={creating}
 		/>
 	);
@@ -55,13 +66,7 @@ function OrderList({ creating }: { creating: boolean }) {
 const list = createRoute({
 	getParentRoute: () => root,
 	path: "/",
-	component: () => <OrderList creating={false} />,
-});
-
-const newOrder = createRoute({
-	getParentRoute: () => root,
-	path: "/new",
-	component: () => <OrderList creating />,
+	component: OrderList,
 });
 
 const order = createRoute({
@@ -106,21 +111,16 @@ const overview = createRoute({
 	},
 });
 
-function SiteList({ creating }: { creating: boolean }) {
+function SiteList() {
 	const { db, sync, user } = useApp();
+	const { creating } = useCreating();
 	return <Sites db={db} loop={sync.loop} user={user} creating={creating} />;
 }
 
 const sites = createRoute({
 	getParentRoute: () => root,
 	path: "/sites",
-	component: () => <SiteList creating={false} />,
-});
-
-const newSite = createRoute({
-	getParentRoute: () => root,
-	path: "/sites/new",
-	component: () => <SiteList creating />,
+	component: SiteList,
 });
 
 const site = createRoute({
@@ -208,12 +208,10 @@ const login = createRoute({
 export const router = createRouter({
 	routeTree: root.addChildren([
 		list,
-		newOrder,
 		order,
 		report,
 		overview,
 		sites,
-		newSite,
 		site,
 		conflicts,
 		team,

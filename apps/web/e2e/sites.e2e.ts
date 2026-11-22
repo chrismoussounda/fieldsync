@@ -27,7 +27,7 @@ test("a site is kept once, picked on its orders and read on site", async ({
 	await office.getByRole("button", { name: "Save", exact: true }).click();
 	await expect(office.getByRole("link", { name })).toBeVisible();
 
-	await office.goto("/#/new");
+	await office.goto("/#/?new=1");
 	const sheet = office.getByRole("dialog");
 	await sheet.getByLabel("Title").fill(title);
 	await pick(office, "Site", name);
