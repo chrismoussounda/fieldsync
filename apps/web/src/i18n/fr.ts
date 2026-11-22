@@ -1,4 +1,12 @@
 export const fr = {
+	common: {
+		cancel: "Annuler",
+		save: "Enregistrer",
+		edit: "Modifier",
+		delete: "Supprimer",
+		back: "Retour",
+		search: "Rechercher",
+	},
 	app: {
 		tagline: "Des interventions qui continuent de fonctionner hors ligne.",
 	},

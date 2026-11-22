@@ -13,6 +13,7 @@ import {
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import { Toaster } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
 import { ROUTES, type Route, useRoute } from "./app/route.ts";
 import { type Sync, startSync } from "./app/workspace.ts";
@@ -187,6 +188,7 @@ function SignedIn({ db, session, user }: Props & { user: User }) {
 					)}
 				</main>
 			</div>
+			<Toaster position="top-center" />
 			<nav
 				aria-label={t("nav.main")}
 				className="print:hidden! fixed inset-x-3 bottom-3 z-20 grid auto-cols-fr grid-flow-col rounded-2xl border bg-card/95 p-1.5 shadow-lg backdrop-blur md:hidden"

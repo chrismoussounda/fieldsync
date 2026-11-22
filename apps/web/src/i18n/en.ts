@@ -5,6 +5,14 @@ type Messages<T> = {
 };
 
 export const en: Messages<typeof fr> = {
+	common: {
+		cancel: "Cancel",
+		save: "Save",
+		edit: "Edit",
+		delete: "Delete",
+		back: "Back",
+		search: "Search",
+	},
 	app: {
 		tagline: "Work orders that keep working offline.",
 	},
