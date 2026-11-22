@@ -75,7 +75,7 @@ export function ComboField({
 			{error && <p className="text-sm text-destructive">{error}</p>}
 			<Popover
 				offset={6}
-				className="z-50 w-(--trigger-width) overflow-hidden rounded-lg bg-popover text-popover-foreground shadow-md ring-1 ring-foreground/10 data-entering:animate-in data-entering:fade-in-0"
+				className="z-50 w-(--trigger-width) overflow-hidden rounded-lg bg-popover text-popover-foreground shadow-md ring-1 ring-foreground/10 origin-(--trigger-anchor-point) duration-150 data-entering:animate-in data-entering:fade-in-0 data-entering:zoom-in-95 data-exiting:animate-out data-exiting:fade-out-0 data-exiting:zoom-out-95"
 			>
 				<ListBox className="max-h-64 overflow-y-auto p-1 outline-none empty:hidden">
 					{(item: { id: string; name: string }) => (

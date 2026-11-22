@@ -113,7 +113,7 @@ export function DateField({
 			<Popover
 				placement="bottom end"
 				offset={6}
-				className="z-50 rounded-xl bg-popover p-3 text-popover-foreground shadow-lg ring-1 ring-foreground/10 data-entering:animate-in data-entering:fade-in-0 data-exiting:animate-out data-exiting:fade-out-0"
+				className="z-50 rounded-xl bg-popover p-3 text-popover-foreground shadow-lg ring-1 ring-foreground/10 origin-(--trigger-anchor-point) duration-150 data-entering:animate-in data-entering:fade-in-0 data-entering:zoom-in-95 data-exiting:animate-out data-exiting:fade-out-0 data-exiting:zoom-out-95"
 			>
 				<Dialog className="outline-none">
 					<Calendar className="bg-transparent [--cell-size:--spacing(9)]" />
