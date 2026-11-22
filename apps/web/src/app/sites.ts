@@ -50,4 +50,17 @@ export async function jobsAt(db: LocalDb, siteId: string): Promise<Order[]> {
 		);
 }
 
+/** How many unfinished orders each site has. */
+export async function openJobsBySite(
+	db: LocalDb,
+): Promise<Map<string, number>> {
+	const counts = new Map<string, number>();
+	for (const r of await db.ofType(WORK_ORDER)) {
+		const order = toOrder(r.id, r.state);
+		if (!order?.siteId || finished(order)) continue;
+		counts.set(order.siteId, (counts.get(order.siteId) ?? 0) + 1);
+	}
+	return counts;
+}
+
 export const telLink = (phone: string) => `tel:${phone.replace(/[^+\d]/g, "")}`;
