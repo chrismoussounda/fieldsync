@@ -30,7 +30,7 @@ export function SyncBadge({
 		<a
 			href={ROUTES.debug}
 			title={since}
-			className="badge flex items-center gap-2 rounded-full border bg-card px-3.5 py-1.5 text-sm font-medium text-foreground"
+			className="badge flex w-fit items-center gap-2 rounded-full border bg-card px-3.5 py-1.5 text-sm font-medium text-foreground"
 		>
 			<span
 				aria-hidden

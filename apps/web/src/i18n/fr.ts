@@ -24,6 +24,7 @@ export const fr = {
 		devices: "Appareils",
 		account: "Compte",
 		admin: "Administration",
+		more: "Plus",
 	},
 	roles: {
 		technician: "Technicien",

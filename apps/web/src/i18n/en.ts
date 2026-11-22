@@ -30,6 +30,7 @@ export const en: Messages<typeof fr> = {
 		devices: "Devices",
 		account: "Account",
 		admin: "Administration",
+		more: "More",
 	},
 	roles: {
 		technician: "Technician",
