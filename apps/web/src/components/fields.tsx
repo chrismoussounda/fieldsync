@@ -16,6 +16,7 @@ type FieldProps = {
 	required?: boolean;
 	maxLength?: number;
 	autoComplete?: string;
+	inputMode?: "decimal" | "numeric" | "text";
 	className?: string;
 };
 
@@ -76,6 +77,7 @@ export function TextField({
 				required={props.required}
 				maxLength={props.maxLength}
 				autoComplete={props.autoComplete}
+				inputMode={props.inputMode}
 				aria-invalid={props.error ? true : undefined}
 				aria-describedby={describedBy(props)}
 				onChange={(e) => props.onChange(e.target.value)}
