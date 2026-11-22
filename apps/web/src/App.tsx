@@ -143,7 +143,7 @@ function SignedIn({ db, session, user }: Props & { user: User }) {
 						{sync && <SyncBadge loop={sync.loop} pending={pending} />}
 					</div>
 				</header>
-				<main className="page pb-28 md:pb-8">
+				<main className="px-4 pt-6 pb-28 md:px-8 md:pb-10 print:p-0">
 					{route.name === "overview" && canManage(user.role) ? (
 						<Overview db={db} />
 					) : route.name === "list" || !sync ? (
