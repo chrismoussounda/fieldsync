@@ -33,7 +33,7 @@ test("the office finds work from the overview and the filters", async ({
 	await office.getByRole("link", { name: "Overview" }).click();
 	await expect(office.getByRole("heading", { name: "Overview" })).toBeVisible();
 	const row = office.getByRole("row", { name: new RegExp(JUNIOR) });
-	await expect(row.getByRole("cell").nth(2)).not.toHaveText("0");
+	await expect(row.getByRole("gridcell").nth(2)).not.toHaveText("0");
 	await row.getByRole("link", { name: JUNIOR }).click();
 	const late = office
 		.getByRole("row")

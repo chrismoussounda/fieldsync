@@ -20,7 +20,7 @@ export function Person({
 }) {
 	return (
 		<span className={cn("flex min-w-0 items-center gap-3", className)}>
-			<Avatar className="size-9">
+			<Avatar aria-hidden className="size-9">
 				<AvatarFallback className="bg-accent text-xs font-semibold text-accent-foreground">
 					{initials(name)}
 				</AvatarFallback>

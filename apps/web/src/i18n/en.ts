@@ -108,7 +108,22 @@ export const en: Messages<typeof fr> = {
 		noMatch: "No work orders match these filters.",
 		noDate: "No date",
 	},
-
+	overview: {
+		title: "Overview",
+		description: "Where the work stands, from this device's copy.",
+		allActive: "All active work",
+		unassigned: "Unassigned",
+		overdue: "Overdue",
+		today: "Due today",
+		urgent: "Urgent",
+		byStatus: "By status",
+		technicians: "Technicians",
+		noTechnicians: "No technicians yet.",
+		active: "Active",
+		started: "Started",
+		week: "Last 7 days",
+		disabled: "Disabled",
+	},
 
 	sites: {
 		title: "Customer sites",

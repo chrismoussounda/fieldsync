@@ -104,7 +104,22 @@ export const fr = {
 		noMatch: "Aucune intervention ne correspond à ces filtres.",
 		noDate: "Sans date",
 	},
-
+	overview: {
+		title: "Aperçu",
+		description: "Où en est le travail, depuis la copie de cet appareil.",
+		allActive: "Tout le travail en cours",
+		unassigned: "Non assignées",
+		overdue: "En retard",
+		today: "Pour aujourd'hui",
+		urgent: "Urgentes",
+		byStatus: "Par statut",
+		technicians: "Techniciens",
+		noTechnicians: "Aucun technicien pour l'instant.",
+		active: "En cours",
+		started: "Commencées",
+		week: "7 derniers jours",
+		disabled: "Désactivé",
+	},
 
 	sites: {
 		title: "Sites clients",
