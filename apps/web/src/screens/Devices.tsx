@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/page-header";
 import { Person } from "@/components/person";
 import { Button } from "@/components/ui/button";
 import { formatDay } from "@/lib/format";
+import { ITEM_IN } from "@/lib/use-leaving";
 import { usePhone } from "@/lib/use-phone";
 import { useSheet } from "@/lib/use-sheet";
 import { cn } from "@/lib/utils";
@@ -137,6 +138,7 @@ export function Devices({ session }: { session: Session }) {
 							key={d.id}
 							className={cn(
 								"grid gap-3 rounded-2xl border bg-card p-6",
+								ITEM_IN,
 								d.revokedAt && "text-muted-foreground",
 							)}
 						>

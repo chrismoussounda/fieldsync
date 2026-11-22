@@ -17,6 +17,7 @@ import { Offline } from "@/components/offline";
 import { PageHeader } from "@/components/page-header";
 import { Button, LinkButton } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
+import { ITEM_IN } from "@/lib/use-leaving";
 import { usePhone } from "@/lib/use-phone";
 import { useSheet } from "@/lib/use-sheet";
 import { cn } from "@/lib/utils";
@@ -157,7 +158,7 @@ export function Conflicts({ db, session }: { db: LocalDb; session: Session }) {
 			) : phone ? (
 				<ul className="grid gap-2.5">
 					{conflicts.data?.map((c) => (
-						<li key={c.id}>
+						<li key={c.id} className={ITEM_IN}>
 							<button
 								type="button"
 								onClick={() => detail.show(c)}

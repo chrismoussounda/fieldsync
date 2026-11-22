@@ -32,7 +32,13 @@ export function SyncBadge({
 			title={since}
 			className="badge flex items-center gap-2 rounded-full border bg-card px-3.5 py-1.5 text-sm font-medium text-foreground"
 		>
-			<span aria-hidden className={cn("size-2 rounded-full", DOT[state])} />
+			<span
+				aria-hidden
+				className={cn(
+					"size-2 rounded-full transition-colors duration-300",
+					DOT[state],
+				)}
+			/>
 			{t(`sync.${state}`)}
 			{pending > 0 && (
 				<span className="-ml-1 text-muted-foreground">

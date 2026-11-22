@@ -13,7 +13,9 @@ import { Person } from "@/components/person";
 import { Section } from "@/components/section";
 import { Button } from "@/components/ui/button";
 import { formatDay } from "@/lib/format";
+import { ITEM_IN, ITEM_OUT, useLeaving } from "@/lib/use-leaving";
 import { usePhone } from "@/lib/use-phone";
+import { cn } from "@/lib/utils";
 import { entriesOf } from "../app/timesheet.ts";
 import type { Member } from "../app/workspace.ts";
 import type { User } from "../auth/session.ts";
@@ -44,6 +46,7 @@ export function OrderTime({ db, loop, user, orderId, order }: Props) {
 	const members = useLiveQuery(() => db.getMeta<Member[]>("members"), [db]);
 	const names = new Map(members?.map((m) => [m.id, m.name]));
 	const [now, setNow] = useState(Date.now);
+	const out = useLeaving();
 	const office = canManage(user.role);
 	const assigned = order.assigneeId === user.id;
 	const running = entries?.find(
@@ -149,7 +152,14 @@ export function OrderTime({ db, loop, user, orderId, order }: Props) {
 			) : (
 				<ul className="grid divide-y">
 					{entries.map((e) => (
-						<li key={e.id} className="flex items-center gap-3 py-3">
+						<li
+							key={e.id}
+							className={cn(
+								"flex items-center gap-3 py-3",
+								ITEM_IN,
+								out.isLeaving(e.id) && ITEM_OUT,
+							)}
+						>
 							<div className="grid min-w-0 flex-1 gap-0.5">
 								<Person
 									name={names.get(e.technicianId) ?? t("values.someone")}
@@ -171,11 +181,15 @@ export function OrderTime({ db, loop, user, orderId, order }: Props) {
 										time: clock(e.startedAt),
 									})}
 									onPress={() =>
-										void loop.mutate({
-											entityType: TIME_ENTRY,
-											entityId: e.id,
-											kind: "delete",
-										})
+										out.leave(
+											e.id,
+											() =>
+												void loop.mutate({
+													entityType: TIME_ENTRY,
+													entityId: e.id,
+													kind: "delete",
+												}),
+										)
 									}
 								>
 									<X aria-hidden />

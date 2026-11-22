@@ -13,6 +13,7 @@ import { useTranslation } from "react-i18next";
 import { PageHeader } from "@/components/page-header";
 import { LinkButton } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ITEM_IN } from "@/lib/use-leaving";
 import { useOpeningKey } from "@/lib/use-sheet";
 import { ROUTES } from "../app/route.ts";
 import { type Site, sitesOf } from "../app/sites.ts";
@@ -79,7 +80,7 @@ export function Sites({ db, loop, user, creating }: Props) {
 			) : (
 				<ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
 					{shown.map((site) => (
-						<li key={site.id}>
+						<li key={site.id} className={ITEM_IN}>
 							<SiteCard site={site} />
 						</li>
 					))}

@@ -15,6 +15,7 @@ import { FormSheet } from "@/components/form-sheet";
 import { Section } from "@/components/section";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Dialog, DialogTitle } from "@/components/ui/dialog";
+import { ITEM_IN, ITEM_OUT, useLeaving } from "@/lib/use-leaving";
 import { useSheet } from "@/lib/use-sheet";
 import { cn } from "@/lib/utils";
 import { addPhoto, type Photo, photosOf, shrink } from "../app/photos.ts";
@@ -44,6 +45,7 @@ export function OrderPhotos({ db, loop, user, orderId, order }: Props) {
 	const viewer = useSheet<Photo>();
 	// Kept while the viewer fades out.
 	const open = viewer.value;
+	const out = useLeaving();
 	const [deleting, setDeleting] = useState(false);
 
 	async function pick(event: ChangeEvent<HTMLInputElement>) {
@@ -58,13 +60,17 @@ export function OrderPhotos({ db, loop, user, orderId, order }: Props) {
 		}
 	}
 
-	async function remove(photo: Photo) {
-		await loop.mutate({
-			entityType: PHOTO,
-			entityId: photo.id,
-			kind: "delete",
-		});
+	function remove(photo: Photo) {
 		viewer.hide();
+		out.leave(
+			photo.id,
+			() =>
+				void loop.mutate({
+					entityType: PHOTO,
+					entityId: photo.id,
+					kind: "delete",
+				}),
+		);
 	}
 
 	const label = (p: Photo) => p.caption ?? t("order.photos.photo");
@@ -99,7 +105,14 @@ export function OrderPhotos({ db, loop, user, orderId, order }: Props) {
 			) : (
 				<ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
 					{photos?.map((p) => (
-						<li key={p.id} className="grid gap-1.5">
+						<li
+							key={p.id}
+							className={cn(
+								"grid gap-1.5",
+								ITEM_IN,
+								out.isLeaving(p.id) && ITEM_OUT,
+							)}
+						>
 							<button
 								type="button"
 								onClick={() => viewer.show(p)}
@@ -173,7 +186,7 @@ export function OrderPhotos({ db, loop, user, orderId, order }: Props) {
 				title={t("order.photos.deleteTitle")}
 				description={open ? label(open) : ""}
 				confirmLabel={t("order.photos.delete")}
-				onConfirm={() => open && void remove(open)}
+				onConfirm={() => open && remove(open)}
 			/>
 		</Section>
 	);

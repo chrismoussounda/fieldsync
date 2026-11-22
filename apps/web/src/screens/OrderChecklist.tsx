@@ -12,6 +12,7 @@ import { FormSheet } from "@/components/form-sheet";
 import { Section } from "@/components/section";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ITEM_IN, ITEM_OUT, useLeaving } from "@/lib/use-leaving";
 import { useSheet } from "@/lib/use-sheet";
 import { cn } from "@/lib/utils";
 import { type Item, itemsOf } from "../app/checklists.ts";
@@ -35,6 +36,7 @@ export function OrderChecklist({ db, loop, user, orderId, order }: Props) {
 	const members = useLiveQuery(() => db.getMeta<Member[]>("members"), [db]);
 	const names = new Map(members?.map((m) => [m.id, m.name]));
 	const add = useSheet<true>();
+	const out = useLeaving();
 	// The tick shows at once, until the stored value catches up; after that,
 	// changes from other devices show again.
 	const [ticked, setTicked] = useState<Record<string, boolean>>({});
@@ -103,7 +105,11 @@ export function OrderChecklist({ db, loop, user, orderId, order }: Props) {
 						return (
 							<li
 								key={item.id}
-								className="flex min-h-12 items-center gap-3 rounded-xl px-2 hover:bg-muted/50"
+								className={cn(
+									"flex min-h-12 items-center gap-3 rounded-xl px-2 hover:bg-muted/50",
+									ITEM_IN,
+									out.isLeaving(item.id) && ITEM_OUT,
+								)}
 							>
 								<Checkbox
 									isSelected={checked}
@@ -134,11 +140,15 @@ export function OrderChecklist({ db, loop, user, orderId, order }: Props) {
 											label: item.label,
 										})}
 										onPress={() =>
-											void loop.mutate({
-												entityType: CHECKLIST_ITEM,
-												entityId: item.id,
-												kind: "delete",
-											})
+											out.leave(
+												item.id,
+												() =>
+													void loop.mutate({
+														entityType: CHECKLIST_ITEM,
+														entityId: item.id,
+														kind: "delete",
+													}),
+											)
 										}
 									>
 										<X aria-hidden />

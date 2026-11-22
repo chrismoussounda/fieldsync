@@ -15,7 +15,9 @@ import { TextField } from "@/components/fields";
 import { FormSheet } from "@/components/form-sheet";
 import { Section } from "@/components/section";
 import { Button } from "@/components/ui/button";
+import { ITEM_IN, ITEM_OUT, useLeaving } from "@/lib/use-leaving";
 import { useSheet } from "@/lib/use-sheet";
+import { cn } from "@/lib/utils";
 import { formatQuantity, partNames, partsOf } from "../app/parts.ts";
 import type { Member } from "../app/workspace.ts";
 import type { User } from "../auth/session.ts";
@@ -39,6 +41,7 @@ export function OrderParts({ db, loop, user, orderId, order }: Props) {
 	const members = useLiveQuery(() => db.getMeta<Member[]>("members"), [db]);
 	const names = new Map(members?.map((m) => [m.id, m.name]));
 	const add = useSheet<true>();
+	const out = useLeaving();
 	const office = canManage(user.role);
 	const canAdd = office || order.assigneeId === user.id;
 
@@ -63,7 +66,14 @@ export function OrderParts({ db, loop, user, orderId, order }: Props) {
 			) : (
 				<ul className="grid divide-y">
 					{parts.map((p) => (
-						<li key={p.id} className="flex items-center gap-3 py-3">
+						<li
+							key={p.id}
+							className={cn(
+								"flex items-center gap-3 py-3",
+								ITEM_IN,
+								out.isLeaving(p.id) && ITEM_OUT,
+							)}
+						>
 							<span className="grid size-10 shrink-0 place-items-center rounded-xl bg-muted text-muted-foreground">
 								<Package aria-hidden className="size-5" />
 							</span>
@@ -82,11 +92,15 @@ export function OrderParts({ db, loop, user, orderId, order }: Props) {
 									size="icon-sm"
 									aria-label={t("order.parts.remove", { name: p.name })}
 									onPress={() =>
-										void loop.mutate({
-											entityType: PART,
-											entityId: p.id,
-											kind: "delete",
-										})
+										out.leave(
+											p.id,
+											() =>
+												void loop.mutate({
+													entityType: PART,
+													entityId: p.id,
+													kind: "delete",
+												}),
+										)
 									}
 								>
 									<X aria-hidden />

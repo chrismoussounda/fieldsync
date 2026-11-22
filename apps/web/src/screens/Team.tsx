@@ -17,6 +17,7 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ITEM_IN } from "@/lib/use-leaving";
 import { usePhone } from "@/lib/use-phone";
 import { useSheet } from "@/lib/use-sheet";
 import { cn } from "@/lib/utils";
@@ -152,6 +153,7 @@ export function Team({ db, session, user }: Props) {
 							key={m.id}
 							className={cn(
 								"flex items-center justify-between gap-3 rounded-2xl border bg-card p-6",
+								ITEM_IN,
 								!m.active && "text-muted-foreground",
 							)}
 						>

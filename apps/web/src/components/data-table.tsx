@@ -25,6 +25,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { ITEM_IN } from "@/lib/use-leaving";
 
 const features = tableFeatures({
 	rowSortingFeature,
@@ -137,6 +138,7 @@ export function DataTable<T extends RowData>({
 							onAction={onRowAction && (() => onRowAction(row.original))}
 							className={cn(
 								"relative",
+								ITEM_IN,
 								onRowAction && "cursor-pointer",
 								muted?.(row.original) && "text-muted-foreground",
 							)}

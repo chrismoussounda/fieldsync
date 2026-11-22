@@ -23,6 +23,7 @@ import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Toggle } from "@/components/ui/toggle";
 import { formatDay } from "@/lib/format";
+import { ITEM_IN } from "@/lib/use-leaving";
 import { usePhone } from "@/lib/use-phone";
 import { useOpeningKey } from "@/lib/use-sheet";
 import { cn } from "@/lib/utils";
@@ -459,7 +460,10 @@ function PhoneList({ orders, empty }: { orders: Row[]; empty: string }) {
 			{orders.map((o) => (
 				<li
 					key={o.id}
-					className="relative flex overflow-hidden rounded-2xl border bg-card"
+					className={cn(
+						"relative flex overflow-hidden rounded-2xl border bg-card",
+						ITEM_IN,
+					)}
 				>
 					<span
 						aria-hidden

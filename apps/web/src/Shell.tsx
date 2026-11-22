@@ -140,7 +140,13 @@ export function Shell() {
 					</div>
 				</header>
 				<main className="px-4 pt-6 pb-32 has-[[data-action-bar]]:pb-52 md:px-10 md:pt-10 md:pb-14 print:p-0">
-					<Outlet />
+					{/* Each page fades in as it opens. */}
+					<div
+						key={path}
+						className="animate-in duration-300 fade-in-0 slide-in-from-bottom-2"
+					>
+						<Outlet />
+					</div>
 				</main>
 			</div>
 			<Toaster position="top-center" />

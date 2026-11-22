@@ -13,6 +13,7 @@ import { columnHelper, DataTable } from "@/components/data-table";
 import { PageHeader } from "@/components/page-header";
 import { Person } from "@/components/person";
 import { LinkButton } from "@/components/ui/button";
+import { ITEM_IN } from "@/lib/use-leaving";
 import { usePhone } from "@/lib/use-phone";
 import { cn } from "@/lib/utils";
 import { ROUTES } from "../app/route.ts";
@@ -285,7 +286,7 @@ function LoadCards({ load }: { load: Load[] }) {
 			{load.map((l) => (
 				<li
 					key={l.member.id}
-					className="grid gap-4 rounded-2xl border bg-card p-5"
+					className={cn("grid gap-4 rounded-2xl border bg-card p-5", ITEM_IN)}
 				>
 					<Name member={l.member} />
 					<dl className="grid grid-cols-4 gap-2 text-center">
