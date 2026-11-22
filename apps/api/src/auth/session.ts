@@ -67,6 +67,17 @@ export async function login(
 	// Said only to someone who knows the password.
 	if (user.disabled_at) throw new ApiError(403, "ACCOUNT_DISABLED");
 
+	return openSession(db, config, user, deviceId, deviceName);
+}
+
+/** Registers the device to the user, once, and issues the session's tokens. */
+export async function openSession(
+	db: Kysely<Database>,
+	config: AuthConfig,
+	user: { id: string; org_id: string; name: string; role: Role },
+	deviceId: string,
+	deviceName: string,
+): Promise<Session> {
 	const device = await db
 		.selectFrom("devices")
 		.select(["user_id", "revoked_at"])

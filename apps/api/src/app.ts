@@ -32,6 +32,7 @@ export async function createApp(
 		trustProxy: config.TRUST_PROXY,
 		limits: { ...DEFAULT_LIMITS, login: config.LOGIN_LIMIT },
 		cronSecret: config.CRON_SECRET,
+		demo: config.DEMO_PASSWORD !== undefined,
 	});
 	app.addHook("onClose", () => db.destroy());
 	return { app, db };

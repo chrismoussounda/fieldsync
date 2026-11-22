@@ -1,6 +1,6 @@
 import { HttpError, MemoryStorage, SyncClient } from "@fieldsync/sync-client";
 import { FakeServer } from "@fieldsync/sync-client/testing";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { SyncLoop } from "./loop.ts";
 
 const PHONE = "0a1b2c3d-0000-4000-8000-000000000001";
@@ -66,6 +66,18 @@ describe("SyncLoop", () => {
 		await loop.run();
 		expect(loop.status().state).toBe("idle");
 		expect(server.changes).toHaveLength(1);
+	});
+
+	it("says offline as soon as the device loses the network", async () => {
+		const { loop } = setup();
+		const network = new EventTarget();
+		vi.stubGlobal("window", network);
+		const stop = loop.start();
+		await loop.run();
+		network.dispatchEvent(new Event("offline"));
+		expect(loop.status()).toEqual({ state: "offline", lastSyncedAt: 5_000 });
+		stop();
+		vi.unstubAllGlobals();
 	});
 
 	it("folds requests made during a run into one more run", async () => {

@@ -620,6 +620,11 @@ export const fr = {
 		DEVICE_REVOKED: "Cet appareil a été révoqué par un administrateur.",
 		DEVICE_TAKEN:
 			"Des modifications d'un autre compte attendent encore sur cet appareil.",
+		demo: "Ou essayez la démo",
+		demoHint: "Sans compte. La démo repart de zéro chaque nuit.",
+		asOffice: "Côté bureau",
+		asTechnician: "Côté technicien",
+		noDemo: "La démo n'est pas disponible sur ce serveur.",
 	},
 	revoked: {
 		title: "Appareil révoqué",

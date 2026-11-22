@@ -1,3 +1,4 @@
+import { Building2, HardHat } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -15,13 +16,16 @@ export function Login({ session }: { session: Session }) {
 	async function submit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 		const form = new FormData(event.currentTarget);
+		await attempt(() =>
+			session.login(String(form.get("email")), String(form.get("password"))),
+		);
+	}
+
+	async function attempt(signIn: () => Promise<unknown>) {
 		setBusy(true);
 		setError(null);
 		try {
-			await session.login(
-				String(form.get("email")),
-				String(form.get("password")),
-			);
+			await signIn();
 		} catch (e) {
 			setError(
 				messageFor(e, {
@@ -29,6 +33,7 @@ export function Login({ session }: { session: Session }) {
 					ACCOUNT_DISABLED: t("login.ACCOUNT_DISABLED"),
 					DEVICE_REVOKED: t("login.DEVICE_REVOKED"),
 					DEVICE_TAKEN: t("login.DEVICE_TAKEN"),
+					NOT_FOUND: t("login.noDemo"),
 				}),
 			);
 		} finally {
@@ -81,6 +86,36 @@ export function Login({ session }: { session: Session }) {
 				<Button type="submit" isDisabled={busy} className="h-11 text-base">
 					{busy ? t("login.busy") : t("login.submit")}
 				</Button>
+				<section aria-labelledby="demo" className="grid gap-3 border-t pt-5">
+					<div className="grid gap-1">
+						<h2 id="demo" className="font-semibold">
+							{t("login.demo")}
+						</h2>
+						<p className="text-sm text-muted-foreground">
+							{t("login.demoHint")}
+						</p>
+					</div>
+					<div className="grid gap-2">
+						<Button
+							variant="outline"
+							isDisabled={busy}
+							className="h-11"
+							onPress={() => void attempt(() => session.demo("dispatcher"))}
+						>
+							<Building2 aria-hidden />
+							{t("login.asOffice")}
+						</Button>
+						<Button
+							variant="outline"
+							isDisabled={busy}
+							className="h-11"
+							onPress={() => void attempt(() => session.demo("technician"))}
+						>
+							<HardHat aria-hidden />
+							{t("login.asTechnician")}
+						</Button>
+					</div>
+				</section>
 			</form>
 		</main>
 	);

@@ -710,3 +710,35 @@ describe("demo reset", () => {
 		expect((await app.inject("/demo/reset")).statusCode).toBe(404);
 	});
 });
+
+describe("demo sign-in", () => {
+	const demo = (server: FastifyInstance, role: string, deviceId: string) =>
+		server.inject({
+			method: "POST",
+			url: "/auth/demo",
+			payload: { role, deviceId, deviceName: "Visitor" },
+		});
+
+	it("signs a visitor in as the demo dispatcher or technician, without a password", async () => {
+		const open = buildServer({ db, secret: SECRET, demo: true });
+		await seedDemo(db, "demo password");
+
+		const office = await demo(open, "dispatcher", crypto.randomUUID());
+		expect(office.statusCode).toBe(200);
+		expect(office.json().user).toMatchObject({ role: "dispatcher" });
+		const tech = await demo(open, "technician", crypto.randomUUID());
+		expect(tech.json().user).toMatchObject({ role: "technician" });
+		// An admin could disable the demo users for everyone.
+		expect((await demo(open, "admin", crypto.randomUUID())).statusCode).toBe(
+			400,
+		);
+		await open.close();
+	});
+
+	it("does not exist unless the demo is on", async () => {
+		await seedDemo(db, "demo password");
+		expect(
+			(await demo(app, "dispatcher", crypto.randomUUID())).statusCode,
+		).toBe(404);
+	});
+});

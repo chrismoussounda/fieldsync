@@ -37,7 +37,7 @@ import {
 import { normalizeEmail } from "../auth/users.ts";
 import { listConflicts, reviewConflict } from "../conflicts.ts";
 import type { Database } from "../db/schema.ts";
-import { resetDemo } from "../demo.ts";
+import { DEMO_ROLES, demoLogin, resetDemo } from "../demo.ts";
 import { ApiError } from "../errors.ts";
 import { entityHistory } from "../history.ts";
 import { readPhotoFile, storePhotoFile } from "../photos.ts";
@@ -63,6 +63,8 @@ export type ServerOptions = {
 	trustProxy?: boolean;
 	/** Lets a scheduled job reset the demo; the route exists only with one. */
 	cronSecret?: string | undefined;
+	/** Lets visitors try the demo accounts without a password. */
+	demo?: boolean;
 };
 
 const rateLimited = () => new ApiError(429, "RATE_LIMITED");
@@ -79,6 +81,12 @@ const MAX_PUSH_OPS = 100;
 const LoginBody = z.object({
 	email: z.string().min(1).max(254),
 	password: z.string().min(1).max(256),
+	deviceId: z.uuid(),
+	deviceName: z.string().min(1).max(100),
+});
+
+const DemoBody = z.object({
+	role: z.enum(Object.keys(DEMO_ROLES) as [keyof typeof DEMO_ROLES]),
 	deviceId: z.uuid(),
 	deviceName: z.string().min(1).max(100),
 });
@@ -143,6 +151,7 @@ export function buildServer({
 	limits = DEFAULT_LIMITS,
 	trustProxy = false,
 	cronSecret,
+	demo = false,
 }: ServerOptions): FastifyInstance {
 	const app = Fastify({ logger, bodyLimit: 1024 * 1024, trustProxy });
 	const config: AuthConfig = { secret, now };
@@ -208,6 +217,18 @@ export function buildServer({
 			},
 			async (request) => login(db, config, LoginBody.parse(request.body)),
 		);
+
+		if (demo) {
+			auth.post(
+				"/auth/demo",
+				{
+					config: {
+						rateLimit: { max: limits.login * 3, timeWindow: "15 minutes" },
+					},
+				},
+				async (request) => demoLogin(db, config, DemoBody.parse(request.body)),
+			);
+		}
 
 		auth.post(
 			"/auth/refresh",

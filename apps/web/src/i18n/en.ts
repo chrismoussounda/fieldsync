@@ -618,6 +618,11 @@ export const en: Messages<typeof fr> = {
 		DEVICE_REVOKED: "This device was revoked by an admin.",
 		DEVICE_TAKEN:
 			"Changes from another account are still waiting on this device.",
+		demo: "Or try the demo",
+		demoHint: "No account needed. The demo starts over every night.",
+		asOffice: "As the office",
+		asTechnician: "As a technician",
+		noDemo: "The demo is not available on this server.",
 	},
 	revoked: {
 		title: "Device revoked",

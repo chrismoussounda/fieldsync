@@ -45,12 +45,16 @@ export class SyncLoop {
 	/** Starts syncing; returns the function that stops it. */
 	start(): () => void {
 		const run = () => void this.run();
+		// Said at once, rather than at the next sync up to 15 seconds later.
+		const lost = () => this.#set({ ...this.#status, state: "offline" });
 		const timer = setInterval(run, INTERVAL_MS);
 		window.addEventListener("online", run);
+		window.addEventListener("offline", lost);
 		run();
 		return () => {
 			clearInterval(timer);
 			window.removeEventListener("online", run);
+			window.removeEventListener("offline", lost);
 		};
 	}
 
