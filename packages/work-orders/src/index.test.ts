@@ -52,6 +52,13 @@ describe("isValidValue", () => {
 		expect(isValidValue("title", null)).toBe(false);
 	});
 
+	it("takes a point on the map", () => {
+		expect(isValidValue("location", { lat: -4.27, lng: 15.28 })).toBe(true);
+		expect(isValidValue("location", null)).toBe(true);
+		expect(isValidValue("location", { lat: 0, lng: 181 })).toBe(false);
+		expect(isValidValue("location", [0, 0])).toBe(false);
+	});
+
 	it("refuses fields that do not exist", () => {
 		expect(isValidPatch({ price: "100" })).toBe(false);
 		expect(isValidPatch({ status: "done", notes: null })).toBe(true);

@@ -13,6 +13,7 @@ export const PLANNING_FIELDS = [
 	"assigneeId",
 	"dueDate",
 	"siteId",
+	"location",
 ] as const;
 
 // Set by the technician on site.
@@ -67,9 +68,28 @@ const DAY = /^\d{4}-\d{2}-\d{2}$/;
 // A work order always has these; the others can be cleared with null.
 const REQUIRED = new Set<string>(["title", "status", "priority"]);
 
+/** A point on the map, picked by the office so directions lead to the door. */
+export type Location = { lat: number; lng: number };
+
+export function isLocation(value: unknown): value is Location {
+	if (typeof value !== "object" || value === null || Array.isArray(value)) {
+		return false;
+	}
+	const keys = Object.keys(value);
+	const { lat, lng } = value as Record<string, unknown>;
+	return (
+		keys.length === 2 &&
+		typeof lat === "number" &&
+		typeof lng === "number" &&
+		Math.abs(lat) <= 90 &&
+		Math.abs(lng) <= 180
+	);
+}
+
 /** Whether a value fits its field: known choices, real dates, bounded text. */
 export function isValidValue(field: string, value: unknown): boolean {
 	if (value === null) return !REQUIRED.has(field);
+	if (field === "location") return isLocation(value);
 	if (typeof value !== "string") return false;
 	switch (field) {
 		case "status":

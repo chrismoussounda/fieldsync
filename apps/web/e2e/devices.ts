@@ -1,4 +1,9 @@
-import { type Browser, expect, type Page } from "@playwright/test";
+import {
+	type Browser,
+	expect,
+	type Locator,
+	type Page,
+} from "@playwright/test";
 import { WEB_PORT } from "../playwright.config.ts";
 
 export const JUNIOR = "Junior Nkounkou";
@@ -37,7 +42,7 @@ export async function signIn(
 	email: string,
 	password: string,
 ): Promise<void> {
-	await page.goto("/");
+	await page.goto("/#/login");
 	await page.getByLabel("Email").fill(email);
 	await page.getByLabel("Password").fill(password);
 	await page.getByRole("button", { name: "Sign in" }).click();
@@ -54,26 +59,60 @@ export async function createOrder(
 	title: string,
 	assignee: string,
 ): Promise<void> {
-	await office.goto("/#/new");
-	await office.getByLabel("Title").fill(title);
-	await office.getByLabel("Assigned to").selectOption({ label: assignee });
-	await office.getByRole("button", { name: "Save", exact: true }).click();
+	await office.goto("/#/?new=1");
+	await office.getByRole("dialog").getByLabel("Title").fill(title);
+	await pick(office, "Assigned to", assignee);
+	await saveSheet(office);
 	await expect(office.locator(".badge")).toHaveText("Synced");
+}
+
+/** Picks an option in a custom select of the open sheet, found by its label. */
+export async function pick(
+	page: Page,
+	label: string,
+	option: string,
+): Promise<void> {
+	await page.getByRole("dialog").getByRole("button", { name: label }).click();
+	await page.getByRole("option", { name: option, exact: true }).click();
+}
+
+/** Saves the open sheet and waits for it to close. */
+export async function saveSheet(page: Page): Promise<void> {
+	await page
+		.getByRole("dialog")
+		.getByRole("button", { name: "Save", exact: true })
+		.click();
+	await expect(page.getByRole("dialog")).toHaveCount(0);
 }
 
 /** Opens an order from the list, finished or not. */
 export async function open(page: Page, title: string): Promise<void> {
 	await page.goto("/#/?status=all");
 	await page.getByRole("link", { name: title }).click();
-	await expect(page.getByLabel("Title")).toHaveValue(title);
-}
-
-export async function save(page: Page): Promise<void> {
-	await page.getByRole("button", { name: "Save", exact: true }).click();
 	await expect(
-		page.getByRole("heading", { name: "Work orders" }),
+		page.getByRole("heading", { level: 1, name: title }),
 	).toBeVisible();
 }
+
+/** Opens the order's edit sheet. */
+export async function edit(page: Page): Promise<Locator> {
+	await page.getByRole("button", { name: "Edit", exact: true }).click();
+	return page.getByRole("dialog");
+}
+
+/** Changes the status from the order page's header. */
+export async function setStatus(page: Page, status: string): Promise<void> {
+	await statusOf(page).click();
+	await page.getByRole("menuitemradio", { name: status }).click();
+	await expect(statusOf(page)).toHaveAccessibleName(`Status: ${status}`);
+}
+
+export const statusOf = (page: Page) =>
+	page.getByRole("button", { name: /^Status: / });
+
+/** A titled card of the order page, like "Checklist" or "Notes". */
+export const section = (page: Page, title: string) =>
+	page.getByRole("region", { name: title, exact: true });
 
 /** Draws a signature on the pad. */
 export async function scribble(page: Page) {

@@ -2,9 +2,10 @@ import { expect, test } from "@playwright/test";
 import {
 	createOrder,
 	device,
+	edit,
 	JUNIOR,
 	open,
-	save,
+	saveSheet,
 	scribble,
 	sync,
 } from "./devices.ts";
@@ -17,23 +18,40 @@ test("the technician hands the customer a report, offline", async ({
 	const tech = await device(browser, "junior@fieldsync.demo");
 	await createOrder(office, title, JUNIOR);
 	await open(office, title);
-	await office.getByLabel("New step").fill("Close the main valve");
 	await office.getByRole("button", { name: "Add step" }).click();
+	await office
+		.getByRole("dialog")
+		.getByLabel("Step")
+		.fill("Close the main valve");
+	await office
+		.getByRole("dialog")
+		.getByRole("button", { name: "Add step" })
+		.click();
+	await office
+		.getByRole("dialog")
+		.getByRole("button", { name: "Cancel" })
+		.click();
 	await expect(office.locator(".badge")).toHaveText("Synced");
 
 	await sync(tech);
 	await tech.context().setOffline(true);
 	await open(tech, title);
-	await tech.getByRole("checkbox", { name: "Close the main valve" }).check();
+	await tech.getByText("Close the main valve").click();
+	await expect(
+		tech.getByRole("checkbox", { name: "Close the main valve" }),
+	).toBeChecked();
+	await tech
+		.getByRole("button", { name: "Get the customer's signature" })
+		.click();
 	await tech.getByLabel("Customer name").fill("Mme Okemba");
 	await scribble(tech);
 	await tech.getByRole("button", { name: "Save signature" }).click();
-	await tech
+	await expect(tech.getByRole("dialog")).toHaveCount(0);
+	await (await edit(tech))
 		.getByLabel("Notes")
 		.fill("Replaced the seal; no leak after an hour.");
-	await save(tech);
+	await saveSheet(tech);
 
-	await open(tech, title);
 	await tech.getByRole("link", { name: "Job report" }).click();
 	const report = tech.locator(".report");
 	await expect(report.getByRole("heading", { name: title })).toBeVisible();

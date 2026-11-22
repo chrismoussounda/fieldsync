@@ -1,4 +1,26 @@
-import { type FormEvent, useCallback, useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { MoreHorizontal, Plus } from "lucide-react";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
+import { Confirm } from "@/components/confirm";
+import { columnHelper, DataTable } from "@/components/data-table";
+import { TextField } from "@/components/fields";
+import { FormSheet } from "@/components/form-sheet";
+import { Offline } from "@/components/offline";
+import { PageHeader } from "@/components/page-header";
+import { Person } from "@/components/person";
+import { SelectField } from "@/components/select-field";
+import { Button } from "@/components/ui/button";
+import {
+	DropdownMenu,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ITEM_IN } from "@/lib/use-leaving";
+import { usePhone } from "@/lib/use-phone";
+import { useSheet } from "@/lib/use-sheet";
+import { cn } from "@/lib/utils";
 import { MIN_PASSWORD, messageFor } from "../app/errors.ts";
 import { apiFetch, type Member } from "../app/workspace.ts";
 import type { Role, Session, User } from "../auth/session.ts";
@@ -6,363 +28,499 @@ import type { LocalDb } from "../sync/storage.ts";
 
 const ROLES: readonly Role[] = ["technician", "dispatcher", "admin"];
 
-const ROLE_LABELS: Record<Role, string> = {
-	technician: "Technician",
-	dispatcher: "Dispatcher",
-	admin: "Admin",
-};
-
 type Props = { db: LocalDb; session: Session; user: User };
+type Open =
+	| { kind: "add" }
+	| { kind: "edit" | "password" | "disable"; member: Member };
 
 /** Who is in the org; admins add people, change roles and lock accounts. */
 export function Team({ db, session, user }: Props) {
-	const [members, setMembers] = useState<Member[] | null>(null);
-	const [offline, setOffline] = useState(false);
-	const [adding, setAdding] = useState(false);
-
-	const load = useCallback(async () => {
-		try {
+	const { t } = useTranslation();
+	const phone = usePhone();
+	const client = useQueryClient();
+	const sheet = useSheet<Open>();
+	// Kept while a sheet slides out.
+	const open = sheet.value;
+	const members = useQuery({
+		queryKey: ["users"],
+		queryFn: async () => {
 			const result = await apiFetch<{ users: Member[] }>(session, "/users");
 			const users = result?.users ?? [];
-			setMembers(users);
-			setOffline(false);
 			// The order form's assignee list reads this cache.
 			await db.setMeta("members", users);
-		} catch {
-			setOffline(true);
+			return users;
+		},
+	});
+	const refresh = () => client.invalidateQueries({ queryKey: ["users"] });
+
+	async function enable(member: Member) {
+		try {
+			await apiFetch(session, `/users/${member.id}/enable`, { method: "POST" });
+			toast.success(t("team.enabled"));
+			await refresh();
+		} catch (e) {
+			toast.error(messageFor(e));
 		}
-	}, [db, session]);
+	}
 
-	useEffect(() => {
-		void load();
-	}, [load]);
+	async function disable(member: Member) {
+		try {
+			await apiFetch(session, `/users/${member.id}/disable`, {
+				method: "POST",
+			});
+			toast.success(t("team.disabledToast"));
+			await refresh();
+		} catch (e) {
+			toast.error(messageFor(e));
+		}
+	}
 
-	// Active people first, then by name.
-	const sorted = [...(members ?? [])].sort(
+	const sorted = [...(members.data ?? [])].sort(
 		(a, b) =>
 			Number(!a.active) - Number(!b.active) || a.name.localeCompare(b.name),
 	);
+	const actions = (member: Member) => (
+		<MemberActions
+			member={member}
+			self={member.id === user.id}
+			onPick={(kind) =>
+				kind === "enable" ? void enable(member) : sheet.show({ kind, member })
+			}
+		/>
+	);
+	const helper = columnHelper<Member>();
+	const columns = helper.columns([
+		helper.accessor("name", {
+			header: t("team.person"),
+			cell: ({ row }) => (
+				<Person
+					name={row.original.name}
+					detail={row.original.email ?? undefined}
+				/>
+			),
+		}),
+		helper.accessor("role", {
+			header: t("team.role"),
+			cell: ({ row }) => (
+				<span className="flex items-center gap-2">
+					{t(`roles.${row.original.role}`)}
+					{row.original.id === user.id && (
+						<span className="rounded-full bg-muted px-2 py-0.5 text-xs">
+							{t("team.you")}
+						</span>
+					)}
+				</span>
+			),
+		}),
+		helper.accessor("active", {
+			header: t("team.state"),
+			cell: ({ row }) => <ActiveBadge active={row.original.active} />,
+		}),
+		helper.display({
+			id: "actions",
+			header: () => <span className="sr-only">{t("common.actions")}</span>,
+			cell: ({ row }) => actions(row.original),
+			meta: { className: "w-14 text-right" },
+		}),
+	]);
 
 	return (
-		<section>
-			<div className="toolbar">
-				<h2>Team</h2>
-				{!adding && (
-					<button type="button" onClick={() => setAdding(true)}>
-						Add someone
-					</button>
-				)}
-			</div>
-			{adding && (
-				<AddMember
-					session={session}
-					onDone={async (added) => {
-						setAdding(false);
-						if (added) await load();
-					}}
+		<div className="grid grid-cols-1 gap-8">
+			<PageHeader
+				title={t("team.title")}
+				description={
+					members.data && t("team.count", { count: members.data.length })
+				}
+				actions={
+					<Button
+						className="h-10 px-4"
+						onPress={() => sheet.show({ kind: "add" })}
+					>
+						<Plus aria-hidden />
+						{t("team.add")}
+					</Button>
+				}
+			/>
+			{members.isError ? (
+				<Offline
+					text={t("team.offline")}
+					onRetry={() => void members.refetch()}
+				/>
+			) : phone ? (
+				<ul className="grid gap-2">
+					{sorted.map((m) => (
+						<li
+							key={m.id}
+							className={cn(
+								"flex items-center justify-between gap-3 rounded-2xl border bg-card p-6",
+								ITEM_IN,
+								!m.active && "text-muted-foreground",
+							)}
+						>
+							<div className="grid min-w-0 gap-2">
+								<Person name={m.name} detail={m.email ?? undefined} />
+								<span className="flex flex-wrap items-center gap-2 text-sm">
+									{t(`roles.${m.role}`)}
+									<ActiveBadge active={m.active} />
+								</span>
+							</div>
+							{actions(m)}
+						</li>
+					))}
+				</ul>
+			) : (
+				<DataTable
+					label={t("team.title")}
+					data={sorted}
+					columns={columns}
+					getRowId={(m) => m.id}
+					muted={(m) => !m.active}
+					empty={t("team.empty")}
 				/>
 			)}
-			{offline && (
-				<p className="muted empty">The team list needs the network.</p>
+			{open?.kind === "add" && (
+				<AddSheet
+					key={sheet.key}
+					open={sheet.open}
+					onClose={sheet.hide}
+					session={session}
+					onDone={refresh}
+				/>
 			)}
-			<ul className="orders">
-				{sorted.map((m) => (
-					<MemberCard
-						key={m.id}
-						member={m}
-						self={m.id === user.id}
-						session={session}
-						onChange={load}
-					/>
-				))}
-			</ul>
-		</section>
+			{open?.kind === "edit" && (
+				<EditSheet
+					key={sheet.key}
+					open={sheet.open}
+					member={open.member}
+					self={open.member.id === user.id}
+					onClose={sheet.hide}
+					session={session}
+					onDone={refresh}
+				/>
+			)}
+			{open?.kind === "password" && (
+				<PasswordSheet
+					key={sheet.key}
+					open={sheet.open}
+					member={open.member}
+					onClose={sheet.hide}
+					session={session}
+				/>
+			)}
+			<Confirm
+				open={sheet.open && open?.kind === "disable"}
+				onOpenChange={(next) => !next && sheet.hide()}
+				title={t("team.disableTitle", {
+					name: open?.kind === "disable" ? open.member.name : "",
+				})}
+				description={t("team.disableBody")}
+				confirmLabel={t("team.disable")}
+				onConfirm={() => open?.kind === "disable" && void disable(open.member)}
+			/>
+		</div>
 	);
 }
 
-function AddMember({
-	session,
-	onDone,
-}: {
-	session: Session;
-	onDone: (added: boolean) => Promise<void>;
-}) {
-	const [error, setError] = useState<string | null>(null);
-	const [busy, setBusy] = useState(false);
-
-	async function submit(event: FormEvent<HTMLFormElement>) {
-		event.preventDefault();
-		const form = new FormData(event.currentTarget);
-		setBusy(true);
-		setError(null);
-		try {
-			await apiFetch(session, "/users", {
-				method: "POST",
-				json: {
-					name: String(form.get("name")),
-					email: String(form.get("email")),
-					role: String(form.get("role")),
-					password: String(form.get("password")),
-				},
-			});
-			await onDone(true);
-		} catch (e) {
-			setError(messageFor(e));
-			setBusy(false);
-		}
-	}
-
+function ActiveBadge({ active }: { active: boolean }) {
+	const { t } = useTranslation();
 	return (
-		<form className="card form add-member" onSubmit={submit}>
-			<h3>Add someone</h3>
-			<div className="row">
-				<label>
-					Name
-					<input name="name" required maxLength={100} autoComplete="off" />
-				</label>
-				<label>
-					Email
-					<input name="email" type="email" required autoComplete="off" />
-				</label>
-			</div>
-			<div className="row">
-				<label>
-					Role
-					<select name="role" defaultValue="technician">
-						{ROLES.map((r) => (
-							<option key={r} value={r}>
-								{ROLE_LABELS[r]}
-							</option>
-						))}
-					</select>
-				</label>
-				<label>
-					First password
-					<input
-						name="password"
-						type="password"
-						required
-						minLength={MIN_PASSWORD}
-						autoComplete="new-password"
-					/>
-				</label>
-			</div>
-			<p className="muted hint">
-				At least {MIN_PASSWORD} characters. Give it to them in person; they can
-				change it from their account.
-			</p>
-			{error && (
-				<p role="alert" className="error">
-					{error}
-				</p>
+		<span
+			className={cn(
+				"inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium",
+				active
+					? "bg-status-done/12 text-status-done"
+					: "bg-destructive/10 text-destructive",
 			)}
-			<div className="actions">
-				<button type="submit" disabled={busy}>
-					{busy ? "Adding…" : "Add"}
-				</button>
-				<button
-					type="button"
-					className="link"
-					onClick={() => void onDone(false)}
-				>
-					Cancel
-				</button>
-			</div>
-		</form>
+		>
+			<span
+				aria-hidden
+				className={cn(
+					"size-1.5 rounded-full",
+					active ? "bg-status-done" : "bg-destructive",
+				)}
+			/>
+			{active ? t("team.active") : t("team.disabled")}
+		</span>
 	);
 }
 
-type Mode = "view" | "edit" | "password" | "disable";
+type Pick = "edit" | "password" | "disable" | "enable";
 
-function MemberCard({
+function MemberActions({
 	member,
 	self,
-	session,
-	onChange,
+	onPick,
 }: {
 	member: Member;
 	self: boolean;
-	session: Session;
-	onChange: () => Promise<void>;
+	onPick: (kind: Pick) => void;
 }) {
-	const [mode, setMode] = useState<Mode>("view");
-	const [error, setError] = useState<string | null>(null);
-	const [busy, setBusy] = useState(false);
-
-	async function run(method: "PATCH" | "POST", path: string, json?: unknown) {
-		setBusy(true);
-		setError(null);
-		try {
-			await apiFetch(session, `/users/${member.id}${path}`, { method, json });
-			setMode("view");
-			await onChange();
-		} catch (e) {
-			setError(messageFor(e));
-		} finally {
-			setBusy(false);
-		}
-	}
-
-	function submit(event: FormEvent<HTMLFormElement>) {
-		event.preventDefault();
-		const form = new FormData(event.currentTarget);
-		if (mode === "edit") {
-			const name = String(form.get("name")).trim();
-			const role = form.get("role");
-			void run("PATCH", "", {
-				...(name !== member.name ? { name } : {}),
-				...(role && role !== member.role ? { role } : {}),
-			});
-		} else if (mode === "password") {
-			void run("POST", "/password", {
-				password: String(form.get("password")),
-			});
-		}
-	}
-
-	const cancel = () => {
-		setMode("view");
-		setError(null);
-	};
-
+	const { t } = useTranslation();
+	const items: Pick[] = member.active
+		? ["edit", ...(self ? [] : (["password", "disable"] as const))]
+		: self
+			? []
+			: ["enable"];
+	if (items.length === 0) return null;
 	return (
-		<li className={`card order member${member.active ? "" : " inactive"}`}>
-			<div className="order-head">
-				<strong>{member.name}</strong>
-				<span className="chips">
-					{self && <span className="chip">You</span>}
-					<span className="chip">{ROLE_LABELS[member.role]}</span>
-					{!member.active && <span className="chip refused">Disabled</span>}
-				</span>
-			</div>
-			{member.email && <p className="meta">{member.email}</p>}
-
-			{(mode === "edit" || mode === "password") && (
-				<form className="form" onSubmit={submit}>
-					{mode === "edit" ? (
-						<div className="row">
-							<label>
-								Name
-								<input
-									name="name"
-									defaultValue={member.name}
-									required
-									maxLength={100}
-								/>
-							</label>
-							<label>
-								Role
-								<select
-									name="role"
-									defaultValue={member.role}
-									disabled={self}
-									title={self ? "Another admin must change your role" : ""}
-								>
-									{ROLES.map((r) => (
-										<option key={r} value={r}>
-											{ROLE_LABELS[r]}
-										</option>
-									))}
-								</select>
-							</label>
-						</div>
-					) : (
-						<label>
-							New password for {member.name}
-							<input
-								name="password"
-								type="password"
-								required
-								minLength={MIN_PASSWORD}
-								autoComplete="new-password"
-							/>
-						</label>
-					)}
-					{error && (
-						<p role="alert" className="error">
-							{error}
-						</p>
-					)}
-					<div className="actions">
-						<button type="submit" disabled={busy}>
-							Save
-						</button>
-						<button type="button" className="link" onClick={cancel}>
-							Cancel
-						</button>
-					</div>
-				</form>
-			)}
-
-			{mode === "disable" && (
-				<div className="confirm">
-					Lock {member.name} out on every device? Changes they have not synced
-					yet will not reach the office.
-					<button
-						type="button"
-						className="danger"
-						disabled={busy}
-						onClick={() => void run("POST", "/disable")}
+		<DropdownMenuTrigger>
+			<Button
+				variant="ghost"
+				size="icon"
+				aria-label={t("team.actions", { name: member.name })}
+			>
+				<MoreHorizontal aria-hidden />
+			</Button>
+			<DropdownMenu placement="bottom end" className="min-w-48">
+				{items.map((kind) => (
+					<DropdownMenuItem
+						key={kind}
+						id={kind}
+						variant={kind === "disable" ? "destructive" : "default"}
+						onAction={() => onPick(kind)}
 					>
-						Disable
-					</button>
-					<button type="button" className="link" onClick={cancel}>
-						Cancel
-					</button>
-					{error && (
-						<p role="alert" className="error">
-							{error}
-						</p>
-					)}
-				</div>
-			)}
+						{kind === "password" ? t("team.setPassword") : t(`team.${kind}`)}
+					</DropdownMenuItem>
+				))}
+			</DropdownMenu>
+		</DropdownMenuTrigger>
+	);
+}
 
-			{mode === "view" && (
-				<div className="actions">
-					{member.active && (
-						<button
-							type="button"
-							className="link"
-							onClick={() => setMode("edit")}
-						>
-							Edit
-						</button>
-					)}
-					{member.active && !self && (
-						<button
-							type="button"
-							className="link"
-							onClick={() => setMode("password")}
-						>
-							Set password
-						</button>
-					)}
-					{!self &&
-						(member.active ? (
-							<button
-								type="button"
-								className="link"
-								onClick={() => setMode("disable")}
-							>
-								Disable
-							</button>
-						) : (
-							<button
-								type="button"
-								className="link"
-								disabled={busy}
-								onClick={() => void run("POST", "/enable")}
-							>
-								Enable
-							</button>
-						))}
-					{error && (
-						<p role="alert" className="error">
-							{error}
-						</p>
-					)}
-				</div>
-			)}
-		</li>
+function useSubmit(run: () => Promise<void>) {
+	const [busy, setBusy] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+	return {
+		busy,
+		error,
+		submit: async () => {
+			setBusy(true);
+			setError(null);
+			try {
+				await run();
+			} catch (e) {
+				setError(messageFor(e));
+			} finally {
+				setBusy(false);
+			}
+		},
+	};
+}
+
+function ServerError({ error }: { error: string | null }) {
+	if (!error) return null;
+	return (
+		<p
+			role="alert"
+			className="rounded-xl bg-destructive/10 p-3 text-sm text-destructive"
+		>
+			{error}
+		</p>
+	);
+}
+
+function AddSheet({
+	open,
+	onClose,
+	session,
+	onDone,
+}: {
+	open: boolean;
+	onClose: () => void;
+	session: Session;
+	onDone: () => Promise<void>;
+}) {
+	const { t } = useTranslation();
+	const [values, setValues] = useState({
+		name: "",
+		email: "",
+		role: "technician" as Role,
+		password: "",
+	});
+	const set = (change: Partial<typeof values>) =>
+		setValues((v) => ({ ...v, ...change }));
+	const { busy, error, submit } = useSubmit(async () => {
+		await apiFetch(session, "/users", { method: "POST", json: values });
+		toast.success(t("team.added", { name: values.name }));
+		onClose();
+		await onDone();
+	});
+	return (
+		<FormSheet
+			open={open}
+			onOpenChange={(next) => !next && onClose()}
+			title={t("team.form.addTitle")}
+			submitLabel={t("team.form.submitAdd")}
+			busy={busy}
+			onSubmit={() => void submit()}
+		>
+			<TextField
+				id="member-name"
+				label={t("team.form.name")}
+				placeholder={t("team.form.namePlaceholder")}
+				required
+				maxLength={100}
+				value={values.name}
+				onChange={(name) => set({ name })}
+			/>
+			<TextField
+				id="member-email"
+				type="email"
+				label={t("team.form.email")}
+				placeholder={t("team.form.emailPlaceholder")}
+				required
+				autoComplete="off"
+				value={values.email}
+				onChange={(email) => set({ email })}
+			/>
+			<RoleField value={values.role} onChange={(role) => set({ role })} />
+			<TextField
+				id="member-password"
+				type="password"
+				label={t("team.form.password")}
+				placeholder={t("team.form.passwordPlaceholder", { min: MIN_PASSWORD })}
+				hint={t("team.form.passwordHint")}
+				required
+				autoComplete="new-password"
+				value={values.password}
+				onChange={(password) => set({ password })}
+			/>
+			<ServerError error={error} />
+		</FormSheet>
+	);
+}
+
+function RoleField({
+	value,
+	onChange,
+	isDisabled,
+	hint,
+}: {
+	value: Role;
+	onChange: (role: Role) => void;
+	isDisabled?: boolean;
+	hint?: string;
+}) {
+	const { t } = useTranslation();
+	return (
+		<SelectField
+			id="member-role"
+			label={t("team.form.role")}
+			placeholder={t("team.form.rolePlaceholder")}
+			options={ROLES.map((r) => ({ value: r, label: t(`roles.${r}`) }))}
+			value={value}
+			onChange={(next) => {
+				const role = ROLES.find((r) => r === next);
+				if (role) onChange(role);
+			}}
+			isDisabled={isDisabled}
+			hint={hint}
+		/>
+	);
+}
+
+function EditSheet({
+	open,
+	member,
+	self,
+	onClose,
+	session,
+	onDone,
+}: {
+	open: boolean;
+	member: Member;
+	self: boolean;
+	onClose: () => void;
+	session: Session;
+	onDone: () => Promise<void>;
+}) {
+	const { t } = useTranslation();
+	const [name, setName] = useState(member.name);
+	const [role, setRole] = useState<Role>(member.role);
+	const { busy, error, submit } = useSubmit(async () => {
+		const trimmed = name.trim();
+		await apiFetch(session, `/users/${member.id}`, {
+			method: "PATCH",
+			json: {
+				...(trimmed !== member.name ? { name: trimmed } : {}),
+				...(role !== member.role ? { role } : {}),
+			},
+		});
+		toast.success(t("team.saved"));
+		onClose();
+		await onDone();
+	});
+	return (
+		<FormSheet
+			open={open}
+			onOpenChange={(next) => !next && onClose()}
+			title={t("team.form.editTitle", { name: member.name })}
+			submitLabel={t("common.save")}
+			busy={busy}
+			onSubmit={() => void submit()}
+		>
+			<TextField
+				id="member-name"
+				label={t("team.form.name")}
+				placeholder={t("team.form.namePlaceholder")}
+				required
+				maxLength={100}
+				value={name}
+				onChange={setName}
+			/>
+			<RoleField
+				value={role}
+				onChange={setRole}
+				isDisabled={self}
+				hint={self ? t("team.ownRole") : undefined}
+			/>
+			<ServerError error={error} />
+		</FormSheet>
+	);
+}
+
+function PasswordSheet({
+	open,
+	member,
+	onClose,
+	session,
+}: {
+	open: boolean;
+	member: Member;
+	onClose: () => void;
+	session: Session;
+}) {
+	const { t } = useTranslation();
+	const [password, setPassword] = useState("");
+	const { busy, error, submit } = useSubmit(async () => {
+		await apiFetch(session, `/users/${member.id}/password`, {
+			method: "POST",
+			json: { password },
+		});
+		toast.success(t("team.passwordSet"));
+		onClose();
+	});
+	return (
+		<FormSheet
+			open={open}
+			onOpenChange={(next) => !next && onClose()}
+			title={t("team.form.passwordTitle", { name: member.name })}
+			submitLabel={t("common.save")}
+			busy={busy}
+			onSubmit={() => void submit()}
+		>
+			<TextField
+				id="member-new-password"
+				type="password"
+				label={t("team.form.newPassword")}
+				placeholder={t("team.form.passwordPlaceholder", { min: MIN_PASSWORD })}
+				hint={t("team.form.passwordHint")}
+				required
+				autoComplete="new-password"
+				value={password}
+				onChange={setPassword}
+			/>
+			<ServerError error={error} />
+		</FormSheet>
 	);
 }

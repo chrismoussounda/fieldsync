@@ -1,9 +1,31 @@
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLiveQuery } from "dexie-react-hooks";
-import { useCallback, useEffect, useState } from "react";
+import {
+	ArrowRight,
+	Check,
+	CheckCheck,
+	ChevronRight,
+	GitMerge,
+	History,
+} from "lucide-react";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
+import { columnHelper, DataTable } from "@/components/data-table";
+import { DetailSheet, sheetAction } from "@/components/form-sheet";
+import { Offline } from "@/components/offline";
+import { PageHeader } from "@/components/page-header";
+import { Button, LinkButton } from "@/components/ui/button";
+import { Toggle } from "@/components/ui/toggle";
+import { ITEM_IN } from "@/lib/use-leaving";
+import { usePhone } from "@/lib/use-phone";
+import { useSheet } from "@/lib/use-sheet";
+import { cn } from "@/lib/utils";
+import { messageFor } from "../app/errors.ts";
 import { ROUTES } from "../app/route.ts";
 import { apiFetch, type Member } from "../app/workspace.ts";
 import type { Session } from "../auth/session.ts";
-import { describeValue, FIELD_LABELS } from "../orders.ts";
+import { describeValue, fieldLabel } from "../orders.ts";
 import type { LocalDb } from "../sync/storage.ts";
 
 type Side = { value: unknown; at: number; by: string | null };
@@ -20,98 +42,250 @@ type Conflict = {
 	reviewedBy: string | null;
 };
 
-const REASONS = {
-	concurrent_edit: "Changed on two devices at the same time",
-	edit_on_deleted: "Changed after the order was deleted",
-};
-
 /** Edits the sync engine had to choose between, for the office to check. */
 export function Conflicts({ db, session }: { db: LocalDb; session: Session }) {
+	const { t, i18n } = useTranslation();
+	const phone = usePhone();
+	const client = useQueryClient();
 	const [showReviewed, setShowReviewed] = useState(false);
-	const [conflicts, setConflicts] = useState<Conflict[] | null>(null);
-	const [offline, setOffline] = useState(false);
+	const detail = useSheet<Conflict>();
+	// Kept while the sheet slides out.
+	const open = detail.value;
 	const members = useLiveQuery(() => db.getMeta<Member[]>("members"), [db]);
 	const names = new Map(members?.map((m) => [m.id, m.name]));
-
-	const load = useCallback(async () => {
-		try {
-			const result = await apiFetch<{ conflicts: Conflict[] }>(
-				session,
-				`/conflicts?open=${!showReviewed}`,
-			);
-			setConflicts(result?.conflicts ?? []);
-			setOffline(false);
-		} catch {
-			setOffline(true);
-		}
-	}, [session, showReviewed]);
-
-	useEffect(() => {
-		void load();
-	}, [load]);
+	const conflicts = useQuery({
+		queryKey: ["conflicts", showReviewed],
+		queryFn: async () =>
+			(
+				await apiFetch<{ conflicts: Conflict[] }>(
+					session,
+					`/conflicts?open=${!showReviewed}`,
+				)
+			)?.conflicts ?? [],
+	});
+	const when = (at: number | string) =>
+		new Intl.DateTimeFormat(i18n.language, {
+			dateStyle: "medium",
+			timeStyle: "short",
+		}).format(new Date(at));
+	const value = (c: Conflict, side: Side) =>
+		describeValue(c.field, side.value, names);
+	const title = (c: Conflict) => c.title ?? t("conflicts.deletedOrder");
 
 	async function review(id: string) {
-		await apiFetch(session, `/conflicts/${id}/review`, { method: "POST" });
-		await load();
+		try {
+			await apiFetch(session, `/conflicts/${id}/review`, { method: "POST" });
+			toast.success(t("conflicts.reviewedToast"));
+			detail.hide();
+			await client.invalidateQueries({ queryKey: ["conflicts"] });
+		} catch (e) {
+			toast.error(messageFor(e));
+		}
 	}
 
-	const side = (label: string, field: string, s: Side) => (
-		<p>
-			<span className="muted">{label}</span>{" "}
-			<strong>{describeValue(field, s.value, names)}</strong>
-			<span className="muted">
-				{" "}
-				by {s.by ?? "an unknown device"}, {new Date(s.at).toLocaleString()}
-			</span>
-		</p>
-	);
+	const helper = columnHelper<Conflict>();
+	const columns = helper.columns([
+		helper.accessor((c) => title(c), {
+			id: "order",
+			header: t("conflicts.order"),
+			cell: ({ row }) => (
+				<span className="grid gap-0.5">
+					<span className="font-medium">{title(row.original)}</span>
+					<span className="text-sm text-muted-foreground">
+						{t(`conflicts.${row.original.reason}`)}
+					</span>
+				</span>
+			),
+			meta: { className: "whitespace-normal" },
+		}),
+		helper.accessor((c) => fieldLabel(c.field), {
+			id: "field",
+			header: t("conflicts.field"),
+		}),
+		helper.display({
+			id: "values",
+			header: t("conflicts.values"),
+			cell: ({ row }) => (
+				<span className="flex flex-wrap items-center gap-2">
+					<span className="font-medium text-status-done">
+						{value(row.original, row.original.winner)}
+					</span>
+					<span className="text-muted-foreground line-through">
+						{value(row.original, row.original.loser)}
+					</span>
+				</span>
+			),
+		}),
+		helper.accessor((c) => c.winner.at, {
+			id: "when",
+			header: t("conflicts.when"),
+			cell: ({ row }) => when(row.original.winner.at),
+		}),
+		helper.display({
+			id: "state",
+			header: t("conflicts.state"),
+			cell: ({ row }) => <State conflict={row.original} />,
+		}),
+	]);
 
 	return (
-		<section>
-			<div className="toolbar">
-				<h2>Conflicts</h2>
-				<label className="toggle">
-					<input
-						type="checkbox"
-						checked={showReviewed}
-						onChange={(e) => setShowReviewed(e.target.checked)}
-					/>
-					Show reviewed
-				</label>
-			</div>
-			{offline && (
-				<p className="muted empty">The conflict log needs the network.</p>
+		<div className="grid grid-cols-1 gap-8">
+			<PageHeader
+				title={t("conflicts.title")}
+				description={t("conflicts.description")}
+				actions={
+					<Toggle
+						variant="outline"
+						isSelected={showReviewed}
+						onChange={setShowReviewed}
+						className="bg-card data-selected:border-primary/40 data-selected:bg-accent data-selected:text-accent-foreground"
+					>
+						<CheckCheck aria-hidden />
+						{t("conflicts.showReviewed")}
+					</Toggle>
+				}
+			/>
+			{conflicts.isError ? (
+				<Offline
+					text={t("conflicts.offline")}
+					onRetry={() => void conflicts.refetch()}
+				/>
+			) : conflicts.data?.length === 0 ? (
+				<div className="grid place-items-center gap-3 rounded-2xl border border-dashed p-12 text-center">
+					<GitMerge aria-hidden className="size-8 text-muted-foreground" />
+					<p className="font-medium">{t("conflicts.none")}</p>
+				</div>
+			) : phone ? (
+				<ul className="grid gap-2.5">
+					{conflicts.data?.map((c) => (
+						<li key={c.id} className={ITEM_IN}>
+							<button
+								type="button"
+								onClick={() => detail.show(c)}
+								className="flex w-full items-center gap-3 rounded-2xl border bg-card p-4 text-left"
+							>
+								<span className="grid min-w-0 flex-1 gap-1.5">
+									<span className="truncate font-semibold">{title(c)}</span>
+									<span className="flex flex-wrap items-center gap-2 text-sm">
+										<span className="rounded-full bg-muted px-2.5 py-0.5">
+											{fieldLabel(c.field)}
+										</span>
+										<State conflict={c} />
+									</span>
+								</span>
+								<ChevronRight
+									aria-hidden
+									className="size-5 shrink-0 text-muted-foreground"
+								/>
+							</button>
+						</li>
+					))}
+				</ul>
+			) : (
+				<DataTable
+					label={t("conflicts.title")}
+					data={conflicts.data ?? []}
+					columns={columns}
+					getRowId={(c) => c.id}
+					onRowAction={detail.show}
+					empty={t("conflicts.none")}
+				/>
 			)}
-			{!offline && conflicts?.length === 0 && (
-				<p className="muted empty">No conflicts to review.</p>
-			)}
-			<ul className="orders">
-				{conflicts?.map((c) => (
-					<li key={c.id} className="card order">
-						<div className="order-head">
-							<a href={ROUTES.order(c.entityId)}>
-								{c.title ?? "Deleted order"}
-							</a>
-							<span className="chip">{FIELD_LABELS[c.field] ?? c.field}</span>
-						</div>
-						<p className="muted">{REASONS[c.reason]}</p>
-						{side("Kept", c.field, c.winner)}
-						{side("Overwritten", c.field, c.loser)}
-						{c.reviewedAt ? (
-							<p className="muted">
-								Reviewed by {c.reviewedBy},{" "}
-								{new Date(c.reviewedAt).toLocaleString()}
-							</p>
-						) : (
-							<div className="actions">
-								<button type="button" onClick={() => void review(c.id)}>
-									Mark reviewed
-								</button>
+			{open && (
+				<DetailSheet
+					key={detail.key}
+					open={detail.open}
+					onOpenChange={(next) => !next && detail.hide()}
+					title={t("conflicts.detailTitle", { field: fieldLabel(open.field) })}
+					description={`${title(open)} · ${t(`conflicts.${open.reason}`)}`}
+					actions={
+						<>
+							<LinkButton
+								href={ROUTES.order(open.entityId)}
+								variant="outline"
+								className={sheetAction}
+							>
+								{t("conflicts.openOrder")}
+								<ArrowRight aria-hidden />
+							</LinkButton>
+							{!open.reviewedAt && (
+								<Button
+									className={sheetAction}
+									onPress={() => void review(open.id)}
+								>
+									<Check aria-hidden />
+									{t("conflicts.review")}
+								</Button>
+							)}
+						</>
+					}
+				>
+					{(["kept", "overwritten"] as const).map((kind) => {
+						const side = kind === "kept" ? open.winner : open.loser;
+						return (
+							<div
+								key={kind}
+								className={cn(
+									"grid gap-1.5 rounded-xl border p-4",
+									kind === "kept"
+										? "border-status-done/30 bg-status-done/5"
+										: "border-destructive/20 bg-destructive/5",
+								)}
+							>
+								<span
+									className={cn(
+										"flex items-center gap-1.5 text-xs font-semibold tracking-wide uppercase",
+										kind === "kept" ? "text-status-done" : "text-destructive",
+									)}
+								>
+									{kind === "kept" ? (
+										<Check aria-hidden className="size-4" />
+									) : (
+										<History aria-hidden className="size-4" />
+									)}
+									{t(`conflicts.${kind}`)}
+								</span>
+								<span
+									className={cn(
+										"text-lg font-medium break-words",
+										kind === "overwritten" &&
+											"text-muted-foreground line-through",
+									)}
+								>
+									{value(open, side)}
+								</span>
+								<span className="text-sm text-muted-foreground">
+									{t("conflicts.by", {
+										name: side.by ?? t("conflicts.unknownDevice"),
+										when: when(side.at),
+									})}
+								</span>
 							</div>
-						)}
-					</li>
-				))}
-			</ul>
-		</section>
+						);
+					})}
+					{open.reviewedAt && (
+						<p className="text-muted-foreground">
+							{t("conflicts.reviewed", {
+								name: open.reviewedBy ?? "",
+								when: when(open.reviewedAt),
+							})}
+						</p>
+					)}
+				</DetailSheet>
+			)}
+		</div>
+	);
+}
+
+function State({ conflict }: { conflict: Conflict }) {
+	const { t } = useTranslation();
+	return conflict.reviewedAt ? (
+		<span className="inline-flex rounded-full bg-muted px-2.5 py-0.5 text-sm text-muted-foreground">
+			{t("conflicts.seen")}
+		</span>
+	) : (
+		<span className="inline-flex rounded-full bg-warning/15 px-2.5 py-0.5 text-sm font-medium text-warning">
+			{t("conflicts.toReview")}
+		</span>
 	);
 }

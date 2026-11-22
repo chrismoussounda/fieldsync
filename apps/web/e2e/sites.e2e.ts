@@ -1,5 +1,13 @@
 import { expect, test } from "@playwright/test";
-import { device, JUNIOR, open, save, sync } from "./devices.ts";
+import {
+	device,
+	JUNIOR,
+	open,
+	pick,
+	saveSheet,
+	section,
+	sync,
+} from "./devices.ts";
 
 test("a site is kept once, picked on its orders and read on site", async ({
 	browser,
@@ -19,20 +27,21 @@ test("a site is kept once, picked on its orders and read on site", async ({
 	await office.getByRole("button", { name: "Save", exact: true }).click();
 	await expect(office.getByRole("link", { name })).toBeVisible();
 
-	await office.goto("/#/new");
-	await office.getByLabel("Title").fill(title);
-	await office.getByLabel("Site").selectOption({ label: name });
-	await expect(office.getByLabel("Address")).toHaveValue(
+	await office.goto("/#/?new=1");
+	const sheet = office.getByRole("dialog");
+	await sheet.getByLabel("Title").fill(title);
+	await pick(office, "Site", name);
+	await expect(sheet.getByLabel("Address")).toHaveValue(
 		"Avenue Matsoua, Brazzaville",
 	);
-	await office.getByLabel("Assigned to").selectOption({ label: JUNIOR });
-	await save(office);
+	await pick(office, "Assigned to", JUNIOR);
+	await saveSheet(office);
 	await expect(office.locator(".badge")).toHaveText("Synced");
 
 	await sync(tech);
 	await tech.context().setOffline(true);
 	await open(tech, title);
-	const info = tech.locator(".site-info");
+	const info = section(tech, "Site");
 	await expect(info).toContainText("Ring twice at the blue gate");
 	await expect(
 		info.getByRole("link", { name: "+242 06 000 0009" }),
@@ -54,7 +63,7 @@ test("a site is kept once, picked on its orders and read on site", async ({
 
 	await sync(tech);
 	await open(tech, title);
-	await expect(tech.locator(".site-info")).toContainText("+242 06 000 0010");
+	await expect(section(tech, "Site")).toContainText("+242 06 000 0010");
 });
 
 test("on a phone, a site is added from a bottom drawer", async ({
@@ -71,5 +80,39 @@ test("on a phone, a site is added from a bottom drawer", async ({
 	await office.getByRole("button", { name: "Save" }).click();
 	await expect(office.getByRole("dialog")).toHaveCount(0);
 	await office.getByRole("link", { name }).click();
+	await expect(office.getByRole("heading", { name })).toBeVisible();
+});
+
+test("on a desktop, the sites are a table: a row opens its site, search narrows it", async ({
+	browser,
+}) => {
+	const name = `Pharmacy ${Date.now()}`;
+	const office = await device(browser, "dispatch@fieldsync.demo");
+	await office.goto("/#/sites?new=1");
+	await office.getByLabel("Name").fill(name);
+	await office.getByLabel("Contact").fill("Mme Loubaki");
+	await saveSheet(office);
+
+	await office.goto("/#/?new=1");
+	await office
+		.getByRole("dialog")
+		.getByLabel("Title")
+		.fill(`Shelves at ${name}`);
+	await pick(office, "Site", name);
+	await saveSheet(office);
+
+	await office.goto("/#/sites");
+	const table = office.getByRole("grid", { name: "Customer sites" });
+	const row = table.getByRole("row").filter({ hasText: name });
+	await expect(row).toContainText("Mme Loubaki");
+	await expect(row).toContainText("1 open");
+
+	await office.getByRole("searchbox").fill("no such site anywhere");
+	await expect(office.getByText("No site matches.")).toBeVisible();
+	await office.getByRole("searchbox").fill(name.toLowerCase());
+	await expect(table.getByRole("row")).toHaveCount(2);
+
+	// Anywhere on the row opens the site, not only its name.
+	await row.click({ position: { x: 600, y: 20 } });
 	await expect(office.getByRole("heading", { name })).toBeVisible();
 });

@@ -1,5 +1,6 @@
 import {
 	isValidSitePatch,
+	type Location,
 	MAX_SITE_LENGTH,
 	SITE,
 } from "@fieldsync/work-orders";
@@ -8,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { TextAreaField, TextField } from "@/components/fields";
 import { FormSheet } from "@/components/form-sheet";
+import { LocationField } from "@/components/map";
 import type { Site } from "../app/sites.ts";
 import type { SyncLoop } from "../sync/loop.ts";
 
@@ -26,7 +28,8 @@ const EMPTY = {
 	contactPhone: "",
 	accessNotes: "",
 };
-type Values = typeof EMPTY;
+type Text = typeof EMPTY;
+type Values = Text & { location: Location | null };
 
 export function SiteSheet({ open, onOpenChange, loop, site }: Props) {
 	const { t } = useTranslation();
@@ -37,16 +40,18 @@ export function SiteSheet({ open, onOpenChange, loop, site }: Props) {
 				contactName: site.contactName,
 				contactPhone: site.contactPhone,
 				accessNotes: site.accessNotes,
+				location: site.location,
 			}
-		: EMPTY;
+		: { ...EMPTY, location: null };
 	const form = useForm({
 		defaultValues: start,
 		onSubmit: async ({ value }) => {
-			const patch: Record<string, string | null> = {};
-			for (const key of Object.keys(EMPTY) as (keyof Values)[]) {
+			const patch: Record<string, string | Location | null> = {};
+			for (const key of Object.keys(EMPTY) as (keyof Text)[]) {
 				const next = value[key].trim();
 				if (next !== start[key]) patch[key] = next || null;
 			}
+			if (value.location !== start.location) patch.location = value.location;
 			if (Object.keys(patch).length > 0) {
 				await loop.mutate({
 					entityType: SITE,
@@ -96,6 +101,16 @@ export function SiteSheet({ open, onOpenChange, loop, site }: Props) {
 						placeholder={t("sites.form.addressPlaceholder")}
 						maxLength={MAX_SITE_LENGTH.address}
 						autoComplete="street-address"
+						value={field.state.value}
+						onChange={field.handleChange}
+					/>
+				)}
+			</form.Field>
+			<form.Field name="location">
+				{(field) => (
+					<LocationField
+						id="site-location"
+						label={t("sites.form.location")}
 						value={field.state.value}
 						onChange={field.handleChange}
 					/>

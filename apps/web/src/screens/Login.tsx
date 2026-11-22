@@ -40,10 +40,12 @@ export function Login({ session }: { session: Session }) {
 		<main className="grid min-h-dvh place-items-center bg-background p-4">
 			<form
 				onSubmit={submit}
-				className="grid w-full max-w-sm gap-5 rounded-2xl border bg-card p-6 shadow-sm"
+				className="grid w-full max-w-sm animate-in gap-5 rounded-2xl border bg-card p-6 shadow-sm duration-500 fade-in-0 zoom-in-95"
 			>
 				<div className="grid gap-2">
-					<Logo />
+					<a href="#/" aria-label={t("login.home")} className="w-fit">
+						<Logo />
+					</a>
 					<h1 className="text-xl font-semibold">{t("login.title")}</h1>
 					<p className="text-sm text-muted-foreground">{t("app.tagline")}</p>
 				</div>

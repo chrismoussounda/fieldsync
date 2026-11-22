@@ -1,6 +1,8 @@
 import type { EntityState } from "@fieldsync/merge";
 import { FIELDS, PROGRESS_FIELDS } from "@fieldsync/work-orders";
-import { describe, expect, it } from "vitest";
+import i18n from "i18next";
+import { beforeAll, describe, expect, it } from "vitest";
+import { en } from "./i18n/en.ts";
 import {
 	byUrgency,
 	describeValue,
@@ -23,6 +25,9 @@ function state(fields: EntityState["fields"], deleted = false): EntityState {
 }
 
 describe("describeValue", () => {
+	beforeAll(() =>
+		i18n.init({ lng: "en", resources: { en: { translation: en } } }),
+	);
 	const names = new Map([["u1", "Junior"]]);
 
 	it("names people and labels codes", () => {
@@ -31,6 +36,15 @@ describe("describeValue", () => {
 		expect(describeValue("status", "in_progress", names)).toBe("In progress");
 		expect(describeValue("priority", "urgent", names)).toBe("Urgent");
 		expect(describeValue("notes", null, names)).toBe("(empty)");
+	});
+
+	it("shows a pin as coordinates", () => {
+		expect(
+			describeValue("location", { lat: -4.2668, lng: 15.2829 }, names),
+		).toBe("-4.26680, 15.28290");
+		expect(describeValue("location", null, names)).toBe(
+			describeValue("notes", null, names),
+		);
 	});
 
 	it("shortens long text", () => {
@@ -52,8 +66,15 @@ describe("toOrder", () => {
 			assigneeId: null,
 			dueDate: null,
 			siteId: null,
+			location: null,
 			notes: "",
 		});
+	});
+
+	it("ignores a malformed pin", () => {
+		expect(
+			toOrder("o1", state({ location: { lat: "x", lng: 1 } }))?.location,
+		).toBeNull();
 	});
 
 	it("hides a deleted order", () => {
@@ -73,6 +94,7 @@ describe("byUrgency", () => {
 			assigneeId: null,
 			dueDate: null,
 			siteId: null,
+			location: null,
 			notes: "",
 			...o,
 		});
@@ -107,6 +129,31 @@ describe("patchOf", () => {
 	it("clears a field emptied by the user", () => {
 		const after = { ...before, title: " " };
 		expect(patchOf(before, after, new Set(FIELDS))).toEqual({ title: null });
+	});
+
+	it("sends a moved, new or removed pin, and only then", () => {
+		const pinned = toDraft(
+			state({ title: "Fix pump", location: { lat: -4.27, lng: 15.28 } }),
+		);
+		const all = new Set(FIELDS);
+		// A fresh copy of the same point is no change.
+		expect(
+			patchOf(pinned, { ...pinned, location: { lat: -4.27, lng: 15.28 } }, all),
+		).toEqual({});
+		expect(
+			patchOf(pinned, { ...pinned, location: { lat: -4.28, lng: 15.28 } }, all),
+		).toEqual({ location: { lat: -4.28, lng: 15.28 } });
+		expect(patchOf(pinned, { ...pinned, location: null }, all)).toEqual({
+			location: null,
+		});
+		expect(
+			patchOf(before, { ...before, location: { lat: 1, lng: 2 } }, all),
+		).toEqual({ location: { lat: 1, lng: 2 } });
+	});
+
+	it("never lets a technician move the pin", () => {
+		const after = { ...before, location: { lat: 1, lng: 2 } };
+		expect(patchOf(before, after, new Set(PROGRESS_FIELDS))).toEqual({});
 	});
 
 	it("leaves out fields the user may not change", () => {

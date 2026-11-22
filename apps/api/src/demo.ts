@@ -36,6 +36,7 @@ type Site = {
 	contactName: string;
 	contactPhone: string;
 	accessNotes?: string;
+	location: { lat: number; lng: number };
 };
 
 const SITES: Record<string, Site> = {
@@ -45,12 +46,14 @@ const SITES: Record<string, Site> = {
 		contactName: "Mme Okemba",
 		contactPhone: "+242 06 000 0001",
 		accessNotes: "Enter through the back yard; the pump is under the stairs.",
+		location: { lat: -4.2668, lng: 15.2829 },
 	},
 	clinic: {
 		name: "Clinique de Bacongo",
 		address: "Rue Mbochi, Bacongo, Brazzaville",
 		contactName: "Dr Malonga",
 		contactPhone: "+242 06 000 0002",
+		location: { lat: -4.2853, lng: 15.2643 },
 	},
 	coldStore: {
 		name: "Port Cold Store",
@@ -58,6 +61,7 @@ const SITES: Record<string, Site> = {
 		contactName: "M. Tchicaya",
 		contactPhone: "+242 05 000 0003",
 		accessNotes: "Sign in at the port gate with the order number.",
+		location: { lat: -4.7835, lng: 11.8462 },
 	},
 };
 
@@ -66,6 +70,8 @@ type Order = {
 	/** A key of SITES; without one, the address is the order's own. */
 	site?: keyof typeof SITES;
 	address: string;
+	/** Only for orders without a site; the others use the site's. */
+	location?: { lat: number; lng: number };
 	priority: "low" | "normal" | "urgent";
 	assignee: string | null;
 	status: string;
@@ -113,6 +119,7 @@ const ORDERS: Order[] = [
 	{
 		title: "Check the solar panels",
 		address: "Route de Kintélé, Brazzaville",
+		location: { lat: -4.1612, lng: 15.3458 },
 		priority: "normal",
 		assignee: null,
 		status: "open",
@@ -190,6 +197,7 @@ async function seedOrders(db: Kysely<Database>, now: number): Promise<void> {
 				title: order.title,
 				siteId: order.site ? (siteIds.get(order.site) ?? null) : null,
 				address: order.address,
+				...(order.location && { location: order.location }),
 				priority: order.priority,
 				status: order.status,
 				assigneeId: order.assignee ? (ids.get(order.assignee) ?? null) : null,

@@ -2,10 +2,15 @@ import { expect, test } from "@playwright/test";
 import {
 	createOrder,
 	device,
+	edit,
 	JUNIOR,
 	MERVEILLE,
 	open,
-	save,
+	pick,
+	saveSheet,
+	section,
+	setStatus,
+	statusOf,
 	sync,
 } from "./devices.ts";
 
@@ -20,18 +25,21 @@ test("an edit made offline reaches the office once back online", async ({
 
 	await tech.context().setOffline(true);
 	await open(tech, title);
-	await tech.getByLabel("Notes").fill("No signal in the basement");
-	await save(tech);
+	await (await edit(tech))
+		.getByLabel("Notes")
+		.fill("No signal in the basement");
+	await saveSheet(tech);
 	await expect(tech.locator(".badge")).toHaveText("Offline · 1 waiting");
-	await expect(tech.getByRole("link", { name: title })).toContainText(
-		"Not synced",
-	);
+	await tech.goto("/#/?status=all");
+	await expect(
+		tech.getByRole("row").filter({ hasText: title }).getByLabel("Not synced"),
+	).toBeVisible();
 
 	await tech.context().setOffline(false);
 	await expect(tech.locator(".badge")).toHaveText("Synced");
 	await sync(office);
 	await open(office, title);
-	await expect(office.getByLabel("Notes")).toHaveValue(
+	await expect(section(office, "Notes")).toContainText(
 		"No signal in the basement",
 	);
 });
@@ -47,12 +55,10 @@ test("two edits of the same field are settled and logged for the office", async 
 
 	await tech.context().setOffline(true);
 	await open(tech, title);
-	await tech.getByLabel("Status").selectOption({ label: "Done" });
-	await save(tech);
+	await setStatus(tech, "Done");
 
 	await open(office, title);
-	await office.getByLabel("Status").selectOption({ label: "Cancelled" });
-	await save(office);
+	await setStatus(office, "Cancelled");
 	await expect(office.locator(".badge")).toHaveText("Synced");
 
 	await tech.context().setOffline(false);
@@ -60,13 +66,17 @@ test("two edits of the same field are settled and logged for the office", async 
 
 	// The later edit wins, on every device.
 	await open(tech, title);
-	await expect(tech.getByLabel("Status")).toHaveValue("cancelled");
+	await expect(statusOf(tech)).toHaveAccessibleName("Status: Cancelled");
 
 	await office.goto("/#/conflicts");
-	const entry = office.locator("li", { hasText: title });
-	await expect(entry).toContainText("Kept Cancelled by Grâce Mabiala");
-	await expect(entry).toContainText(`Overwritten Done by ${JUNIOR}`);
-	await entry.getByRole("button", { name: "Mark reviewed" }).click();
+	const entry = office.getByRole("row").filter({ hasText: title });
+	await entry.click();
+	const sheet = office.getByRole("dialog");
+	await expect(sheet).toContainText(/Kept\s*Cancelled\s*by Grâce Mabiala/);
+	await expect(sheet).toContainText(
+		new RegExp(`Overwritten\\s*Done\\s*by ${JUNIOR}`),
+	);
+	await sheet.getByRole("button", { name: "Mark reviewed" }).click();
 	await expect(entry).toHaveCount(0);
 });
 
@@ -81,20 +91,32 @@ test("an offline edit to an order reassigned meanwhile is refused and rolled bac
 
 	await tech.context().setOffline(true);
 	await open(tech, title);
-	await tech.getByLabel("Notes").fill("Started the job");
-	await save(tech);
+	await (await edit(tech)).getByLabel("Notes").fill("Started the job");
+	await saveSheet(tech);
 
 	await open(office, title);
-	await office.getByLabel("Assigned to").selectOption({ label: MERVEILLE });
-	await save(office);
+	await edit(office);
+	await pick(office, "Assigned to", MERVEILLE);
+	await saveSheet(office);
 
 	await tech.context().setOffline(false);
 	await expect(tech.locator(".badge")).toHaveText("Synced");
 	await expect(tech.getByRole("link", { name: title })).toHaveCount(0);
 
 	await tech.goto("/#/debug");
-	await expect(tech.locator(".outbox li")).toContainText(["refused"]);
-	await expect(tech.locator(".outbox li")).toContainText(["FORBIDDEN"]);
+	// Raw engine values stay out of the way until support asks for them.
+	await expect(tech.getByText("Device ID")).toHaveCount(0);
+	await tech
+		.getByRole("button", { name: "Technical details (for support)" })
+		.click();
+	await expect(tech.getByText("Device ID")).toBeVisible();
+	const refused = tech.locator(".outbox li");
+	await expect(refused).toContainText("Refused");
+	// The order left this phone with the reassignment; the change says so.
+	await expect(refused).toContainText(
+		"A job no longer on this device: notes changed",
+	);
+	await expect(refused).toContainText("no longer allowed");
 	await tech.getByRole("button", { name: "Clear 1 refused change" }).click();
-	await expect(tech.getByText("Nothing waiting.")).toBeVisible();
+	await expect(tech.getByText("Everything is sent.")).toBeVisible();
 });

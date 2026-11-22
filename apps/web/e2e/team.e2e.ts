@@ -15,15 +15,20 @@ test("an admin adds a technician, who later gets disabled", async ({
 	await admin.getByLabel("Email").fill(EMAIL);
 	await admin.getByLabel("First password").fill(FIRST);
 	await admin.getByRole("button", { name: "Add", exact: true }).click();
-	const ines = admin.locator("li", { hasText: "Ines Mabiala" });
+	const ines = admin.getByRole("row").filter({ hasText: "Ines Mabiala" });
 	await expect(ines).toContainText(EMAIL);
 	await expect(ines).toContainText("Technician");
 
 	// She can be assigned work right away.
-	await admin.goto("/#/new");
+	await admin.goto("/#/?new=1");
+	await admin
+		.getByRole("dialog")
+		.getByRole("button", { name: "Assigned to" })
+		.click();
 	await expect(
-		admin.getByLabel("Assigned to").locator("option", { hasText: "Ines" }),
-	).toHaveCount(1);
+		admin.getByRole("option", { name: "Ines Mabiala" }),
+	).toBeVisible();
+	await admin.keyboard.press("Escape");
 
 	// She signs in and replaces the password the admin gave her.
 	const phone = await device(browser, EMAIL, FIRST);
@@ -43,10 +48,19 @@ test("an admin adds a technician, who later gets disabled", async ({
 
 	// The admin disables her account: her phone locks on its next sync.
 	await admin.goto("/#/team");
-	await ines.getByRole("button", { name: "Disable" }).click();
-	await ines.getByRole("button", { name: "Disable" }).click();
+	const actions = ines.getByRole("button", {
+		name: "Actions for Ines Mabiala",
+	});
+	await actions.click();
+	await admin.getByRole("menuitem", { name: "Disable" }).click();
+	await admin
+		.getByRole("alertdialog")
+		.getByRole("button", { name: "Disable" })
+		.click();
 	await expect(ines).toContainText("Disabled");
-	await expect(ines.getByRole("button", { name: "Enable" })).toBeVisible();
+	await actions.click();
+	await expect(admin.getByRole("menuitem", { name: "Enable" })).toBeVisible();
+	await admin.keyboard.press("Escape");
 
 	await expect(
 		phone.getByRole("heading", { name: "Device revoked" }),

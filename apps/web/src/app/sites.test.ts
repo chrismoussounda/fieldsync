@@ -1,8 +1,9 @@
 import "fake-indexeddb/auto";
+import type { EntityState } from "@fieldsync/merge";
 import { SITE, WORK_ORDER } from "@fieldsync/work-orders";
 import { expect, it } from "vitest";
 import { LocalDb } from "../sync/storage.ts";
-import { jobsAt, sitesOf, telLink } from "./sites.ts";
+import { jobsAt, openJobsBySite, sitesOf, telLink, toSite } from "./sites.ts";
 
 const BAKERY = "00000000-0000-4000-8000-0000000000aa";
 const CLINIC = "00000000-0000-4000-8000-0000000000bb";
@@ -49,6 +50,32 @@ it("lists the sites by name and each site's jobs, unfinished then latest", async
 		"recent",
 		"old",
 	]);
+	// Done and cancelled jobs do not count; other sites' jobs do not mix in.
+	await job("cancelled", { status: "cancelled" });
+	expect(await openJobsBySite(db)).toEqual(
+		new Map([
+			[BAKERY, 1],
+			[CLINIC, 1],
+		]),
+	);
+});
+
+it("keeps a valid pin and drops a malformed one", () => {
+	const site = (location?: EntityState["fields"][string]) =>
+		toSite("s", {
+			fields: {
+				name: "Kiosk",
+				...(location === undefined ? {} : { location }),
+			},
+			clocks: {},
+			createdHlc: "0000000000001-0000-0a1b2c3d",
+			deletedHlc: null,
+			restoredHlc: null,
+		})?.location;
+	expect(site({ lat: -4.27, lng: 15.28 })).toEqual({ lat: -4.27, lng: 15.28 });
+	expect(site()).toBeNull();
+	expect(site({ lat: 120, lng: 0 })).toBeNull();
+	expect(site("-4.27,15.28")).toBeNull();
 });
 
 it("dials a phone number as written", () => {

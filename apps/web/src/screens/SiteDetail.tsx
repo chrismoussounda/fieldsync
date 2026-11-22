@@ -15,9 +15,12 @@ import { type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Confirm } from "@/components/confirm";
+import { MapView } from "@/components/map";
 import { StatusBadge } from "@/components/status-badge";
 import { Button, LinkButton } from "@/components/ui/button";
 import { formatDay } from "@/lib/format";
+import { directionsUrl } from "@/lib/maps";
+import { useSheet } from "@/lib/use-sheet";
 import { ROUTES } from "../app/route.ts";
 import { jobsAt, type Site, telLink, toSite } from "../app/sites.ts";
 import type { Member } from "../app/workspace.ts";
@@ -35,7 +38,7 @@ export function SiteDetail({ db, loop, user, id }: Props) {
 		const row = await db.entities.get([SITE, id]);
 		return row ? toSite(id, row.state) : null;
 	}, [db, id]);
-	const [editing, setEditing] = useState(false);
+	const edit = useSheet<true>();
 	const [deleting, setDeleting] = useState(false);
 	if (site === undefined) return null;
 	if (!site) {
@@ -55,7 +58,7 @@ export function SiteDetail({ db, loop, user, id }: Props) {
 	}
 
 	return (
-		<div className="grid gap-6">
+		<div className="grid grid-cols-1 gap-8">
 			<BackLink />
 			<div className="flex flex-wrap items-start justify-between gap-4">
 				<div className="flex min-w-0 gap-4">
@@ -84,9 +87,9 @@ export function SiteDetail({ db, loop, user, id }: Props) {
 							{t("sites.call")}
 						</LinkButton>
 					)}
-					{site.address && (
+					{site.location && (
 						<LinkButton
-							href={directions(site.address)}
+							href={directionsUrl(site.location)}
 							target="_blank"
 							rel="noreferrer"
 							variant="outline"
@@ -102,7 +105,7 @@ export function SiteDetail({ db, loop, user, id }: Props) {
 								variant="outline"
 								aria-label={t("common.edit")}
 								className="size-11 sm:h-10 sm:w-auto sm:px-4"
-								onPress={() => setEditing(true)}
+								onPress={() => edit.show(true)}
 							>
 								<Pencil aria-hidden />
 								<span className="max-sm:hidden">{t("common.edit")}</span>
@@ -126,13 +129,15 @@ export function SiteDetail({ db, loop, user, id }: Props) {
 			</div>
 			{manage && (
 				<>
-					<SiteSheet
-						key={editing ? "open" : "closed"}
-						open={editing}
-						onOpenChange={setEditing}
-						loop={loop}
-						site={site}
-					/>
+					{edit.value && (
+						<SiteSheet
+							key={edit.key}
+							open={edit.open}
+							onOpenChange={(open) => !open && edit.hide()}
+							loop={loop}
+							site={site}
+						/>
+					)}
 					<Confirm
 						open={deleting}
 						onOpenChange={setDeleting}
@@ -146,9 +151,6 @@ export function SiteDetail({ db, loop, user, id }: Props) {
 		</div>
 	);
 }
-
-const directions = (address: string) =>
-	`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
 
 function BackLink() {
 	const { t } = useTranslation();
@@ -166,7 +168,19 @@ function BackLink() {
 function SiteInfo({ site }: { site: Site }) {
 	const { t } = useTranslation();
 	return (
-		<section className="grid gap-5 rounded-2xl border bg-card p-5">
+		<section className="grid gap-5 rounded-2xl border bg-card p-6">
+			{site.location ? (
+				<MapView
+					location={site.location}
+					label={t("sites.mapOf", { name: site.name })}
+					className="-mx-2 -mt-2"
+				/>
+			) : (
+				<p className="flex items-center gap-2 rounded-xl bg-muted p-3 text-sm text-muted-foreground">
+					<MapPin aria-hidden className="size-4 shrink-0" />
+					{t("sites.noLocation")}
+				</p>
+			)}
 			<InfoRow icon={<UserRound />} title={t("sites.contact")}>
 				{site.contactName || site.contactPhone ? (
 					<>
@@ -225,7 +239,7 @@ function SiteJobs({ db, siteId }: { db: LocalDb; siteId: string }) {
 	if (!jobs) return null;
 	const names = new Map(members?.map((m) => [m.id, m.name]));
 	return (
-		<section className="grid gap-3 rounded-2xl border bg-card p-5">
+		<section className="grid gap-3 rounded-2xl border bg-card p-6">
 			<h2 className="font-semibold">{t("sites.jobs")}</h2>
 			{jobs.length === 0 ? (
 				<p className="text-sm text-muted-foreground">{t("sites.noJobs")}</p>

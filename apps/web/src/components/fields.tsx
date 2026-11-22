@@ -16,10 +16,11 @@ type FieldProps = {
 	required?: boolean;
 	maxLength?: number;
 	autoComplete?: string;
+	inputMode?: "decimal" | "numeric" | "text";
 	className?: string;
 };
 
-function Field({
+export function Field({
 	id,
 	label,
 	hint,
@@ -34,7 +35,7 @@ function Field({
 	children: ReactNode;
 }) {
 	return (
-		<div className={cn("grid gap-1.5", className)}>
+		<div className={cn("grid gap-2", className)}>
 			<Label htmlFor={id}>
 				{label}
 				{required && (
@@ -65,7 +66,7 @@ const describedBy = ({ id, error, hint }: FieldProps) =>
 export function TextField({
 	type = "text",
 	...props
-}: FieldProps & { type?: "text" | "tel" | "email" | "search" }) {
+}: FieldProps & { type?: "text" | "tel" | "email" | "search" | "password" }) {
 	return (
 		<Field {...props}>
 			<Input
@@ -76,6 +77,7 @@ export function TextField({
 				required={props.required}
 				maxLength={props.maxLength}
 				autoComplete={props.autoComplete}
+				inputMode={props.inputMode}
 				aria-invalid={props.error ? true : undefined}
 				aria-describedby={describedBy(props)}
 				onChange={(e) => props.onChange(e.target.value)}
