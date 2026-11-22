@@ -57,7 +57,7 @@ export function Landing() {
 
 			<main>
 				<section className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-16 md:px-8 lg:grid-cols-[1.1fr_1fr] lg:py-24">
-					<div className="grid gap-6">
+					<div className="grid animate-in gap-6 duration-700 fade-in-0 slide-in-from-bottom-4">
 						<span className="flex w-fit items-center gap-2 rounded-full border bg-card px-3 py-1 text-sm font-medium text-muted-foreground">
 							<WifiOff aria-hidden className="size-4 text-primary" />
 							{t("landing.badge")}
@@ -177,7 +177,10 @@ export function Landing() {
 function Preview() {
 	const { t } = useTranslation();
 	return (
-		<div aria-hidden className="relative mx-auto w-full max-w-sm">
+		<div
+			aria-hidden
+			className="relative mx-auto w-full max-w-sm animate-in delay-150 duration-700 fill-mode-backwards fade-in-0 zoom-in-95"
+		>
 			<div className="absolute -inset-6 -z-0 rounded-[3rem] bg-accent/60 blur-2xl" />
 			<div className="relative grid gap-4 rounded-[2.25rem] border-8 border-foreground/90 bg-background p-4 shadow-2xl">
 				<div className="flex items-center justify-between">
