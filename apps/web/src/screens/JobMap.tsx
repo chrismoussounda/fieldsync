@@ -5,6 +5,7 @@ import { CalendarDays, MapPin, MapPinOff, Navigation, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { DateField } from "@/components/date-field";
+import { FilterDrawer, FiltersButton } from "@/components/filter-drawer";
 import { JobsMap } from "@/components/map";
 import { PageHeader } from "@/components/page-header";
 import { Person } from "@/components/person";
@@ -14,6 +15,7 @@ import { Button, LinkButton } from "@/components/ui/button";
 import { formatDay } from "@/lib/format";
 import { directionsUrl } from "@/lib/maps";
 import { ITEM_IN } from "@/lib/use-leaving";
+import { usePhone } from "@/lib/use-phone";
 import { ALL, jobsOnMap, type MapFilters, type Pin } from "../app/map.ts";
 import { ROUTES } from "../app/route.ts";
 import { type Site, sitesOf } from "../app/sites.ts";
@@ -37,11 +39,12 @@ type Props = { db: LocalDb; user: User };
 export function JobMap({ db, user }: Props) {
 	const { t } = useTranslation();
 	const manage = canManage(user.role);
-	const [filters, setFilters] = useState<MapFilters>(
-		manage
-			? { status: "active", assignee: ALL, day: "" }
-			: { status: "active", assignee: user.id, day: localDate() },
-	);
+	const phone = usePhone();
+	const start: MapFilters = manage
+		? { status: "active", assignee: ALL, day: "" }
+		: { status: "active", assignee: user.id, day: localDate() };
+	const [filters, setFilters] = useState(start);
+	const [filtering, setFiltering] = useState(false);
 	const [chosen, setChosen] = useState<string | null>(null);
 	const rows = useLiveQuery(() => db.ofType(WORK_ORDER), [db]);
 	const sites = useLiveQuery(() => sitesOf(db), [db]);
@@ -55,56 +58,80 @@ export function JobMap({ db, user }: Props) {
 	const pick = pinned.find((p) => p.order.id === chosen) ?? null;
 	const set = (patch: Partial<MapFilters>) =>
 		setFilters((f) => ({ ...f, ...patch }));
+	const changed = (Object.keys(start) as (keyof MapFilters)[]).filter(
+		(k) => filters[k] !== start[k],
+	).length;
+
+	const controls = (
+		<>
+			<SelectField
+				id="map-status"
+				label={t("orders.status")}
+				placeholder={t("orders.activeWork")}
+				value={filters.status}
+				onChange={(status) => set({ status })}
+				options={[
+					{ value: "active", label: t("orders.activeWork") },
+					{ value: ALL, label: t("orders.anyStatus") },
+					...STATUSES.map((s) => ({ value: s, label: t(`status.${s}`) })),
+				]}
+			/>
+			{manage && (
+				<SelectField
+					id="map-assignee"
+					label={t("orders.technician")}
+					placeholder={t("orders.anyone")}
+					value={filters.assignee}
+					onChange={(assignee) => set({ assignee })}
+					options={[
+						{ value: ALL, label: t("orders.anyone") },
+						{ value: "none", label: t("orders.unassigned") },
+						...(members ?? [])
+							.filter((m) => m.role === "technician")
+							.map((m) => ({ value: m.id, label: m.name })),
+					]}
+				/>
+			)}
+			<DateField
+				id="map-day"
+				label={t("jobsMap.day")}
+				value={filters.day}
+				onChange={(day) => set({ day })}
+				clearLabel={t("orders.anyDate")}
+			/>
+		</>
+	);
 
 	return (
 		<div className="grid gap-6">
 			<PageHeader
 				title={t("jobsMap.title")}
 				description={manage ? t("jobsMap.hint") : t("jobsMap.techHint")}
+				actions={
+					phone && (
+						<FiltersButton count={changed} onPress={() => setFiltering(true)} />
+					)
+				}
 			/>
-			<div
-				className={cn(
-					"grid gap-4 sm:grid-cols-2",
-					manage && "lg:grid-cols-3 xl:max-w-4xl",
-					!manage && "xl:max-w-2xl",
-				)}
-			>
-				<SelectField
-					id="map-status"
-					label={t("orders.status")}
-					placeholder={t("orders.activeWork")}
-					value={filters.status}
-					onChange={(status) => set({ status })}
-					options={[
-						{ value: "active", label: t("orders.activeWork") },
-						{ value: ALL, label: t("orders.anyStatus") },
-						...STATUSES.map((s) => ({ value: s, label: t(`status.${s}`) })),
-					]}
-				/>
-				{manage && (
-					<SelectField
-						id="map-assignee"
-						label={t("orders.technician")}
-						placeholder={t("orders.anyone")}
-						value={filters.assignee}
-						onChange={(assignee) => set({ assignee })}
-						options={[
-							{ value: ALL, label: t("orders.anyone") },
-							{ value: "none", label: t("orders.unassigned") },
-							...(members ?? [])
-								.filter((m) => m.role === "technician")
-								.map((m) => ({ value: m.id, label: m.name })),
-						]}
-					/>
-				)}
-				<DateField
-					id="map-day"
-					label={t("jobsMap.day")}
-					value={filters.day}
-					onChange={(day) => set({ day })}
-					clearLabel={t("orders.anyDate")}
-				/>
-			</div>
+			{phone ? (
+				<FilterDrawer
+					open={filtering}
+					onOpenChange={setFiltering}
+					onClear={() => setFilters(start)}
+				>
+					{controls}
+				</FilterDrawer>
+			) : (
+				<div
+					className={cn(
+						"grid gap-4 sm:grid-cols-2",
+						manage && "lg:grid-cols-3 xl:max-w-4xl",
+						!manage && "xl:max-w-2xl",
+					)}
+				>
+					{controls}
+				</div>
+			)}
 
 			<div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
 				<div className="relative">

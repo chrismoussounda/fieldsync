@@ -181,7 +181,9 @@ test("a technician sees their own day, and the way to each job", async ({
 	await expect(pin(tech, later)).toBeVisible();
 });
 
-test("on a phone, the chosen job shows under the map", async ({ browser }) => {
+test("on a phone, filters fold into a drawer and the chosen job shows under the map", async ({
+	browser,
+}) => {
 	const title = `Tap ${Date.now()}`;
 	const office = await mapDevice(browser, "dispatch@fieldsync.demo");
 	await job(office, title);
@@ -197,4 +199,16 @@ test("on a phone, the chosen job shows under the map", async ({ browser }) => {
 	await choose(office, title);
 	const card = office.getByRole("region", { name: title });
 	await expect(card.getByRole("link", { name: "Directions" })).toBeInViewport();
+
+	// The filters wait behind a button, leaving the map the room.
+	await expect(office.getByLabel("Status")).toHaveCount(0);
+	await office.getByRole("button", { name: "Filters" }).click();
+	await office
+		.getByRole("dialog")
+		.getByLabel("Status")
+		.selectOption({ label: "Done" });
+	await office.getByRole("button", { name: "Show results" }).click();
+	await expect(office.getByRole("dialog")).toHaveCount(0);
+	await expect(pin(office, title)).toHaveCount(0);
+	await expect(office.getByRole("button", { name: "Filters 1" })).toBeVisible();
 });
