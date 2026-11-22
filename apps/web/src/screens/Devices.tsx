@@ -119,7 +119,7 @@ export function Devices({ session }: { session: Session }) {
 	]);
 
 	return (
-		<div className="grid gap-6">
+		<div className="grid grid-cols-1 gap-8">
 			<PageHeader
 				title={t("devices.title")}
 				description={t("devices.description")}
@@ -135,7 +135,7 @@ export function Devices({ session }: { session: Session }) {
 						<li
 							key={d.id}
 							className={cn(
-								"grid gap-3 rounded-2xl border bg-card p-4",
+								"grid gap-3 rounded-2xl border bg-card p-6",
 								d.revokedAt && "text-muted-foreground",
 							)}
 						>

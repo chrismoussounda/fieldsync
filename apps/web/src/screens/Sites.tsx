@@ -35,7 +35,7 @@ export function Sites({ db, loop, user, creating }: Props) {
 	const manage = canManage(user.role);
 
 	return (
-		<div className="grid gap-6">
+		<div className="grid grid-cols-1 gap-8">
 			<PageHeader
 				title={t("sites.title")}
 				description={t("sites.count", { count: sites.length })}
@@ -101,7 +101,7 @@ function SiteCard({ site }: { site: Site }) {
 	return (
 		<a
 			href={ROUTES.site(site.id)}
-			className="flex h-full gap-4 rounded-2xl border bg-card p-4 font-normal text-foreground transition-colors hover:border-primary/50 hover:bg-accent/30"
+			className="flex h-full gap-4 rounded-2xl border bg-card p-5 font-normal text-foreground transition-colors hover:border-primary/50 hover:bg-accent/30"
 		>
 			<span className="grid size-10 shrink-0 place-items-center rounded-xl bg-accent text-accent-foreground">
 				<Building2 aria-hidden className="size-5" />

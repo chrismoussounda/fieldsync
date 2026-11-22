@@ -3,6 +3,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import {
 	CalendarDays,
 	CloudOff,
+	Flame,
 	ListChecks,
 	Plus,
 	Search,
@@ -20,7 +21,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { Button, LinkButton } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
+import { Toggle } from "@/components/ui/toggle";
 import { formatDay } from "@/lib/format";
 import { usePhone } from "@/lib/use-phone";
 import { cn } from "@/lib/utils";
@@ -179,18 +180,20 @@ export function Orders({ db, user, query }: Props) {
 				]}
 				className="md:w-44"
 			/>
-			<Switch
+			<Toggle
+				variant="outline"
 				isSelected={filters.urgentOnly}
 				onChange={(urgentOnly) => set({ urgentOnly })}
-				className="gap-2 text-sm font-medium whitespace-nowrap"
+				className="h-10 justify-start bg-card data-selected:border-status-urgent/40 data-selected:bg-status-urgent/10 data-selected:text-status-urgent"
 			>
+				<Flame aria-hidden />
 				{t("orders.urgentOnly")}
-			</Switch>
+			</Toggle>
 		</>
 	);
 
 	return (
-		<div className="grid gap-5">
+		<div className="grid grid-cols-1 gap-8">
 			<PageHeader
 				title={t("orders.title")}
 				description={t("orders.shown", {

@@ -46,9 +46,9 @@ export function FormSheet(props: Props) {
 			isOpen={open}
 			onOpenChange={onOpenChange}
 			isDismissable
-			className="w-full gap-0 sm:max-w-md"
+			className="w-full gap-0 data-[side=right]:sm:max-w-lg"
 		>
-			<div className="grid gap-1 border-b px-6 py-5">
+			<div className="grid gap-1.5 border-b px-7 py-6">
 				<SheetTitle className="text-lg font-semibold">{title}</SheetTitle>
 				{description && <SheetDescription>{description}</SheetDescription>}
 			</div>
@@ -65,13 +65,13 @@ function Body({ onSubmit, onOpenChange, submitLabel, busy, children }: Props) {
 	}
 	return (
 		<form onSubmit={submit} noValidate className="flex min-h-0 flex-1 flex-col">
-			<div className="grid flex-1 content-start gap-5 overflow-y-auto px-5 py-5 md:px-6">
+			<div className="grid flex-1 content-start gap-6 overflow-y-auto px-5 py-6 md:px-7">
 				{children}
 			</div>
-			<div className="flex gap-2 border-t bg-popover px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:justify-end md:px-6">
+			<div className="flex gap-2 border-t bg-popover px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:justify-end md:px-7">
 				<Button
 					variant="outline"
-					className="h-10 flex-1 md:flex-none"
+					className="h-11 flex-1 px-5 md:h-10 md:flex-none"
 					onPress={() => onOpenChange(false)}
 				>
 					{t("common.cancel")}
@@ -79,7 +79,7 @@ function Body({ onSubmit, onOpenChange, submitLabel, busy, children }: Props) {
 				<Button
 					type="submit"
 					isDisabled={busy}
-					className="h-10 flex-1 md:flex-none"
+					className="h-11 flex-1 px-5 md:h-10 md:flex-none"
 				>
 					{submitLabel}
 				</Button>

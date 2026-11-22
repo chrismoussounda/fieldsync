@@ -25,7 +25,7 @@ function Table({ className, ...props }: TableProps) {
 		>
 			<TablePrimitive
 				data-slot="table"
-				className={cn("w-full caption-bottom text-sm", className)}
+				className={cn("w-full caption-bottom text-base", className)}
 				{...props}
 			/>
 		</div>

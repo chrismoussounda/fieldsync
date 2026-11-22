@@ -101,7 +101,7 @@ export function DataTable<T extends RowData>({
 							isRowHeader={i === 0}
 							allowsSorting={header.column.getCanSort()}
 							className={cn(
-								"h-11 px-4 text-xs font-medium tracking-wide text-muted-foreground uppercase",
+								"h-12 px-5 text-xs font-semibold tracking-wide text-muted-foreground uppercase",
 								header.column.getCanSort() && "cursor-pointer select-none",
 								header.column.columnDef.meta?.className,
 							)}
@@ -140,7 +140,7 @@ export function DataTable<T extends RowData>({
 								<TableCell
 									key={cell.id}
 									className={cn(
-										"px-4 py-3",
+										"px-5 py-4",
 										cell.column.columnDef.meta?.className,
 									)}
 								>

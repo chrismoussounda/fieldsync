@@ -19,16 +19,16 @@ export function Person({
 	className?: string;
 }) {
 	return (
-		<span className={cn("flex min-w-0 items-center gap-2.5", className)}>
-			<Avatar size="sm" className="size-7">
-				<AvatarFallback className="bg-accent text-[0.7rem] font-semibold text-accent-foreground">
+		<span className={cn("flex min-w-0 items-center gap-3", className)}>
+			<Avatar className="size-9">
+				<AvatarFallback className="bg-accent text-xs font-semibold text-accent-foreground">
 					{initials(name)}
 				</AvatarFallback>
 			</Avatar>
 			<span className="grid min-w-0 leading-tight">
 				<span className="truncate">{name}</span>
 				{detail && (
-					<span className="truncate text-xs text-muted-foreground">
+					<span className="truncate text-sm text-muted-foreground">
 						{detail}
 					</span>
 				)}

@@ -107,7 +107,7 @@ function SignedIn({ db, session, user }: Props & { user: User }) {
 	);
 
 	return (
-		<div className="min-h-dvh md:grid md:grid-cols-[16rem_1fr]">
+		<div className="min-h-dvh md:grid md:grid-cols-[17rem_1fr]">
 			<aside className="print:hidden! sticky top-0 hidden h-dvh flex-col gap-6 border-r bg-sidebar p-4 md:flex">
 				<a href={ROUTES.list}>
 					<Logo />
@@ -125,9 +125,9 @@ function SignedIn({ db, session, user }: Props & { user: User }) {
 						<span className="grid size-9 place-items-center rounded-full bg-accent font-semibold text-accent-foreground">
 							{initials(user.name)}
 						</span>
-						<span className="grid text-sm leading-tight">
+						<span className="grid leading-tight">
 							<span className="font-medium">{user.name}</span>
-							<span className="text-muted-foreground">
+							<span className="text-sm text-muted-foreground">
 								{t(`roles.${user.role}`)}
 							</span>
 						</span>
@@ -136,7 +136,7 @@ function SignedIn({ db, session, user }: Props & { user: User }) {
 				</div>
 			</aside>
 			<div className="min-w-0">
-				<header className="print:hidden! sticky top-0 z-10 flex h-14 items-center gap-3 border-b bg-background/85 px-4 backdrop-blur">
+				<header className="print:hidden! sticky top-0 z-10 flex h-16 items-center gap-3 border-b bg-background/85 px-4 backdrop-blur">
 					<a href={ROUTES.list} className="md:hidden">
 						<Logo />
 					</a>
@@ -144,7 +144,7 @@ function SignedIn({ db, session, user }: Props & { user: User }) {
 						{sync && <SyncBadge loop={sync.loop} pending={pending} />}
 					</div>
 				</header>
-				<main className="px-4 pt-6 pb-28 md:px-8 md:pb-10 print:p-0">
+				<main className="px-4 pt-6 pb-32 md:px-10 md:pt-10 md:pb-14 print:p-0">
 					{route.name === "overview" && canManage(user.role) ? (
 						<Overview db={db} />
 					) : route.name === "list" || !sync ? (
@@ -234,11 +234,11 @@ function SideLink({ item, route }: { item: NavItem; route: Route["name"] }) {
 			href={item.href}
 			aria-current={current ? "page" : undefined}
 			className={cn(
-				"flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+				"flex items-center gap-3 rounded-xl px-3 py-2.5 text-base font-medium text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
 				current && "bg-sidebar-accent text-sidebar-accent-foreground",
 			)}
 		>
-			<Icon className="size-4" aria-hidden />
+			<Icon className="size-5" aria-hidden />
 			{item.label}
 		</a>
 	);
@@ -252,7 +252,7 @@ function TabLink({ item, route }: { item: NavItem; route: Route["name"] }) {
 			href={item.href}
 			aria-current={current ? "page" : undefined}
 			className={cn(
-				"grid min-h-12 place-items-center gap-0.5 rounded-xl px-1 py-1.5 text-[0.7rem] font-medium text-muted-foreground",
+				"grid min-h-14 place-items-center gap-1 rounded-xl px-1 py-2 text-xs font-medium text-muted-foreground",
 				current && "bg-accent text-accent-foreground",
 			)}
 		>

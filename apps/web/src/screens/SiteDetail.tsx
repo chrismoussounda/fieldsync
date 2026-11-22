@@ -55,7 +55,7 @@ export function SiteDetail({ db, loop, user, id }: Props) {
 	}
 
 	return (
-		<div className="grid gap-6">
+		<div className="grid grid-cols-1 gap-8">
 			<BackLink />
 			<div className="flex flex-wrap items-start justify-between gap-4">
 				<div className="flex min-w-0 gap-4">
@@ -166,7 +166,7 @@ function BackLink() {
 function SiteInfo({ site }: { site: Site }) {
 	const { t } = useTranslation();
 	return (
-		<section className="grid gap-5 rounded-2xl border bg-card p-5">
+		<section className="grid gap-5 rounded-2xl border bg-card p-6">
 			<InfoRow icon={<UserRound />} title={t("sites.contact")}>
 				{site.contactName || site.contactPhone ? (
 					<>
@@ -225,7 +225,7 @@ function SiteJobs({ db, siteId }: { db: LocalDb; siteId: string }) {
 	if (!jobs) return null;
 	const names = new Map(members?.map((m) => [m.id, m.name]));
 	return (
-		<section className="grid gap-3 rounded-2xl border bg-card p-5">
+		<section className="grid gap-3 rounded-2xl border bg-card p-6">
 			<h2 className="font-semibold">{t("sites.jobs")}</h2>
 			{jobs.length === 0 ? (
 				<p className="text-sm text-muted-foreground">{t("sites.noJobs")}</p>

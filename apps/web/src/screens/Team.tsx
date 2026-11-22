@@ -122,7 +122,7 @@ export function Team({ db, session, user }: Props) {
 	]);
 
 	return (
-		<div className="grid gap-6">
+		<div className="grid grid-cols-1 gap-8">
 			<PageHeader
 				title={t("team.title")}
 				description={
@@ -149,7 +149,7 @@ export function Team({ db, session, user }: Props) {
 						<li
 							key={m.id}
 							className={cn(
-								"flex items-center justify-between gap-3 rounded-2xl border bg-card p-4",
+								"flex items-center justify-between gap-3 rounded-2xl border bg-card p-6",
 								!m.active && "text-muted-foreground",
 							)}
 						>

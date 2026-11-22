@@ -21,7 +21,7 @@ export function Account({ session, user, pending }: Props) {
 	const { t } = useTranslation();
 	return (
 		<div className="grid gap-4">
-			<section className="grid gap-1 rounded-2xl border bg-card p-5">
+			<section className="grid gap-1 rounded-2xl border bg-card p-6">
 				<h2 className="text-lg font-semibold">{t("account.title")}</h2>
 				<p>
 					{user.name}{" "}
@@ -86,7 +86,7 @@ function Preferences() {
 	const language = useLanguage();
 	const theme = useTheme();
 	return (
-		<section className="grid gap-4 rounded-2xl border bg-card p-5">
+		<section className="grid gap-4 rounded-2xl border bg-card p-6">
 			<h3 className="font-semibold">{t("preferences.title")}</h3>
 			<Choice
 				label={t("preferences.language")}
@@ -174,7 +174,7 @@ function ChangePassword({ session }: { session: Session }) {
 
 	return (
 		<form
-			className="grid gap-4 rounded-2xl border bg-card p-5"
+			className="grid gap-4 rounded-2xl border bg-card p-6"
 			onSubmit={submit}
 		>
 			<h3 className="font-semibold">{t("account.password")}</h3>
