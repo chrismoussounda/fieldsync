@@ -23,9 +23,9 @@ test("an edit made offline reaches the office once back online", async ({
 	await tech.getByLabel("Notes").fill("No signal in the basement");
 	await save(tech);
 	await expect(tech.locator(".badge")).toHaveText("Offline · 1 waiting");
-	await expect(tech.getByRole("link", { name: title })).toContainText(
-		"Not synced",
-	);
+	await expect(
+		tech.getByRole("row").filter({ hasText: title }).getByLabel("Not synced"),
+	).toBeVisible();
 
 	await tech.context().setOffline(false);
 	await expect(tech.locator(".badge")).toHaveText("Synced");
