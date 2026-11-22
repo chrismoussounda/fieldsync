@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/select";
 
 const cellVariants = cva(
-	"group/day relative mt-2 aspect-square h-full w-full cursor-default rounded-(--cell-radius) p-0 text-center select-none [&:is(:last-child>[data-selected=true])>div]:rounded-r-(--cell-radius)",
+	"group/day relative mt-2 aspect-square h-full w-full cursor-pointer rounded-(--cell-radius) p-0 text-center select-none [&:is(:last-child>[data-selected=true])>div]:rounded-r-(--cell-radius)",
 	{
 		variants: {
 			showWeekNumber: {

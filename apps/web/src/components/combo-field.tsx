@@ -82,7 +82,7 @@ export function ComboField({
 						<ListBoxItem
 							id={item.id}
 							textValue={item.name}
-							className="cursor-default rounded-md px-2.5 py-2 text-base outline-none data-focused:bg-accent data-focused:text-accent-foreground"
+							className="cursor-pointer rounded-md px-2.5 py-2 text-base outline-none data-focused:bg-accent data-focused:text-accent-foreground"
 						>
 							{item.name}
 						</ListBoxItem>
