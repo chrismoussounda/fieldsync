@@ -14,6 +14,7 @@ import { Account } from "./screens/Account.tsx";
 import { Conflicts } from "./screens/Conflicts.tsx";
 import { Debug } from "./screens/Debug.tsx";
 import { Devices } from "./screens/Devices.tsx";
+import { JobMap } from "./screens/JobMap.tsx";
 import { OrderDetail } from "./screens/OrderDetail.tsx";
 import { OrderReport } from "./screens/OrderReport.tsx";
 import { Orders } from "./screens/Orders.tsx";
@@ -134,6 +135,15 @@ const schedule = createRoute({
 	},
 });
 
+const map = createRoute({
+	getParentRoute: () => root,
+	path: "/map",
+	component: function MapPage() {
+		const { db, user } = useApp();
+		return <JobMap db={db} user={user} />;
+	},
+});
+
 function SiteList() {
 	const { db, sync, user } = useApp();
 	const { creating } = useCreating();
@@ -235,6 +245,7 @@ export const router = createRouter({
 		report,
 		overview,
 		schedule,
+		map,
 		sites,
 		site,
 		conflicts,

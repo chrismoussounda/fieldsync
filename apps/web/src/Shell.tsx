@@ -6,6 +6,7 @@ import {
 	GitMerge,
 	LayoutDashboard,
 	type LucideIcon,
+	Map as MapIcon,
 	MapPin,
 	Smartphone,
 	UserRound,
@@ -68,6 +69,12 @@ export function Shell() {
 			},
 			manage,
 		),
+		{
+			href: ROUTES.map,
+			label: t("nav.map"),
+			icon: MapIcon,
+			owns: under("/map"),
+		},
 		{
 			href: ROUTES.sites,
 			label: t("nav.sites"),
