@@ -1,10 +1,7 @@
-@layer theme, base, legacy, components, utilities;
-
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/inter";
-@import "./styles.css" layer(legacy);
 
 @custom-variant dark (&:is(.dark *));
 
@@ -122,5 +119,23 @@
 	}
 	body {
 		@apply bg-background text-foreground;
+	}
+	a {
+		@apply font-medium text-primary underline-offset-4;
+	}
+}
+
+/* Paper is white: a report prints the same from a dark screen. */
+@media print {
+	:root,
+	.dark {
+		--background: #fff;
+		--card: #fff;
+		--foreground: #000;
+		--card-foreground: #000;
+		--muted: #f2f2f2;
+		--muted-foreground: #444;
+		--border: #ccc;
+		color-scheme: light;
 	}
 }
