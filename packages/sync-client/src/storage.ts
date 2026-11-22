@@ -12,6 +12,8 @@ export interface SyncStorage {
 	/** Marks up to `limit` pending operations inflight, oldest first. */
 	claimPending(limit: number): Promise<Op[]>;
 	releaseOps(opIds: string[]): Promise<void>;
+	/** Marks pending again every operation a closed session left inflight. */
+	releaseInflight(): Promise<void>;
 	resolveOps(results: OpResult[]): Promise<void>;
 	getCursor(): Promise<number>;
 	/** The server epoch the stored records belong to; null before the first pull. */
@@ -123,6 +125,12 @@ export class MemoryStorage implements SyncStorage {
 			claimed.push(entry.op);
 		}
 		return claimed;
+	}
+
+	async releaseInflight(): Promise<void> {
+		for (const entry of this.outbox) {
+			if (entry.status === "inflight") entry.status = "pending";
+		}
 	}
 
 	async releaseOps(opIds: string[]): Promise<void> {

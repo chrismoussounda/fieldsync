@@ -122,6 +122,18 @@ describe("push", () => {
 		expect(phone.storage.outbox).toEqual([]);
 	});
 
+	it("resends operations a closed session left mid-send", async () => {
+		const server = new FakeServer();
+		const phone = device(PHONE, server);
+		const op = await phone.edit({ status: "assigned" });
+		// The page closed while this was on its way.
+		await phone.storage.claimPending(1);
+		await phone.client.syncOnce();
+
+		expect(server.pushes).toEqual([{ ops: [op] }]);
+		expect(phone.storage.outbox).toEqual([]);
+	});
+
 	it("sends a long queue in batches", async () => {
 		const server = new FakeServer();
 		const phone = device(PHONE, server);

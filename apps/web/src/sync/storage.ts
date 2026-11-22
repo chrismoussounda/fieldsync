@@ -97,6 +97,13 @@ export class DexieStorage implements SyncStorage {
 		});
 	}
 
+	async releaseInflight(): Promise<void> {
+		await this.#db.outbox
+			.where("status")
+			.equals("inflight")
+			.modify({ status: "pending" });
+	}
+
 	async releaseOps(opIds: string[]): Promise<void> {
 		await this.#db.outbox
 			.where("opId")
