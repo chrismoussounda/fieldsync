@@ -52,6 +52,8 @@ type Props<T extends RowData> = {
 	empty: ReactNode;
 	/** Dims a row, e.g. a disabled account. */
 	muted?: (row: T) => boolean;
+	/** Makes each row open something, by click or Enter. */
+	onRowAction?: (row: T) => void;
 };
 
 /** A shadcn table, sorted by TanStack Table. */
@@ -62,6 +64,7 @@ export function DataTable<T extends RowData>({
 	getRowId,
 	empty,
 	muted,
+	onRowAction,
 }: Props<T>) {
 	const [sorting, setSorting] = useState<SortingState>([]);
 	const table = useTable({
@@ -131,8 +134,10 @@ export function DataTable<T extends RowData>({
 						<TableRow
 							key={row.id}
 							id={row.id}
+							onAction={onRowAction && (() => onRowAction(row.original))}
 							className={cn(
 								"relative",
+								onRowAction && "cursor-pointer",
 								muted?.(row.original) && "text-muted-foreground",
 							)}
 						>
