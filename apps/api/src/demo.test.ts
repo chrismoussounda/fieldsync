@@ -16,7 +16,7 @@ afterAll(() => db.destroy());
 
 it("seeds the demo org once, with users who can sign in", async () => {
 	await seedDemo(db, "demo password");
-	await seedDemo(db, "another password");
+	await seedDemo(db, "demo password");
 
 	const users = await db.selectFrom("users").select("role").execute();
 	expect(users.map((u) => u.role).sort()).toEqual([
@@ -43,6 +43,25 @@ it("seeds the demo org once, with users who can sign in", async () => {
 		},
 	);
 	expect(session.user.role).toBe("dispatcher");
+});
+
+it("gives the demo users a changed password, whatever they set themselves", async () => {
+	await seedDemo(db, "a new demo password");
+	const signIn = (password: string) =>
+		login(
+			db,
+			{ secret: new TextEncoder().encode("x".repeat(32)), now: Date.now },
+			{
+				email: "junior@fieldsync.demo",
+				password,
+				deviceId: crypto.randomUUID(),
+				deviceName: "Phone",
+			},
+		);
+	await expect(signIn("demo password")).rejects.toThrow();
+	expect((await signIn("a new demo password")).user.role).toBe("technician");
+	const records = await db.selectFrom("entities").select("id").execute();
+	expect(records).toHaveLength(8);
 });
 
 it("files each demo order under its technician, and gives every technician the sites", async () => {
