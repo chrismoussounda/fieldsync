@@ -211,4 +211,13 @@ test("on a phone, filters fold into a drawer and the chosen job shows under the 
 	await expect(office.getByRole("dialog")).toHaveCount(0);
 	await expect(pin(office, title)).toHaveCount(0);
 	await expect(office.getByRole("button", { name: "Filters 1" })).toBeVisible();
+	// Said beside the map, never laid over it or over the drawers.
+	await expect(
+		office.getByRole("region", { name: "Map of the jobs" }).getByText(/match/),
+	).toHaveCount(0);
+	await office.getByRole("button", { name: "Filters 1" }).click();
+	await expect(
+		office.getByRole("button", { name: "Show results" }),
+	).toBeInViewport();
+	await office.getByRole("button", { name: "Show results" }).click();
 });

@@ -29,7 +29,6 @@ export const en: Messages<typeof fr> = {
 		team: "Team",
 		devices: "Devices",
 		account: "Account",
-		admin: "Administration",
 		more: "More",
 	},
 	roles: {
@@ -281,7 +280,7 @@ export const en: Messages<typeof fr> = {
 		history: {
 			title: "History",
 			you: "You",
-			unknown: "Unknown device",
+			unknown: "System",
 			waiting: "Not synced yet",
 			refused: "Refused by the server",
 			deleted: "Deleted the order",
@@ -388,6 +387,7 @@ export const en: Messages<typeof fr> = {
 	map: {
 		hint: "Tap the map to drop the pin on the entrance, then drag it to adjust. Directions are only offered with a pin.",
 		empty: "Tap the map to drop the pin",
+		sitePin: "The site's pin is used. Tap to drop one for this job",
 		here: "My position",
 		locating: "Locating…",
 		clear: "Remove the pin",
@@ -625,7 +625,6 @@ export const en: Messages<typeof fr> = {
 		erase: "Erase this device's data",
 	},
 	account: {
-		title: "Your account",
 		password: "Change password",
 		current: "Current password",
 		next: "New password",

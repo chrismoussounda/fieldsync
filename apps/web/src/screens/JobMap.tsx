@@ -142,12 +142,6 @@ export function JobMap({ db, user }: Props) {
 						label={t("jobsMap.label")}
 						className="h-[60dvh] min-h-80 lg:h-[calc(100dvh-20rem)] lg:min-h-[28rem]"
 					/>
-					{pinned.length === 0 && (
-						<p className="pointer-events-none absolute inset-x-3 bottom-3 z-[1000] flex animate-in items-center justify-center gap-2 rounded-lg bg-background/90 px-3 py-2 text-sm font-medium shadow-sm duration-300 fade-in-0">
-							<MapPinOff aria-hidden className="size-4 text-muted-foreground" />
-							{t("jobsMap.noPins")}
-						</p>
-					)}
 				</div>
 
 				<aside className="grid gap-6 lg:max-h-[calc(100dvh-20rem)] lg:min-h-[28rem] lg:overflow-y-auto lg:pr-1">
@@ -166,12 +160,16 @@ export function JobMap({ db, user }: Props) {
 							onClose={() => setChosen(null)}
 						/>
 					) : (
-						pinned.length > 0 && (
-							<p className="flex items-center gap-2 rounded-xl border border-dashed p-4 text-muted-foreground">
+						<p className="flex items-center gap-2 rounded-xl border border-dashed p-4 text-muted-foreground">
+							{pinned.length > 0 ? (
 								<MapPin aria-hidden className="size-4 shrink-0" />
-								{t("jobsMap.chooseHint")}
-							</p>
-						)
+							) : (
+								<MapPinOff aria-hidden className="size-4 shrink-0" />
+							)}
+							{pinned.length > 0
+								? t("jobsMap.chooseHint")
+								: t("jobsMap.noPins")}
+						</p>
 					)}
 
 					{pinned.length > 0 && (

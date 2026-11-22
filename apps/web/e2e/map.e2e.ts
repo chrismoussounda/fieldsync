@@ -153,3 +153,23 @@ test("my position drops the pin where the device is, and says so when refused", 
 	await expect(refused.getByText("Could not get your position.")).toBeVisible();
 	await expect(refused.getByRole("dialog").getByText(COORDS)).toHaveCount(0);
 });
+
+test("a job without its own pin shows its site's while being edited", async ({
+	browser,
+}) => {
+	const office = await mapDevice(browser, "dispatch@fieldsync.demo");
+	// Filed at the bakery before jobs carried pins of their own.
+	await open(office, "Replace the water pump");
+	const sheet = await edit(office);
+	await expect(
+		sheet.getByText("The site's pin is used. Tap to drop one for this job"),
+	).toBeVisible();
+	await expect(
+		sheet.getByRole("button", { name: "Remove the pin" }),
+	).toHaveCount(0);
+	// A tap still gives the job a pin of its own.
+	await dropPin(office);
+	await expect(
+		sheet.getByText("The site's pin is used", { exact: false }),
+	).toHaveCount(0);
+});

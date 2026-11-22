@@ -45,6 +45,7 @@ export class SyncClient {
 	readonly #deviceId: string;
 	readonly #clientVersion: string;
 	readonly #storage: SyncStorage;
+	#resumed = false;
 	readonly #transport: Transport;
 	readonly #now: () => number;
 	readonly #newId: () => string;
@@ -110,6 +111,12 @@ export class SyncClient {
 	}
 
 	async #push(): Promise<void> {
+		if (!this.#resumed) {
+			// A page closed mid-send leaves operations inflight that nothing
+			// would claim again; the server ignores the ones it already has.
+			await this.#storage.releaseInflight();
+			this.#resumed = true;
+		}
 		for (;;) {
 			const batch = await this.#storage.claimPending(PUSH_BATCH);
 			if (batch.length === 0) return;

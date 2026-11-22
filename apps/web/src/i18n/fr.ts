@@ -23,7 +23,6 @@ export const fr = {
 		team: "Équipe",
 		devices: "Appareils",
 		account: "Compte",
-		admin: "Administration",
 		more: "Plus",
 	},
 	roles: {
@@ -277,7 +276,7 @@ export const fr = {
 		history: {
 			title: "Historique",
 			you: "Vous",
-			unknown: "Appareil inconnu",
+			unknown: "Système",
 			waiting: "Pas encore synchronisé",
 			refused: "Refusé par le serveur",
 			deleted: "A supprimé l'intervention",
@@ -384,6 +383,8 @@ export const fr = {
 	map: {
 		hint: "Touchez la carte pour placer le repère sur l'entrée, puis faites-le glisser pour l'ajuster. L'itinéraire n'est proposé qu'avec un repère.",
 		empty: "Touchez la carte pour placer le repère",
+		sitePin:
+			"Le repère du site est utilisé. Touchez pour en placer un pour cette intervention",
 		here: "Ma position",
 		locating: "Localisation…",
 		clear: "Retirer le repère",
@@ -626,7 +627,6 @@ export const fr = {
 		erase: "Effacer les données de cet appareil",
 	},
 	account: {
-		title: "Votre compte",
 		password: "Changer le mot de passe",
 		current: "Mot de passe actuel",
 		next: "Nouveau mot de passe",

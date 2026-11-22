@@ -51,15 +51,31 @@ test("a technician's four pages all fit the tab bar", async ({ browser }) => {
 	);
 });
 
-test("on a desktop, the sync state sits under the logo, with no top bar", async ({
+test("the sync state sits in the top bar, on a desktop as on a phone", async ({
 	browser,
 }) => {
 	const office = await device(browser, "dispatch@fieldsync.demo");
-	await office.setViewportSize({ width: 1440, height: 900 });
-	await expect(office.locator(".badge")).toHaveText("Synced");
-	await expect(office.getByRole("banner")).toHaveCount(0);
-	const title = await office
-		.getByRole("heading", { level: 1, name: "Work orders" })
-		.boundingBox();
-	expect(title?.y).toBeLessThan(64);
+	for (const width of [1440, 390]) {
+		await office.setViewportSize({ width, height: 844 });
+		await expect(office.getByRole("banner").locator(".badge")).toHaveText(
+			"Synced",
+		);
+	}
+});
+
+test("on a phone, the running clock stays in the bar with Stop", async ({
+	browser,
+}) => {
+	const tech = await device(browser, "junior@fieldsync.demo");
+	await tech.setViewportSize({ width: 390, height: 844 });
+	await tech
+		.getByRole("link", { name: "Inspect the generator" })
+		.first()
+		.click();
+	await tech.getByRole("button", { name: "Start" }).click();
+	const bar = tech.locator("[data-action-bar]");
+	await expect(bar.getByText(/^\d+:\d{2}:\d{2}$/)).toBeInViewport();
+	await bar.getByRole("button", { name: "Stop" }).click();
+	await expect(bar.getByText(/^\d+:\d{2}:\d{2}$/)).toHaveCount(0);
+	await expect(bar.getByRole("button", { name: "Start" })).toBeVisible();
 });

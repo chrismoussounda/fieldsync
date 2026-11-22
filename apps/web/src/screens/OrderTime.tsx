@@ -140,9 +140,19 @@ export function OrderTime({ db, loop, user, orderId, order }: Props) {
 				(phone ? (
 					<div
 						data-action-bar
-						className="fixed inset-x-3 bottom-24 z-20 rounded-2xl border bg-card p-2 shadow-lg"
+						className="fixed inset-x-3 bottom-24 z-20 flex items-center gap-3 rounded-2xl border bg-card p-2 shadow-lg"
 					>
-						{action}
+						{/* The clock stays in sight while the page scrolls. */}
+						{running && (
+							<span className="flex shrink-0 items-center gap-2 pl-2 font-mono text-xl font-semibold tabular-nums">
+								<span
+									aria-hidden
+									className="size-2 animate-pulse rounded-full bg-destructive"
+								/>
+								{elapsed(running.startedAt, now)}
+							</span>
+						)}
+						<div className="min-w-0 flex-1">{action}</div>
 					</div>
 				) : (
 					action

@@ -234,6 +234,24 @@ export function describeStorage(
 			]);
 		});
 
+		it("puts back operations left inflight, and only those", async () => {
+			const storage = await create();
+			const [sent, queued, refused] = [1, 2, 3].map((w) => op(A, w, { n: w }));
+			if (!sent || !queued || !refused) throw new Error("unreachable");
+			await queue(storage, sent, refused);
+			await storage.claimPending(2);
+			await storage.resolveOps([
+				{ opId: refused.opId, status: "rejected", reason: "FORBIDDEN" },
+			]);
+			await queue(storage, queued);
+			await storage.releaseInflight();
+			expect(await storage.getOutbox()).toEqual([
+				{ op: sent, status: "pending" },
+				{ op: refused, status: "dead", reason: "FORBIDDEN" },
+				{ op: queued, status: "pending" },
+			]);
+		});
+
 		it("discards rejected operations only", async () => {
 			const storage = await create();
 			const [kept, refused] = [op(A, 1, { n: 1 }), op(A, 2, { n: 2 })];
