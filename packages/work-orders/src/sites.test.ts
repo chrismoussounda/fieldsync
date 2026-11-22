@@ -31,6 +31,19 @@ describe("isValidSitePatch", () => {
 		expect(isValidSitePatch({ address: "x".repeat(301) })).toBe(false);
 		expect(isValidSitePatch({ title: "x" })).toBe(false);
 	});
+
+	it("takes a point on the map, or none", () => {
+		expect(isValidSitePatch({ location: { lat: -4.27, lng: 15.28 } })).toBe(
+			true,
+		);
+		expect(isValidSitePatch({ location: null })).toBe(true);
+		expect(isValidSitePatch({ location: { lat: 91, lng: 0 } })).toBe(false);
+		expect(isValidSitePatch({ location: { lat: "-4", lng: 15 } })).toBe(false);
+		expect(isValidSitePatch({ location: { lat: 0, lng: 0, zoom: 3 } })).toBe(
+			false,
+		);
+		expect(isValidSitePatch({ location: "-4.27,15.28" })).toBe(false);
+	});
 });
 
 describe("mayChangeSite", () => {

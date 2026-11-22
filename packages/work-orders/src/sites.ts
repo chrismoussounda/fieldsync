@@ -1,4 +1,4 @@
-import { canManage, type Role } from "./index.ts";
+import { canManage, isLocation, type Role } from "./index.ts";
 
 /** A customer's place of work, kept once and picked on each of its orders. */
 export const SITE = "site";
@@ -9,6 +9,7 @@ export const SITE_FIELDS = [
 	"contactName",
 	"contactPhone",
 	"accessNotes",
+	"location",
 ] as const;
 
 export const MAX_SITE_LENGTH = {
@@ -25,6 +26,7 @@ export function isValidSitePatch(patch: Record<string, unknown>): boolean {
 	return Object.entries(patch).every(([field, value]) => {
 		if (!(SITE_FIELDS as readonly string[]).includes(field)) return false;
 		if (value === null) return field !== "name";
+		if (field === "location") return isLocation(value);
 		if (typeof value !== "string" || value.trim().length === 0) return false;
 		if (value.length > MAX_SITE_LENGTH[field as keyof typeof MAX_SITE_LENGTH]) {
 			return false;
