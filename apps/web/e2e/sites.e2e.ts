@@ -82,3 +82,37 @@ test("on a phone, a site is added from a bottom drawer", async ({
 	await office.getByRole("link", { name }).click();
 	await expect(office.getByRole("heading", { name })).toBeVisible();
 });
+
+test("on a desktop, the sites are a table: a row opens its site, search narrows it", async ({
+	browser,
+}) => {
+	const name = `Pharmacy ${Date.now()}`;
+	const office = await device(browser, "dispatch@fieldsync.demo");
+	await office.goto("/#/sites?new=1");
+	await office.getByLabel("Name").fill(name);
+	await office.getByLabel("Contact").fill("Mme Loubaki");
+	await saveSheet(office);
+
+	await office.goto("/#/?new=1");
+	await office
+		.getByRole("dialog")
+		.getByLabel("Title")
+		.fill(`Shelves at ${name}`);
+	await pick(office, "Site", name);
+	await saveSheet(office);
+
+	await office.goto("/#/sites");
+	const table = office.getByRole("grid", { name: "Customer sites" });
+	const row = table.getByRole("row").filter({ hasText: name });
+	await expect(row).toContainText("Mme Loubaki");
+	await expect(row).toContainText("1 open");
+
+	await office.getByRole("searchbox").fill("no such site anywhere");
+	await expect(office.getByText("No site matches.")).toBeVisible();
+	await office.getByRole("searchbox").fill(name.toLowerCase());
+	await expect(table.getByRole("row")).toHaveCount(2);
+
+	// Anywhere on the row opens the site, not only its name.
+	await row.click({ position: { x: 600, y: 20 } });
+	await expect(office.getByRole("heading", { name })).toBeVisible();
+});
