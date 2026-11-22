@@ -50,6 +50,27 @@ export const en: Messages<typeof fr> = {
 		anyway: "Sign out anyway",
 		cancel: "Cancel",
 	},
+	fields: {
+		title: "Title",
+		description: "Description",
+		address: "Address",
+		priority: "Priority",
+		assigneeId: "Assignee",
+		dueDate: "Due date",
+		siteId: "Site",
+		status: "Status",
+		notes: "Notes",
+	},
+	priority: {
+		urgent: "Urgent",
+		normal: "Normal",
+		low: "Low",
+	},
+	values: {
+		empty: "(empty)",
+		someone: "Someone",
+		removedSite: "A removed site",
+	},
 	status: {
 		open: "Open",
 		assigned: "Assigned",
@@ -87,6 +108,8 @@ export const en: Messages<typeof fr> = {
 		noMatch: "No work orders match these filters.",
 		noDate: "No date",
 	},
+
+
 	sites: {
 		title: "Customer sites",
 		count_one: "{{count}} site",

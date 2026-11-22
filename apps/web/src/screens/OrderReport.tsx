@@ -5,7 +5,7 @@ import { formatQuantity } from "../app/parts.ts";
 import { reportOf } from "../app/report.ts";
 import { ROUTES } from "../app/route.ts";
 import type { Member } from "../app/workspace.ts";
-import { STATUS_LABELS } from "../orders.ts";
+import { statusLabel } from "../orders.ts";
 import type { LocalDb } from "../sync/storage.ts";
 import { PhotoImage } from "./OrderPhotos.tsx";
 
@@ -53,7 +53,7 @@ export function OrderReport({ db, id }: { db: LocalDb; id: string }) {
 					<dt>Date</dt>
 					<dd>{day(lastStop ?? new Date(now).toISOString())}</dd>
 					<dt>Status</dt>
-					<dd>{STATUS_LABELS[order.status] ?? order.status}</dd>
+					<dd>{statusLabel(order.status)}</dd>
 				</dl>
 			</header>
 

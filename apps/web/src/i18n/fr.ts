@@ -46,6 +46,27 @@ export const fr = {
 		anyway: "Se déconnecter quand même",
 		cancel: "Annuler",
 	},
+	fields: {
+		title: "Titre",
+		description: "Description",
+		address: "Adresse",
+		priority: "Priorité",
+		assigneeId: "Technicien",
+		dueDate: "Échéance",
+		siteId: "Site",
+		status: "Statut",
+		notes: "Notes",
+	},
+	priority: {
+		urgent: "Urgente",
+		normal: "Normale",
+		low: "Basse",
+	},
+	values: {
+		empty: "(vide)",
+		someone: "Quelqu'un",
+		removedSite: "Un site supprimé",
+	},
 	status: {
 		open: "Ouverte",
 		assigned: "Assignée",
@@ -83,6 +104,8 @@ export const fr = {
 		noMatch: "Aucune intervention ne correspond à ces filtres.",
 		noDate: "Sans date",
 	},
+
+
 	sites: {
 		title: "Sites clients",
 		count_one: "{{count}} site",

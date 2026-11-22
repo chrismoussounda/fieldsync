@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { sitesOf } from "../app/sites.ts";
 import { apiFetch, type Member } from "../app/workspace.ts";
 import type { Session } from "../auth/session.ts";
-import { describeValue, FIELD_LABELS } from "../orders.ts";
+import { describeValue, fieldLabel } from "../orders.ts";
 import type { LocalDb } from "../sync/storage.ts";
 
 type Entry = {
@@ -77,7 +77,7 @@ export function OrderHistory({ db, session, id, stamp }: Props) {
 			<ul className="changes">
 				{fields.map(([field, value]) => (
 					<li key={field}>
-						<span className="muted">{FIELD_LABELS[field] ?? field}</span>{" "}
+						<span className="muted">{fieldLabel(field)}</span>{" "}
 						{describeValue(field, value, names)}
 					</li>
 				))}

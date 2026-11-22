@@ -18,9 +18,9 @@ import type { Member } from "../app/workspace.ts";
 import type { Session, User } from "../auth/session.ts";
 import {
 	type Draft,
-	PRIORITY_LABELS,
 	patchOf,
-	STATUS_LABELS,
+	priorityLabel,
+	statusLabel,
 	toDraft,
 } from "../orders.ts";
 import type { SyncLoop } from "../sync/loop.ts";
@@ -248,7 +248,7 @@ function OrderForm({
 					<select {...field("priority")}>
 						{PRIORITIES.map((p) => (
 							<option key={p} value={p}>
-								{PRIORITY_LABELS[p]}
+								{priorityLabel(p)}
 							</option>
 						))}
 					</select>
@@ -275,7 +275,7 @@ function OrderForm({
 					<select {...field("status")}>
 						{STATUSES.map((s) => (
 							<option key={s} value={s}>
-								{STATUS_LABELS[s]}
+								{statusLabel(s)}
 							</option>
 						))}
 					</select>

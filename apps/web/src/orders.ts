@@ -1,5 +1,11 @@
 import { type EntityState, isDeleted } from "@fieldsync/merge";
-import { FIELDS, type Field, PRIORITIES } from "@fieldsync/work-orders";
+import {
+	FIELDS,
+	type Field,
+	PRIORITIES,
+	STATUSES,
+} from "@fieldsync/work-orders";
+import i18n from "i18next";
 
 export { WORK_ORDER } from "@fieldsync/work-orders";
 
@@ -16,31 +22,32 @@ export type Order = {
 	notes: string;
 };
 
-export const FIELD_LABELS: Record<string, string> = {
-	title: "Title",
-	description: "Description",
-	address: "Address",
-	priority: "Priority",
-	assigneeId: "Assignee",
-	dueDate: "Due date",
-	siteId: "Site",
-	status: "Status",
-	notes: "Notes",
-};
+const FIELD_NAMES = [
+	"title",
+	"description",
+	"address",
+	"priority",
+	"assigneeId",
+	"dueDate",
+	"siteId",
+	"status",
+	"notes",
+] as const;
 
-export const STATUS_LABELS: Record<string, string> = {
-	open: "Open",
-	assigned: "Assigned",
-	in_progress: "In progress",
-	done: "Done",
-	cancelled: "Cancelled",
-};
+export function fieldLabel(field: string): string {
+	const known = FIELD_NAMES.find((f) => f === field);
+	return known ? i18n.t(`fields.${known}`) : field;
+}
 
-export const PRIORITY_LABELS: Record<string, string> = {
-	urgent: "Urgent",
-	normal: "Normal",
-	low: "Low",
-};
+export function statusLabel(status: string): string {
+	const known = STATUSES.find((s) => s === status);
+	return known ? i18n.t(`status.${known}`) : status;
+}
+
+export function priorityLabel(priority: string): string {
+	const known = PRIORITIES.find((p) => p === priority);
+	return known ? i18n.t(`priority.${known}`) : priority;
+}
 
 const SHORT = 80;
 
@@ -50,12 +57,17 @@ export function describeValue(
 	value: unknown,
 	names: ReadonlyMap<string, string>,
 ): string {
-	if (value === null || value === undefined || value === "") return "(empty)";
+	if (value === null || value === undefined || value === "") {
+		return i18n.t("values.empty");
+	}
 	const text = String(value);
-	if (field === "assigneeId") return names.get(text) ?? "Someone";
-	if (field === "siteId") return names.get(text) ?? "A removed site";
-	if (field === "status") return STATUS_LABELS[text] ?? text;
-	if (field === "priority") return PRIORITY_LABELS[text] ?? text;
+	if (field === "assigneeId")
+		return names.get(text) ?? i18n.t("values.someone");
+	if (field === "siteId") {
+		return names.get(text) ?? i18n.t("values.removedSite");
+	}
+	if (field === "status") return statusLabel(text);
+	if (field === "priority") return priorityLabel(text);
 	return text.length > SHORT ? `${text.slice(0, SHORT - 1)}…` : text;
 }
 

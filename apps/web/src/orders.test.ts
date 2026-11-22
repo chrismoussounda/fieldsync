@@ -1,6 +1,8 @@
 import type { EntityState } from "@fieldsync/merge";
 import { FIELDS, PROGRESS_FIELDS } from "@fieldsync/work-orders";
-import { describe, expect, it } from "vitest";
+import i18n from "i18next";
+import { beforeAll, describe, expect, it } from "vitest";
+import { en } from "./i18n/en.ts";
 import {
 	byUrgency,
 	describeValue,
@@ -23,6 +25,9 @@ function state(fields: EntityState["fields"], deleted = false): EntityState {
 }
 
 describe("describeValue", () => {
+	beforeAll(() =>
+		i18n.init({ lng: "en", resources: { en: { translation: en } } }),
+	);
 	const names = new Map([["u1", "Junior"]]);
 
 	it("names people and labels codes", () => {
