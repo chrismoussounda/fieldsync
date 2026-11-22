@@ -163,6 +163,19 @@ describe("conflicts", () => {
 		]);
 	});
 
+	it("does not report two devices that wrote the same value", () => {
+		const office = op(OFFICE, 3, {
+			patch: { status: "cancelled" },
+			base: seen,
+		});
+		const phone = op(PHONE, 2, { patch: { status: "cancelled" }, base: seen });
+		expect(merge(apply(create, office), phone).conflicts).toEqual([]);
+		const here = { lat: -4.27, lng: 15.28 };
+		const pinned = op(OFFICE, 3, { patch: { location: here }, base: seen });
+		const same = op(PHONE, 4, { patch: { location: { ...here } }, base: seen });
+		expect(merge(apply(create, pinned), same).conflicts).toEqual([]);
+	});
+
 	it("ignores a device's own writes arriving out of order", () => {
 		const second = op(PHONE, 3, { patch: { status: "completed" }, base: seen });
 		const first = op(PHONE, 2, {
