@@ -155,6 +155,7 @@ export function Schedule({ db, loop, day }: Props) {
 			head: (
 				<Person
 					name={m.name}
+					wrap={!phone}
 					detail={t(phone ? "schedule.loadDay" : "schedule.loadWeek", {
 						count: days.reduce(
 							(n, d) => n + (board.cells.get(cellKey(m.id, d))?.length ?? 0),
@@ -243,7 +244,7 @@ export function Schedule({ db, loop, day }: Props) {
 						<table className="w-full min-w-[54rem] table-fixed border-collapse">
 							<caption className="sr-only">{t("schedule.title")}</caption>
 							<colgroup>
-								<col className="w-52 xl:w-60" />
+								<col className="w-44 2xl:w-52" />
 							</colgroup>
 							<thead>
 								<tr>

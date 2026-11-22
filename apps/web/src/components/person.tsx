@@ -12,10 +12,13 @@ export const initials = (name: string) =>
 export function Person({
 	name,
 	detail,
+	wrap = false,
 	className,
 }: {
 	name: string;
 	detail?: string;
+	/** Lets a long name take two lines rather than being cut. */
+	wrap?: boolean;
 	className?: string;
 }) {
 	return (
@@ -26,9 +29,14 @@ export function Person({
 				</AvatarFallback>
 			</Avatar>
 			<span className="grid min-w-0 leading-tight">
-				<span className="truncate">{name}</span>
+				<span className={wrap ? "break-words" : "truncate"}>{name}</span>
 				{detail && (
-					<span className="truncate text-sm text-muted-foreground">
+					<span
+						className={cn(
+							"text-sm text-muted-foreground",
+							wrap ? "break-words" : "truncate",
+						)}
+					>
 						{detail}
 					</span>
 				)}
