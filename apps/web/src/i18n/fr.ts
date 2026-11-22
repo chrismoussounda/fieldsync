@@ -403,6 +403,9 @@ export const fr = {
 		gone: "Ce site n'existe plus.",
 		call: "Appeler",
 		directions: "Itinéraire",
+		mapOf: "Carte : {{name}}",
+		noLocation:
+			"Pas encore de repère sur la carte ; l'itinéraire suit l'adresse.",
 		contact: "Contact sur place",
 		noContact: "Aucun contact renseigné.",
 		accessNotes: "Accès",
@@ -422,6 +425,7 @@ export const fr = {
 			nameRequired: "Donnez un nom au site.",
 			address: "Adresse",
 			addressPlaceholder: "Rue, quartier, ville",
+			location: "Position sur la carte",
 			contactName: "Contact",
 			contactNamePlaceholder: "Personne à demander sur place",
 			contactPhone: "Téléphone",

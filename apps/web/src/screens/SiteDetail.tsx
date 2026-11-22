@@ -15,9 +15,11 @@ import { type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Confirm } from "@/components/confirm";
+import { MapView } from "@/components/map";
 import { StatusBadge } from "@/components/status-badge";
 import { Button, LinkButton } from "@/components/ui/button";
 import { formatDay } from "@/lib/format";
+import { directionsUrl } from "@/lib/maps";
 import { useSheet } from "@/lib/use-sheet";
 import { ROUTES } from "../app/route.ts";
 import { jobsAt, type Site, telLink, toSite } from "../app/sites.ts";
@@ -85,9 +87,9 @@ export function SiteDetail({ db, loop, user, id }: Props) {
 							{t("sites.call")}
 						</LinkButton>
 					)}
-					{site.address && (
+					{(site.address || site.location) && (
 						<LinkButton
-							href={directions(site.address)}
+							href={directionsUrl(site.location, site.address)}
 							target="_blank"
 							rel="noreferrer"
 							variant="outline"
@@ -150,9 +152,6 @@ export function SiteDetail({ db, loop, user, id }: Props) {
 	);
 }
 
-const directions = (address: string) =>
-	`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
-
 function BackLink() {
 	const { t } = useTranslation();
 	return (
@@ -170,6 +169,18 @@ function SiteInfo({ site }: { site: Site }) {
 	const { t } = useTranslation();
 	return (
 		<section className="grid gap-5 rounded-2xl border bg-card p-6">
+			{site.location ? (
+				<MapView
+					location={site.location}
+					label={t("sites.mapOf", { name: site.name })}
+					className="-mx-2 -mt-2"
+				/>
+			) : (
+				<p className="flex items-center gap-2 rounded-xl bg-muted p-3 text-sm text-muted-foreground">
+					<MapPin aria-hidden className="size-4 shrink-0" />
+					{t("sites.noLocation")}
+				</p>
+			)}
 			<InfoRow icon={<UserRound />} title={t("sites.contact")}>
 				{site.contactName || site.contactPhone ? (
 					<>

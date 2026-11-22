@@ -1,5 +1,10 @@
 import { type EntityState, isDeleted } from "@fieldsync/merge";
-import { SITE, WORK_ORDER } from "@fieldsync/work-orders";
+import {
+	isLocation,
+	type Location,
+	SITE,
+	WORK_ORDER,
+} from "@fieldsync/work-orders";
 import { type Order, toOrder } from "../orders.ts";
 import type { LocalDb } from "../sync/storage.ts";
 
@@ -10,6 +15,7 @@ export type Site = {
 	contactName: string;
 	contactPhone: string;
 	accessNotes: string;
+	location: Location | null;
 };
 
 /** Reads a stored record as a site; null once it is deleted. */
@@ -24,6 +30,7 @@ export function toSite(id: string, state: EntityState): Site | null {
 		contactName: text(f.contactName),
 		contactPhone: text(f.contactPhone),
 		accessNotes: text(f.accessNotes),
+		location: isLocation(f.location) ? f.location : null,
 	};
 }
 
