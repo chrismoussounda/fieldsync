@@ -2,11 +2,14 @@ import { type EntityState, isDeleted } from "@fieldsync/merge";
 import {
 	FIELDS,
 	type Field,
+	isLocation,
+	type Location,
 	PRIORITIES,
 	STATUSES,
 } from "@fieldsync/work-orders";
 import i18n from "i18next";
 import { formatDay } from "./lib/format.ts";
+import { formatLocation } from "./lib/maps.ts";
 
 export { WORK_ORDER } from "@fieldsync/work-orders";
 
@@ -20,6 +23,7 @@ export type Order = {
 	assigneeId: string | null;
 	dueDate: string | null;
 	siteId: string | null;
+	location: Location | null;
 	notes: string;
 };
 
@@ -31,6 +35,7 @@ const FIELD_NAMES = [
 	"assigneeId",
 	"dueDate",
 	"siteId",
+	"location",
 	"status",
 	"notes",
 ] as const;
@@ -61,7 +66,7 @@ export function describeValue(
 	if (value === null || value === undefined || value === "") {
 		return i18n.t("values.empty");
 	}
-	const text = String(value);
+	const text = typeof value === "string" ? value : JSON.stringify(value);
 	if (field === "assigneeId")
 		return names.get(text) ?? i18n.t("values.someone");
 	if (field === "siteId") {
@@ -70,6 +75,9 @@ export function describeValue(
 	if (field === "status") return statusLabel(text);
 	if (field === "priority") return priorityLabel(text);
 	if (field === "dueDate") return formatDay(text);
+	if (field === "location") {
+		return isLocation(value) ? formatLocation(value) : i18n.t("values.empty");
+	}
 	return text.length > SHORT ? `${text.slice(0, SHORT - 1)}…` : text;
 }
 
@@ -88,6 +96,7 @@ export function toOrder(id: string, state: EntityState): Order | null {
 		assigneeId: text(f.assigneeId) || null,
 		dueDate: text(f.dueDate) || null,
 		siteId: text(f.siteId) || null,
+		location: isLocation(f.location) ? f.location : null,
 		notes: text(f.notes),
 	};
 }
@@ -104,17 +113,23 @@ export function byUrgency(a: Order, b: Order): number {
 	);
 }
 
-/** What a form edits: every field as text, empty when unset. */
-export type Draft = Record<Field, string>;
+type TextField = Exclude<Field, "location">;
+
+/** What a form edits: every field as text, empty when unset, and the map point. */
+export type Draft = Record<TextField, string> & { location: Location | null };
 
 export function toDraft(state: EntityState | null): Draft {
-	const draft = {} as Draft;
+	const draft = { location: null } as Draft;
 	for (const field of FIELDS) {
 		const value = state?.fields[field];
-		draft[field] = typeof value === "string" ? value : "";
+		if (field === "location") draft.location = isLocation(value) ? value : null;
+		else draft[field] = typeof value === "string" ? value : "";
 	}
 	return draft;
 }
+
+const samePoint = (a: Location | null, b: Location | null) =>
+	a === b || (a !== null && b !== null && a.lat === b.lat && a.lng === b.lng);
 
 /**
  * The fields the user changed and may change. Untouched fields are left out,
@@ -124,10 +139,17 @@ export function patchOf(
 	before: Draft,
 	after: Draft,
 	editable: ReadonlySet<Field>,
-): Record<string, string | null> {
-	const patch: Record<string, string | null> = {};
+): Record<string, string | Location | null> {
+	const patch: Record<string, string | Location | null> = {};
 	for (const field of FIELDS) {
-		if (!editable.has(field) || after[field] === before[field]) continue;
+		if (!editable.has(field)) continue;
+		if (field === "location") {
+			if (!samePoint(before.location, after.location)) {
+				patch.location = after.location;
+			}
+			continue;
+		}
+		if (after[field] === before[field]) continue;
 		const value = after[field].trim();
 		patch[field] = value === "" ? null : value;
 	}

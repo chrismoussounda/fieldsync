@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { DateField } from "@/components/date-field";
 import { TextAreaField, TextField } from "@/components/fields";
 import { FormSheet } from "@/components/form-sheet";
+import { LocationField } from "@/components/map";
 import { SelectField } from "@/components/select-field";
 import { itemsOf } from "../app/checklists.ts";
 import { sitesOf } from "../app/sites.ts";
@@ -71,7 +72,7 @@ export function OrderSheet({
 	const editable: ReadonlySet<Field> = order
 		? editableFields(user, order.state.fields)
 		: new Set(canManage(user.role) ? FIELDS : []);
-	const set = (field: Field) => (value: string) =>
+	const set = (field: Exclude<Field, "location">) => (value: string) =>
 		setEdits((e) => ({ ...e, [field]: value }));
 	const max = (field: Field) =>
 		(MAX_LENGTH as Partial<Record<Field, number>>)[field];
@@ -108,8 +109,13 @@ export function OrderSheet({
 		...(sites ?? []).map((s) => ({ value: s.id, label: s.name })),
 	];
 	const pickSite = (siteId: string) => {
-		const address = sites?.find((s) => s.id === siteId)?.address;
-		setEdits((e) => ({ ...e, siteId, ...(address ? { address } : {}) }));
+		const site = sites?.find((s) => s.id === siteId);
+		setEdits((e) => ({
+			...e,
+			siteId,
+			...(site?.address ? { address: site.address } : {}),
+			...(site?.location ? { location: site.location } : {}),
+		}));
 	};
 
 	return (
@@ -164,6 +170,16 @@ export function OrderSheet({
 					maxLength={max("address")}
 					value={draft.address}
 					onChange={set("address")}
+				/>
+			)}
+			{editable.has("location") && (
+				<LocationField
+					// Remounts on a new site, so the map moves to its pin.
+					key={draft.siteId}
+					id="order-location"
+					label={t("order.form.location")}
+					value={draft.location}
+					onChange={(location) => setEdits((e) => ({ ...e, location }))}
 				/>
 			)}
 			{(editable.has("priority") || editable.has("dueDate")) && (

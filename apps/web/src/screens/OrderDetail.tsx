@@ -25,6 +25,7 @@ import { type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Confirm } from "@/components/confirm";
+import { MapView } from "@/components/map";
 import { Section } from "@/components/section";
 import { StatusBadge } from "@/components/status-badge";
 import { Button, LinkButton } from "@/components/ui/button";
@@ -34,6 +35,7 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { formatDay } from "@/lib/format";
+import { directionsUrl } from "@/lib/maps";
 import { useSheet } from "@/lib/use-sheet";
 import { cn } from "@/lib/utils";
 import { itemsOf } from "../app/checklists.ts";
@@ -316,7 +318,9 @@ function Place({
 }) {
 	const { t } = useTranslation();
 	const address = order.address || site?.address || "";
-	if (!site && !address) return null;
+	// Orders filed before the site had a pin take the site's.
+	const location = order.location ?? site?.location ?? null;
+	if (!site && !address && !location) return null;
 	return (
 		<div className={className}>
 			<Section title={t("order.site")}>
@@ -345,6 +349,16 @@ function Place({
 						{address}
 					</p>
 				)}
+				{location ? (
+					<MapView
+						location={location}
+						label={t("order.mapOf", { title: order.title })}
+					/>
+				) : (
+					<p className="text-sm text-muted-foreground">
+						{t("order.noLocation")}
+					</p>
+				)}
 				{site?.contactName && (
 					<p className="flex items-center gap-2">
 						<UserRound
@@ -370,9 +384,9 @@ function Place({
 							{t("order.call")}
 						</LinkButton>
 					)}
-					{address && (
+					{location && (
 						<LinkButton
-							href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`}
+							href={directionsUrl(location)}
 							target="_blank"
 							rel="noreferrer"
 							variant="outline"
