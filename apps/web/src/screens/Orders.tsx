@@ -7,19 +7,18 @@ import {
 	ListChecks,
 	Plus,
 	Search,
-	SlidersHorizontal,
 	UserRound,
 	X,
 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { columnHelper, DataTable } from "@/components/data-table";
+import { FilterDrawer, FiltersButton } from "@/components/filter-drawer";
 import { PageHeader } from "@/components/page-header";
 import { Person } from "@/components/person";
 import { SelectField } from "@/components/select-field";
 import { StatusBadge } from "@/components/status-badge";
 import { Button, LinkButton } from "@/components/ui/button";
-import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Toggle } from "@/components/ui/toggle";
 import { formatDay } from "@/lib/format";
@@ -246,19 +245,7 @@ export function Orders({ db, loop, user, query, creating }: Props) {
 					/>
 				</div>
 				{phone ? (
-					<Button
-						variant="outline"
-						className="h-10 bg-card px-3"
-						onPress={() => setFiltering(true)}
-					>
-						<SlidersHorizontal aria-hidden />
-						{t("orders.filters")}
-						{active > 0 && (
-							<span className="grid size-5 place-items-center rounded-full bg-primary text-xs text-primary-foreground">
-								{active}
-							</span>
-						)}
-					</Button>
+					<FiltersButton count={active} onPress={() => setFiltering(true)} />
 				) : (
 					controls
 				)}
@@ -292,32 +279,13 @@ export function Orders({ db, loop, user, query, creating }: Props) {
 				/>
 			)}
 			{phone && (
-				<Drawer open={filtering} onOpenChange={setFiltering}>
-					<DrawerContent>
-						<div className="mx-auto mt-3 h-1.5 w-12 shrink-0 rounded-full bg-muted-foreground/30" />
-						<div className="grid gap-5 overflow-y-auto px-5 pt-3 pb-4">
-							<DrawerTitle className="text-lg font-semibold">
-								{t("orders.filters")}
-							</DrawerTitle>
-							{controls}
-						</div>
-						<div className="flex gap-2 border-t px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-							<Button
-								variant="outline"
-								className="h-11 flex-1"
-								onPress={() => set(defaults(user))}
-							>
-								{t("orders.clear")}
-							</Button>
-							<Button
-								className="h-11 flex-1"
-								onPress={() => setFiltering(false)}
-							>
-								{t("orders.apply")}
-							</Button>
-						</div>
-					</DrawerContent>
-				</Drawer>
+				<FilterDrawer
+					open={filtering}
+					onOpenChange={setFiltering}
+					onClear={() => set(defaults(user))}
+				>
+					{controls}
+				</FilterDrawer>
 			)}
 		</div>
 	);

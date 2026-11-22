@@ -149,6 +149,29 @@
 	.map-pin circle {
 		fill: var(--primary-foreground);
 	}
+	.map-pin-open path {
+		fill: var(--status-open);
+	}
+	.map-pin-assigned path {
+		fill: var(--status-active);
+	}
+	.map-pin-in_progress path {
+		fill: var(--warning);
+	}
+	.map-pin-done path {
+		fill: var(--status-done);
+	}
+	.map-pin-cancelled path {
+		fill: var(--muted-foreground);
+	}
+	.leaflet-marker-icon:focus-visible {
+		@apply rounded-full outline-2 outline-offset-2 outline-ring;
+	}
+	.map-pin-chosen {
+		transform: scale(1.3);
+		transform-origin: 50% 100%;
+		filter: drop-shadow(0 4px 6px rgb(0 0 0 / 0.4));
+	}
 	.leaflet-bar {
 		@apply overflow-hidden rounded-lg border-0 shadow-md ring-1 ring-foreground/10;
 	}
