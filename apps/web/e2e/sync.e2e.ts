@@ -24,6 +24,10 @@ test("an edit made offline reaches the office once back online", async ({
 	await sync(tech);
 
 	await tech.context().setOffline(true);
+	// Said at once, not at the next sync 15 seconds later.
+	await expect(tech.locator(".badge")).toHaveText("Offline", {
+		timeout: 2_000,
+	});
 	await open(tech, title);
 	await (await edit(tech))
 		.getByLabel("Notes")
