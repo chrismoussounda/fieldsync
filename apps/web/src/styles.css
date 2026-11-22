@@ -188,7 +188,7 @@ input:not([data-slot]) {
 	color: var(--warn-text);
 }
 
-a {
+a:not([data-slot]) {
 	color: var(--primary);
 	font-weight: 600;
 	text-decoration: none;
