@@ -3,7 +3,7 @@ import type { Location } from "@fieldsync/work-orders";
 import { cn } from "cn";
 import L from "leaflet";
 import { LocateFixed, MapPinned, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
 	AttributionControl,
@@ -18,13 +18,34 @@ import { Field } from "@/components/fields";
 import { Button } from "@/components/ui/button";
 import { currentPosition, DEFAULT_CENTER, formatLocation } from "@/lib/maps";
 import { usePhone } from "@/lib/use-phone";
+import type { Pin } from "../app/map.ts";
+
+const SHAPE = `<path d="M18 43s15-14.2 15-25A15 15 0 0 0 3 18c0 10.8 15 25 15 25Z" /><circle cx="18" cy="18" r="6" />`;
 
 const PIN = L.divIcon({
 	className: "",
 	iconSize: [36, 44],
 	iconAnchor: [18, 42],
-	html: `<svg viewBox="0 0 36 44" width="36" height="44" class="map-pin" aria-hidden="true"><path d="M18 43s15-14.2 15-25A15 15 0 0 0 3 18c0 10.8 15 25 15 25Z" /><circle cx="18" cy="18" r="6" /></svg>`,
+	html: `<svg viewBox="0 0 36 44" width="36" height="44" class="map-pin" aria-hidden="true">${SHAPE}</svg>`,
 });
+
+const jobPins = new Map<string, L.DivIcon>();
+
+/** A pin in the job's status colour, larger when it is the one chosen. */
+function jobPin(status: string, chosen: boolean): L.DivIcon {
+	const key = `${status}:${chosen}`;
+	let icon = jobPins.get(key);
+	if (!icon) {
+		icon = L.divIcon({
+			className: "",
+			iconSize: [36, 44],
+			iconAnchor: [18, 42],
+			html: `<svg viewBox="0 0 36 44" width="36" height="44" class="map-pin map-pin-${status}${chosen ? " map-pin-chosen" : ""}" aria-hidden="true">${SHAPE}</svg>`,
+		});
+		jobPins.set(key, icon);
+	}
+	return icon;
+}
 
 const CLOSE = 17;
 const WIDE = 12;
@@ -199,5 +220,83 @@ export function LocationField({
 				)}
 			</div>
 		</Field>
+	);
+}
+
+/** Frames every pin when the set of jobs shown changes, not on each edit. */
+function FitPins({ pins }: { pins: readonly Pin[] }) {
+	const map = useMap();
+	const key = pins
+		.map((p) => `${p.order.id}@${p.location.lat},${p.location.lng}`)
+		.join("|");
+	// biome-ignore lint/correctness/useExhaustiveDependencies: the key stands for the pins.
+	useEffect(() => {
+		if (pins.length === 0) map.setView(at(DEFAULT_CENTER), WIDE);
+		else
+			map.fitBounds(L.latLngBounds(pins.map((p) => at(p.location))), {
+				padding: [48, 48],
+				maxZoom: CLOSE - 1,
+			});
+	}, [key, map]);
+	return null;
+}
+
+/** Brings the chosen job into view when it was picked off the map. */
+function ShowChosen({ pin }: { pin: Pin | null }) {
+	const map = useMap();
+	useEffect(() => {
+		if (pin && !map.getBounds().contains(at(pin.location))) {
+			map.panTo(at(pin.location), { duration: 0.5 });
+		}
+	}, [pin, map]);
+	return null;
+}
+
+/** Many jobs on one map, each a pin in its status colour; a pin picks its job. */
+export function JobsMap({
+	pins,
+	chosen,
+	onChoose,
+	label,
+	className,
+}: {
+	pins: readonly Pin[];
+	chosen: string | null;
+	onChoose: (id: string) => void;
+	label: string;
+	className?: string;
+}) {
+	const chosenPin = useMemo(
+		() => pins.find((p) => p.order.id === chosen) ?? null,
+		[pins, chosen],
+	);
+	return (
+		<section
+			aria-label={label}
+			data-base-ui-swipe-ignore
+			className={cn(FRAME, className)}
+		>
+			<MapContainer
+				center={at(DEFAULT_CENTER)}
+				zoom={WIDE}
+				scrollWheelZoom
+				attributionControl={false}
+			>
+				<Tiles />
+				<FitBox />
+				<FitPins pins={pins} />
+				<ShowChosen pin={chosenPin} />
+				{pins.map(({ order, location }) => (
+					<Marker
+						key={order.id}
+						position={at(location)}
+						icon={jobPin(order.status, order.id === chosen)}
+						title={order.title}
+						zIndexOffset={order.id === chosen ? 1000 : 0}
+						eventHandlers={{ click: () => onChoose(order.id) }}
+					/>
+				))}
+			</MapContainer>
+		</section>
 	);
 }
