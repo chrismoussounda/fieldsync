@@ -11,6 +11,9 @@ import {
 	sync,
 } from "./devices.ts";
 
+// An office desktop; phones set their own size.
+test.use({ viewport: { width: 1440, height: 900 } });
+
 const pad = (n: number) => String(n).padStart(2, "0");
 const isoDay = (d: Date) =>
 	`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -26,9 +29,12 @@ const cell = (page: Page, who: string, day = today) =>
 	page.getByRole("cell", { name: `${who}, ${longDay(day)}` });
 const job = (page: Page, title: string) =>
 	page.locator("[data-job]").filter({ hasText: title });
-/** Drags a job from its middle, where its title link is. */
+/**
+ * Drags a job from its middle, where its title link is, to the top of a
+ * cell: a busy cell grows past the bottom of the window.
+ */
 async function drag(page: Page, title: string, to: ReturnType<typeof cell>) {
-	await job(page, title).dragTo(to);
+	await job(page, title).dragTo(to, { targetPosition: { x: 24, y: 24 } });
 }
 const toPlan = (page: Page) => page.getByRole("region", { name: /^To plan/ });
 
@@ -152,4 +158,48 @@ test("on a phone, the schedule is one day, moved with the sheet", async ({
 
 	await office.getByRole("button", { name: "Next day" }).click();
 	await expect(job(office, title)).toHaveCount(0);
+});
+
+test("two planners moving the same job, one offline, end up agreeing", async ({
+	browser,
+}) => {
+	const title = `Pump ${Date.now()}`;
+	const dispatch = await device(browser, "dispatch@fieldsync.demo");
+	const admin = await device(browser, "admin@fieldsync.demo");
+	await unplanned(dispatch, title);
+	await sync(admin);
+	await admin.goto("/#/schedule");
+
+	await admin.context().setOffline(true);
+	await drag(admin, title, cell(admin, JUNIOR));
+	await expect(cell(admin, JUNIOR).getByText(title)).toBeVisible();
+
+	await dispatch.goto("/#/schedule");
+	await dispatch.getByRole("button", { name: `Move “${title}”` }).click();
+	await pick(dispatch, "Technician", MERVEILLE);
+	// Typed into the date segments: day, month, year.
+	await dispatch.getByRole("dialog").getByRole("spinbutton").first().click();
+	await dispatch.keyboard.type(
+		`${pad(today.getDate())}${pad(today.getMonth() + 1)}${today.getFullYear()}`,
+	);
+	await dispatch
+		.getByRole("dialog")
+		.getByRole("button", { name: "Move", exact: true })
+		.click();
+	await expect(cell(dispatch, MERVEILLE).getByText(title)).toBeVisible();
+	await expect(dispatch.locator(".badge")).toHaveText("Synced");
+
+	await admin.context().setOffline(false);
+	await expect(admin.locator(".badge")).toHaveText("Synced");
+	// The later move wins on both screens.
+	await expect(cell(admin, MERVEILLE).getByText(title)).toBeVisible();
+	await expect(cell(admin, JUNIOR).getByText(title)).toHaveCount(0);
+	await dispatch.reload();
+	await expect(cell(dispatch, MERVEILLE).getByText(title)).toBeVisible();
+
+	// Only the assignee differed: the day and the status both chose agree.
+	await dispatch.goto("/#/conflicts");
+	const clash = dispatch.getByRole("row").filter({ hasText: title });
+	await expect(clash).toHaveCount(1);
+	await expect(clash).toContainText(`Assignee${MERVEILLE}${JUNIOR}`);
 });
