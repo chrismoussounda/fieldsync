@@ -111,12 +111,6 @@ input:not([data-slot]) {
 	font-size: 0.9rem;
 }
 
-.page {
-	max-width: 48rem;
-	margin: 0 auto;
-	padding: 1rem;
-}
-
 .toolbar {
 	display: flex;
 	align-items: center;
@@ -194,7 +188,7 @@ input:not([data-slot]) {
 	color: var(--warn-text);
 }
 
-a {
+a:not([data-slot]) {
 	color: var(--primary);
 	font-weight: 600;
 	text-decoration: none;
@@ -781,11 +775,6 @@ label.button.disabled {
 
 	.no-print {
 		display: none;
-	}
-
-	.page {
-		max-width: none;
-		padding: 0;
 	}
 
 	.report {

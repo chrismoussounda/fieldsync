@@ -13,6 +13,7 @@ import {
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import { Toaster } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
 import { ROUTES, type Route, useRoute } from "./app/route.ts";
 import { type Sync, startSync } from "./app/workspace.ts";
@@ -143,7 +144,7 @@ function SignedIn({ db, session, user }: Props & { user: User }) {
 						{sync && <SyncBadge loop={sync.loop} pending={pending} />}
 					</div>
 				</header>
-				<main className="page pb-28 md:pb-8">
+				<main className="px-4 pt-6 pb-28 md:px-8 md:pb-10 print:p-0">
 					{route.name === "overview" && canManage(user.role) ? (
 						<Overview db={db} />
 					) : route.name === "list" || !sync ? (
@@ -156,9 +157,15 @@ function SignedIn({ db, session, user }: Props & { user: User }) {
 						/>
 					) : route.name === "report" ? (
 						<OrderReport db={db} id={route.id} />
-					) : route.name === "sites" ? (
-						<Sites db={db} user={user} />
-					) : route.name === "site" ? (
+					) : route.name === "sites" ||
+						(route.name === "site" && route.id === null) ? (
+						<Sites
+							db={db}
+							loop={sync.loop}
+							user={user}
+							creating={route.name === "site"}
+						/>
+					) : route.name === "site" && route.id ? (
 						<SiteDetail
 							key={route.id}
 							db={db}
@@ -187,6 +194,7 @@ function SignedIn({ db, session, user }: Props & { user: User }) {
 					)}
 				</main>
 			</div>
+			<Toaster position="top-center" />
 			<nav
 				aria-label={t("nav.main")}
 				className="print:hidden! fixed inset-x-3 bottom-3 z-20 grid auto-cols-fr grid-flow-col rounded-2xl border bg-card/95 p-1.5 shadow-lg backdrop-blur md:hidden"
