@@ -34,6 +34,7 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { formatDay } from "@/lib/format";
+import { useSheet } from "@/lib/use-sheet";
 import { cn } from "@/lib/utils";
 import { itemsOf } from "../app/checklists.ts";
 import { ROUTES } from "../app/route.ts";
@@ -69,7 +70,7 @@ export function OrderDetail({ db, loop, session, user, id }: Props) {
 	);
 	const sites = useLiveQuery(() => sitesOf(db), [db]);
 	const members = useLiveQuery(() => db.getMeta<Member[]>("members"), [db]);
-	const [editing, setEditing] = useState(false);
+	const edit = useSheet<true>();
 	const [deleting, setDeleting] = useState(false);
 
 	if (state === undefined) return null;
@@ -130,7 +131,7 @@ export function OrderDetail({ db, loop, session, user, id }: Props) {
 							<Button
 								variant="outline"
 								className="bg-card"
-								onPress={() => setEditing(true)}
+								onPress={() => edit.show(true)}
 							>
 								<Pencil aria-hidden />
 								{t("order.edit")}
@@ -193,10 +194,11 @@ export function OrderDetail({ db, loop, session, user, id }: Props) {
 					/>
 				</aside>
 			</div>
-			{editing && (
+			{edit.value && (
 				<OrderSheet
-					open
-					onOpenChange={setEditing}
+					key={edit.key}
+					open={edit.open}
+					onOpenChange={(open) => !open && edit.hide()}
 					db={db}
 					loop={loop}
 					user={user}

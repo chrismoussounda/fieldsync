@@ -18,6 +18,7 @@ import { PageHeader } from "@/components/page-header";
 import { Button, LinkButton } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import { usePhone } from "@/lib/use-phone";
+import { useSheet } from "@/lib/use-sheet";
 import { cn } from "@/lib/utils";
 import { messageFor } from "../app/errors.ts";
 import { ROUTES } from "../app/route.ts";
@@ -46,7 +47,9 @@ export function Conflicts({ db, session }: { db: LocalDb; session: Session }) {
 	const phone = usePhone();
 	const client = useQueryClient();
 	const [showReviewed, setShowReviewed] = useState(false);
-	const [open, setOpen] = useState<Conflict | null>(null);
+	const detail = useSheet<Conflict>();
+	// Kept while the sheet slides out.
+	const open = detail.value;
 	const members = useLiveQuery(() => db.getMeta<Member[]>("members"), [db]);
 	const names = new Map(members?.map((m) => [m.id, m.name]));
 	const conflicts = useQuery({
@@ -72,7 +75,7 @@ export function Conflicts({ db, session }: { db: LocalDb; session: Session }) {
 		try {
 			await apiFetch(session, `/conflicts/${id}/review`, { method: "POST" });
 			toast.success(t("conflicts.reviewedToast"));
-			setOpen(null);
+			detail.hide();
 			await client.invalidateQueries({ queryKey: ["conflicts"] });
 		} catch (e) {
 			toast.error(messageFor(e));
@@ -157,7 +160,7 @@ export function Conflicts({ db, session }: { db: LocalDb; session: Session }) {
 						<li key={c.id}>
 							<button
 								type="button"
-								onClick={() => setOpen(c)}
+								onClick={() => detail.show(c)}
 								className="flex w-full items-center gap-3 rounded-2xl border bg-card p-4 text-left"
 							>
 								<span className="grid min-w-0 flex-1 gap-1.5">
@@ -183,14 +186,15 @@ export function Conflicts({ db, session }: { db: LocalDb; session: Session }) {
 					data={conflicts.data ?? []}
 					columns={columns}
 					getRowId={(c) => c.id}
-					onRowAction={setOpen}
+					onRowAction={detail.show}
 					empty={t("conflicts.none")}
 				/>
 			)}
 			{open && (
 				<DetailSheet
-					open
-					onOpenChange={(next) => !next && setOpen(null)}
+					key={detail.key}
+					open={detail.open}
+					onOpenChange={(next) => !next && detail.hide()}
 					title={t("conflicts.detailTitle", { field: fieldLabel(open.field) })}
 					description={`${title(open)} · ${t(`conflicts.${open.reason}`)}`}
 					actions={

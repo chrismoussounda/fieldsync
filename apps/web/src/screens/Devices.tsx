@@ -1,6 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Smartphone } from "lucide-react";
-import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Confirm } from "@/components/confirm";
@@ -11,6 +10,7 @@ import { Person } from "@/components/person";
 import { Button } from "@/components/ui/button";
 import { formatDay } from "@/lib/format";
 import { usePhone } from "@/lib/use-phone";
+import { useSheet } from "@/lib/use-sheet";
 import { cn } from "@/lib/utils";
 import { messageFor } from "../app/errors.ts";
 import { ago } from "../app/time.ts";
@@ -31,7 +31,8 @@ export function Devices({ session }: { session: Session }) {
 	const { t, i18n } = useTranslation();
 	const phone = usePhone();
 	const client = useQueryClient();
-	const [revoking, setRevoking] = useState<Device | null>(null);
+	const confirm = useSheet<Device>();
+	const revoking = confirm.value;
 	const devices = useQuery({
 		queryKey: ["devices"],
 		queryFn: async () =>
@@ -79,7 +80,7 @@ export function Devices({ session }: { session: Session }) {
 			<Button
 				variant="outline"
 				size="sm"
-				onPress={() => setRevoking(d)}
+				onPress={() => confirm.show(d)}
 				aria-label={`${t("devices.revoke")} ${d.name}, ${d.user.name}`}
 			>
 				{t("devices.revoke")}
@@ -164,8 +165,8 @@ export function Devices({ session }: { session: Session }) {
 				/>
 			)}
 			<Confirm
-				open={revoking !== null}
-				onOpenChange={(next) => !next && setRevoking(null)}
+				open={confirm.open}
+				onOpenChange={(next) => !next && confirm.hide()}
 				title={t("devices.revokeTitle")}
 				description={t("devices.revokeBody", {
 					name: revoking?.user.name ?? "",

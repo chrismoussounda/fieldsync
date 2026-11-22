@@ -12,6 +12,7 @@ import { FormSheet } from "@/components/form-sheet";
 import { Section } from "@/components/section";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useSheet } from "@/lib/use-sheet";
 import { cn } from "@/lib/utils";
 import { type Item, itemsOf } from "../app/checklists.ts";
 import type { Member } from "../app/workspace.ts";
@@ -33,7 +34,7 @@ export function OrderChecklist({ db, loop, user, orderId, order }: Props) {
 	const items = useLiveQuery(() => itemsOf(db, orderId), [db, orderId]);
 	const members = useLiveQuery(() => db.getMeta<Member[]>("members"), [db]);
 	const names = new Map(members?.map((m) => [m.id, m.name]));
-	const [adding, setAdding] = useState(false);
+	const add = useSheet<true>();
 	// The tick shows at once, until the stored value catches up; after that,
 	// changes from other devices show again.
 	const [ticked, setTicked] = useState<Record<string, boolean>>({});
@@ -78,7 +79,7 @@ export function OrderChecklist({ db, loop, user, orderId, order }: Props) {
 			}
 			action={
 				office && (
-					<Button variant="outline" onPress={() => setAdding(true)}>
+					<Button variant="outline" onPress={() => add.show(true)}>
 						<Plus aria-hidden />
 						{t("order.checklist.add")}
 					</Button>
@@ -148,9 +149,11 @@ export function OrderChecklist({ db, loop, user, orderId, order }: Props) {
 					})}
 				</ul>
 			)}
-			{adding && (
+			{add.value && (
 				<AddStep
-					onClose={() => setAdding(false)}
+					key={add.key}
+					open={add.open}
+					onClose={add.hide}
 					onAdd={(label) =>
 						void write(crypto.randomUUID(), {
 							orderId,
@@ -166,9 +169,11 @@ export function OrderChecklist({ db, loop, user, orderId, order }: Props) {
 
 /** Stays open after each step, so several can be added in a row. */
 function AddStep({
+	open,
 	onClose,
 	onAdd,
 }: {
+	open: boolean;
 	onClose: () => void;
 	onAdd: (label: string) => void;
 }) {
@@ -177,8 +182,8 @@ function AddStep({
 	const [error, setError] = useState<string | null>(null);
 	return (
 		<FormSheet
-			open
-			onOpenChange={(open) => !open && onClose()}
+			open={open}
+			onOpenChange={(next) => !next && onClose()}
 			title={t("order.checklist.add")}
 			submitLabel={t("order.checklist.add")}
 			onSubmit={() => {

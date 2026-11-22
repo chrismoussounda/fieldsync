@@ -18,6 +18,7 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { usePhone } from "@/lib/use-phone";
+import { useSheet } from "@/lib/use-sheet";
 import { cn } from "@/lib/utils";
 import { MIN_PASSWORD, messageFor } from "../app/errors.ts";
 import { apiFetch, type Member } from "../app/workspace.ts";
@@ -29,15 +30,16 @@ const ROLES: readonly Role[] = ["technician", "dispatcher", "admin"];
 type Props = { db: LocalDb; session: Session; user: User };
 type Open =
 	| { kind: "add" }
-	| { kind: "edit" | "password" | "disable"; member: Member }
-	| null;
+	| { kind: "edit" | "password" | "disable"; member: Member };
 
 /** Who is in the org; admins add people, change roles and lock accounts. */
 export function Team({ db, session, user }: Props) {
 	const { t } = useTranslation();
 	const phone = usePhone();
 	const client = useQueryClient();
-	const [open, setOpen] = useState<Open>(null);
+	const sheet = useSheet<Open>();
+	// Kept while a sheet slides out.
+	const open = sheet.value;
 	const members = useQuery({
 		queryKey: ["users"],
 		queryFn: async () => {
@@ -81,7 +83,7 @@ export function Team({ db, session, user }: Props) {
 			member={member}
 			self={member.id === user.id}
 			onPick={(kind) =>
-				kind === "enable" ? void enable(member) : setOpen({ kind, member })
+				kind === "enable" ? void enable(member) : sheet.show({ kind, member })
 			}
 		/>
 	);
@@ -131,7 +133,7 @@ export function Team({ db, session, user }: Props) {
 				actions={
 					<Button
 						className="h-10 px-4"
-						onPress={() => setOpen({ kind: "add" })}
+						onPress={() => sheet.show({ kind: "add" })}
 					>
 						<Plus aria-hidden />
 						{t("team.add")}
@@ -174,31 +176,38 @@ export function Team({ db, session, user }: Props) {
 					empty={t("team.empty")}
 				/>
 			)}
-			<AddSheet
-				open={open?.kind === "add"}
-				onClose={() => setOpen(null)}
-				session={session}
-				onDone={refresh}
-			/>
+			{open?.kind === "add" && (
+				<AddSheet
+					key={sheet.key}
+					open={sheet.open}
+					onClose={sheet.hide}
+					session={session}
+					onDone={refresh}
+				/>
+			)}
 			{open?.kind === "edit" && (
 				<EditSheet
+					key={sheet.key}
+					open={sheet.open}
 					member={open.member}
 					self={open.member.id === user.id}
-					onClose={() => setOpen(null)}
+					onClose={sheet.hide}
 					session={session}
 					onDone={refresh}
 				/>
 			)}
 			{open?.kind === "password" && (
 				<PasswordSheet
+					key={sheet.key}
+					open={sheet.open}
 					member={open.member}
-					onClose={() => setOpen(null)}
+					onClose={sheet.hide}
 					session={session}
 				/>
 			)}
 			<Confirm
-				open={open?.kind === "disable"}
-				onOpenChange={(next) => !next && setOpen(null)}
+				open={sheet.open && open?.kind === "disable"}
+				onOpenChange={(next) => !next && sheet.hide()}
 				title={t("team.disableTitle", {
 					name: open?.kind === "disable" ? open.member.name : "",
 				})}
@@ -331,7 +340,6 @@ function AddSheet({
 	const { busy, error, submit } = useSubmit(async () => {
 		await apiFetch(session, "/users", { method: "POST", json: values });
 		toast.success(t("team.added", { name: values.name }));
-		setValues({ name: "", email: "", role: "technician", password: "" });
 		onClose();
 		await onDone();
 	});
@@ -410,12 +418,14 @@ function RoleField({
 }
 
 function EditSheet({
+	open,
 	member,
 	self,
 	onClose,
 	session,
 	onDone,
 }: {
+	open: boolean;
 	member: Member;
 	self: boolean;
 	onClose: () => void;
@@ -440,7 +450,7 @@ function EditSheet({
 	});
 	return (
 		<FormSheet
-			open
+			open={open}
 			onOpenChange={(next) => !next && onClose()}
 			title={t("team.form.editTitle", { name: member.name })}
 			submitLabel={t("common.save")}
@@ -468,10 +478,12 @@ function EditSheet({
 }
 
 function PasswordSheet({
+	open,
 	member,
 	onClose,
 	session,
 }: {
+	open: boolean;
 	member: Member;
 	onClose: () => void;
 	session: Session;
@@ -488,7 +500,7 @@ function PasswordSheet({
 	});
 	return (
 		<FormSheet
-			open
+			open={open}
 			onOpenChange={(next) => !next && onClose()}
 			title={t("team.form.passwordTitle", { name: member.name })}
 			submitLabel={t("common.save")}

@@ -9,6 +9,7 @@ import { FormSheet } from "@/components/form-sheet";
 import { Section } from "@/components/section";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { useSheet } from "@/lib/use-sheet";
 import { addPhoto, photosOf } from "../app/photos.ts";
 import type { Member } from "../app/workspace.ts";
 import type { User } from "../auth/session.ts";
@@ -33,7 +34,7 @@ export function OrderSignature({ db, loop, user, orderId, order }: Props) {
 	);
 	const members = useLiveQuery(() => db.getMeta<Member[]>("members"), [db]);
 	const names = new Map(members?.map((m) => [m.id, m.name]));
-	const [signing, setSigning] = useState(false);
+	const sign = useSheet<true>();
 	const allowed = canAddPhoto(user, order);
 
 	if (!signatures) return null;
@@ -47,7 +48,7 @@ export function OrderSignature({ db, loop, user, orderId, order }: Props) {
 				allowed && (
 					<Button
 						variant={latest ? "outline" : "default"}
-						onPress={() => setSigning(true)}
+						onPress={() => sign.show(true)}
 					>
 						<PenLine aria-hidden />
 						{latest ? t("order.signature.again") : t("order.signature.sign")}
@@ -80,13 +81,15 @@ export function OrderSignature({ db, loop, user, orderId, order }: Props) {
 			) : (
 				<p className="text-muted-foreground">{t("order.signature.empty")}</p>
 			)}
-			{signing && (
+			{sign.value && (
 				<SignSheet
-					onClose={() => setSigning(false)}
+					key={sign.key}
+					open={sign.open}
+					onClose={sign.hide}
 					onSave={async (image, signer) => {
 						await addPhoto(db, loop, { orderId, user, image, signer });
 						toast.success(t("order.signature.signedBy", { name: signer }));
-						setSigning(false);
+						sign.hide();
 					}}
 				/>
 			)}
@@ -95,9 +98,11 @@ export function OrderSignature({ db, loop, user, orderId, order }: Props) {
 }
 
 function SignSheet({
+	open,
 	onSave,
 	onClose,
 }: {
+	open: boolean;
 	onSave: (image: Blob, signer: string) => Promise<void>;
 	onClose: () => void;
 }) {
@@ -158,8 +163,8 @@ function SignSheet({
 
 	return (
 		<FormSheet
-			open
-			onOpenChange={(open) => !open && onClose()}
+			open={open}
+			onOpenChange={(next) => !next && onClose()}
 			title={t("order.signature.sign")}
 			description={t("order.signature.padHint")}
 			submitLabel={t("order.signature.save")}

@@ -18,6 +18,7 @@ import { Confirm } from "@/components/confirm";
 import { StatusBadge } from "@/components/status-badge";
 import { Button, LinkButton } from "@/components/ui/button";
 import { formatDay } from "@/lib/format";
+import { useSheet } from "@/lib/use-sheet";
 import { ROUTES } from "../app/route.ts";
 import { jobsAt, type Site, telLink, toSite } from "../app/sites.ts";
 import type { Member } from "../app/workspace.ts";
@@ -35,7 +36,7 @@ export function SiteDetail({ db, loop, user, id }: Props) {
 		const row = await db.entities.get([SITE, id]);
 		return row ? toSite(id, row.state) : null;
 	}, [db, id]);
-	const [editing, setEditing] = useState(false);
+	const edit = useSheet<true>();
 	const [deleting, setDeleting] = useState(false);
 	if (site === undefined) return null;
 	if (!site) {
@@ -102,7 +103,7 @@ export function SiteDetail({ db, loop, user, id }: Props) {
 								variant="outline"
 								aria-label={t("common.edit")}
 								className="size-11 sm:h-10 sm:w-auto sm:px-4"
-								onPress={() => setEditing(true)}
+								onPress={() => edit.show(true)}
 							>
 								<Pencil aria-hidden />
 								<span className="max-sm:hidden">{t("common.edit")}</span>
@@ -126,13 +127,15 @@ export function SiteDetail({ db, loop, user, id }: Props) {
 			</div>
 			{manage && (
 				<>
-					<SiteSheet
-						key={editing ? "open" : "closed"}
-						open={editing}
-						onOpenChange={setEditing}
-						loop={loop}
-						site={site}
-					/>
+					{edit.value && (
+						<SiteSheet
+							key={edit.key}
+							open={edit.open}
+							onOpenChange={(open) => !open && edit.hide()}
+							loop={loop}
+							site={site}
+						/>
+					)}
 					<Confirm
 						open={deleting}
 						onOpenChange={setDeleting}

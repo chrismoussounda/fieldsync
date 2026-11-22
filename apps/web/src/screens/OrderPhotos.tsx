@@ -15,6 +15,7 @@ import { FormSheet } from "@/components/form-sheet";
 import { Section } from "@/components/section";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Dialog, DialogTitle } from "@/components/ui/dialog";
+import { useSheet } from "@/lib/use-sheet";
 import { cn } from "@/lib/utils";
 import { addPhoto, type Photo, photosOf, shrink } from "../app/photos.ts";
 import type { Member } from "../app/workspace.ts";
@@ -39,8 +40,10 @@ export function OrderPhotos({ db, loop, user, orderId, order }: Props) {
 	);
 	const members = useLiveQuery(() => db.getMeta<Member[]>("members"), [db]);
 	const names = new Map(members?.map((m) => [m.id, m.name]));
-	const [picked, setPicked] = useState<Blob | null>(null);
-	const [open, setOpen] = useState<Photo | null>(null);
+	const caption = useSheet<Blob>();
+	const viewer = useSheet<Photo>();
+	// Kept while the viewer fades out.
+	const open = viewer.value;
 	const [deleting, setDeleting] = useState(false);
 
 	async function pick(event: ChangeEvent<HTMLInputElement>) {
@@ -49,7 +52,7 @@ export function OrderPhotos({ db, loop, user, orderId, order }: Props) {
 		input.value = "";
 		if (!file) return;
 		try {
-			setPicked(await shrink(file));
+			caption.show(await shrink(file));
 		} catch {
 			toast.error(t("order.photos.unreadable"));
 		}
@@ -61,7 +64,7 @@ export function OrderPhotos({ db, loop, user, orderId, order }: Props) {
 			entityId: photo.id,
 			kind: "delete",
 		});
-		setOpen(null);
+		viewer.hide();
 	}
 
 	const label = (p: Photo) => p.caption ?? t("order.photos.photo");
@@ -99,7 +102,7 @@ export function OrderPhotos({ db, loop, user, orderId, order }: Props) {
 						<li key={p.id} className="grid gap-1.5">
 							<button
 								type="button"
-								onClick={() => setOpen(p)}
+								onClick={() => viewer.show(p)}
 								aria-label={label(p)}
 								className="aspect-square overflow-hidden rounded-xl bg-muted outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
 							>
@@ -114,19 +117,27 @@ export function OrderPhotos({ db, loop, user, orderId, order }: Props) {
 					))}
 				</ul>
 			)}
-			{picked && (
+			{caption.value && (
 				<CaptionSheet
-					image={picked}
-					onClose={() => setPicked(null)}
-					onSave={async (caption) => {
-						await addPhoto(db, loop, { orderId, user, image: picked, caption });
-						setPicked(null);
+					key={caption.key}
+					open={caption.open}
+					image={caption.value}
+					onClose={caption.hide}
+					onSave={async (text) => {
+						if (!caption.value) return;
+						await addPhoto(db, loop, {
+							orderId,
+							user,
+							image: caption.value,
+							caption: text,
+						});
+						caption.hide();
 					}}
 				/>
 			)}
 			<Dialog
-				isOpen={open !== null}
-				onOpenChange={(next) => !next && setOpen(null)}
+				isOpen={viewer.open}
+				onOpenChange={(next) => !next && viewer.hide()}
 				className="sm:max-w-3xl"
 			>
 				{open && (
@@ -169,10 +180,12 @@ export function OrderPhotos({ db, loop, user, orderId, order }: Props) {
 }
 
 function CaptionSheet({
+	open,
 	image,
 	onClose,
 	onSave,
 }: {
+	open: boolean;
 	image: Blob;
 	onClose: () => void;
 	onSave: (caption: string | null) => Promise<void>;
@@ -187,8 +200,8 @@ function CaptionSheet({
 	}, [image]);
 	return (
 		<FormSheet
-			open
-			onOpenChange={(open) => !open && onClose()}
+			open={open}
+			onOpenChange={(next) => !next && onClose()}
 			title={t("order.photos.saveTitle")}
 			submitLabel={t("common.save")}
 			onSubmit={() => void onSave(caption.trim() || null)}

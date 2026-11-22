@@ -15,6 +15,7 @@ import { TextField } from "@/components/fields";
 import { FormSheet } from "@/components/form-sheet";
 import { Section } from "@/components/section";
 import { Button } from "@/components/ui/button";
+import { useSheet } from "@/lib/use-sheet";
 import { formatQuantity, partNames, partsOf } from "../app/parts.ts";
 import type { Member } from "../app/workspace.ts";
 import type { User } from "../auth/session.ts";
@@ -37,7 +38,7 @@ export function OrderParts({ db, loop, user, orderId, order }: Props) {
 	const all = useLiveQuery(() => partsOf(db), [db]);
 	const members = useLiveQuery(() => db.getMeta<Member[]>("members"), [db]);
 	const names = new Map(members?.map((m) => [m.id, m.name]));
-	const [adding, setAdding] = useState(false);
+	const add = useSheet<true>();
 	const office = canManage(user.role);
 	const canAdd = office || order.assigneeId === user.id;
 
@@ -50,7 +51,7 @@ export function OrderParts({ db, loop, user, orderId, order }: Props) {
 			title={t("order.parts.title")}
 			action={
 				canAdd && (
-					<Button variant="outline" onPress={() => setAdding(true)}>
+					<Button variant="outline" onPress={() => add.show(true)}>
 						<Plus aria-hidden />
 						{t("order.parts.add")}
 					</Button>
@@ -95,10 +96,12 @@ export function OrderParts({ db, loop, user, orderId, order }: Props) {
 					))}
 				</ul>
 			)}
-			{adding && (
+			{add.value && (
 				<AddPart
+					key={add.key}
+					open={add.open}
 					suggestions={partNames(all)}
-					onClose={() => setAdding(false)}
+					onClose={add.hide}
 					onAdd={(part) =>
 						void loop.mutate({
 							entityType: PART,
@@ -118,10 +121,12 @@ export function OrderParts({ db, loop, user, orderId, order }: Props) {
 }
 
 function AddPart({
+	open,
 	suggestions,
 	onClose,
 	onAdd,
 }: {
+	open: boolean;
 	suggestions: string[];
 	onClose: () => void;
 	onAdd: (part: {
@@ -158,8 +163,8 @@ function AddPart({
 
 	return (
 		<FormSheet
-			open
-			onOpenChange={(open) => !open && onClose()}
+			open={open}
+			onOpenChange={(next) => !next && onClose()}
 			title={t("order.parts.add")}
 			submitLabel={t("order.parts.add")}
 			onSubmit={submit}
