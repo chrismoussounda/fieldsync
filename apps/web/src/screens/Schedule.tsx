@@ -166,6 +166,16 @@ export function Schedule({ db, loop, day }: Props) {
 		})),
 	];
 
+	const shownRange = (
+		<p
+			key={days[0]}
+			aria-live="polite"
+			className="animate-in text-lg font-semibold capitalize duration-300 fade-in-0"
+		>
+			{range}
+		</p>
+	);
+
 	return (
 		<div className="grid grid-cols-1 gap-6">
 			<PageHeader
@@ -173,6 +183,7 @@ export function Schedule({ db, loop, day }: Props) {
 				description={phone ? t("schedule.phoneHint") : t("schedule.hint")}
 				actions={
 					<div className="flex items-center gap-2">
+						{!phone && <div className="mr-2">{shownRange}</div>}
 						<Button
 							variant="outline"
 							size="icon"
@@ -199,13 +210,7 @@ export function Schedule({ db, loop, day }: Props) {
 					</div>
 				}
 			/>
-			<p
-				key={days[0]}
-				aria-live="polite"
-				className="animate-in text-lg font-semibold capitalize duration-300 fade-in-0"
-			>
-				{range}
-			</p>
+			{phone && shownRange}
 			{phone ? (
 				<div className="grid gap-5">
 					{lanes.map((lane) => {
@@ -238,7 +243,7 @@ export function Schedule({ db, loop, day }: Props) {
 						<table className="w-full min-w-[54rem] table-fixed border-collapse">
 							<caption className="sr-only">{t("schedule.title")}</caption>
 							<colgroup>
-								<col className="w-44" />
+								<col className="w-52 xl:w-60" />
 							</colgroup>
 							<thead>
 								<tr>
