@@ -23,7 +23,6 @@ export const fr = {
 		team: "Équipe",
 		devices: "Appareils",
 		account: "Compte",
-		admin: "Administration",
 		more: "Plus",
 	},
 	roles: {
@@ -277,7 +276,7 @@ export const fr = {
 		history: {
 			title: "Historique",
 			you: "Vous",
-			unknown: "Appareil inconnu",
+			unknown: "Système",
 			waiting: "Pas encore synchronisé",
 			refused: "Refusé par le serveur",
 			deleted: "A supprimé l'intervention",
@@ -626,7 +625,6 @@ export const fr = {
 		erase: "Effacer les données de cet appareil",
 	},
 	account: {
-		title: "Votre compte",
 		password: "Changer le mot de passe",
 		current: "Mot de passe actuel",
 		next: "Nouveau mot de passe",

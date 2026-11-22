@@ -1,7 +1,6 @@
-import { canManage } from "@fieldsync/work-orders";
-import { ChevronRight, GitMerge, Smartphone, Users } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,7 +8,6 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { LANGUAGES, type Language, setLanguage, useLanguage } from "@/i18n";
 import { setTheme, THEMES, type Theme, useTheme } from "@/lib/theme";
 import { MIN_PASSWORD, messageFor } from "../app/errors.ts";
-import { ROUTES } from "../app/route.ts";
 import { apiFetch } from "../app/workspace.ts";
 import type { Session, User } from "../auth/session.ts";
 import { SignOut } from "./SignOut.tsx";
@@ -20,17 +18,11 @@ type Props = { session: Session; user: User; pending: number };
 export function Account({ session, user, pending }: Props) {
 	const { t } = useTranslation();
 	return (
-		<div className="grid gap-4">
-			<section className="grid gap-1 rounded-2xl border bg-card p-6">
-				<h2 className="text-lg font-semibold">{t("account.title")}</h2>
-				<p>
-					{user.name}{" "}
-					<span className="text-muted-foreground">
-						· {t(`roles.${user.role}`)}
-					</span>
-				</p>
-			</section>
-			<Administration user={user} />
+		<div className="grid max-w-3xl gap-6">
+			<PageHeader
+				title={t("nav.account")}
+				description={`${user.name} · ${t(`roles.${user.role}`)}`}
+			/>
 			<Preferences />
 			<ChangePassword session={session} />
 			<div className="grid md:hidden">
@@ -40,54 +32,13 @@ export function Account({ session, user, pending }: Props) {
 	);
 }
 
-/** On phones the tab bar has no room for these pages. */
-function Administration({ user }: { user: User }) {
-	const { t } = useTranslation();
-	const links = [
-		...(canManage(user.role)
-			? [{ href: ROUTES.conflicts, label: t("nav.conflicts"), icon: GitMerge }]
-			: []),
-		...(user.role === "admin"
-			? [
-					{ href: ROUTES.team, label: t("nav.team"), icon: Users },
-					{ href: ROUTES.devices, label: t("nav.devices"), icon: Smartphone },
-				]
-			: []),
-	];
-	if (links.length === 0) return null;
-	return (
-		<nav
-			aria-label={t("nav.admin")}
-			className="grid rounded-2xl border bg-card p-2 md:hidden"
-		>
-			<h3 className="px-3 pt-2 pb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-				{t("nav.admin")}
-			</h3>
-			{links.map(({ href, label, icon: Icon }) => (
-				<a
-					key={href}
-					href={href}
-					className="flex min-h-12 items-center gap-3 rounded-xl px-3 font-medium text-foreground hover:bg-muted"
-				>
-					<Icon aria-hidden className="size-5 text-muted-foreground" />
-					{label}
-					<ChevronRight
-						aria-hidden
-						className="ml-auto size-4 text-muted-foreground"
-					/>
-				</a>
-			))}
-		</nav>
-	);
-}
-
 function Preferences() {
 	const { t } = useTranslation();
 	const language = useLanguage();
 	const theme = useTheme();
 	return (
 		<section className="grid gap-4 rounded-2xl border bg-card p-6">
-			<h3 className="font-semibold">{t("preferences.title")}</h3>
+			<h2 className="font-semibold">{t("preferences.title")}</h2>
 			<Choice
 				label={t("preferences.language")}
 				value={language}
@@ -177,7 +128,7 @@ function ChangePassword({ session }: { session: Session }) {
 			className="grid gap-4 rounded-2xl border bg-card p-6"
 			onSubmit={submit}
 		>
-			<h3 className="font-semibold">{t("account.password")}</h3>
+			<h2 className="font-semibold">{t("account.password")}</h2>
 			<Field
 				name="current"
 				label={t("account.current")}

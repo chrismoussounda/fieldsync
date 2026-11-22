@@ -29,7 +29,6 @@ export const en: Messages<typeof fr> = {
 		team: "Team",
 		devices: "Devices",
 		account: "Account",
-		admin: "Administration",
 		more: "More",
 	},
 	roles: {
@@ -281,7 +280,7 @@ export const en: Messages<typeof fr> = {
 		history: {
 			title: "History",
 			you: "You",
-			unknown: "Unknown device",
+			unknown: "System",
 			waiting: "Not synced yet",
 			refused: "Refused by the server",
 			deleted: "Deleted the order",
@@ -625,7 +624,6 @@ export const en: Messages<typeof fr> = {
 		erase: "Erase this device's data",
 	},
 	account: {
-		title: "Your account",
 		password: "Change password",
 		current: "Current password",
 		next: "New password",
