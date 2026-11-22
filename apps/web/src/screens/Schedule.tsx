@@ -233,12 +233,12 @@ export function Schedule({ db, loop, day }: Props) {
 					<Unplanned jobs={board.unplanned} card={card} onDrop={null} />
 				</div>
 			) : (
-				<div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
+				<div className="grid items-start gap-4 2xl:grid-cols-[minmax(0,1fr)_18rem]">
 					<div className="overflow-x-auto rounded-2xl border bg-card">
-						<table className="w-full min-w-[64rem] table-fixed border-collapse">
+						<table className="w-full min-w-[54rem] table-fixed border-collapse">
 							<caption className="sr-only">{t("schedule.title")}</caption>
 							<colgroup>
-								<col className="w-52" />
+								<col className="w-44" />
 							</colgroup>
 							<thead>
 								<tr>
@@ -393,7 +393,7 @@ function Unplanned({
 			{...dropProps}
 			aria-labelledby="unplanned"
 			className={cn(
-				"grid content-start gap-3 rounded-2xl border bg-card p-4 transition-colors duration-150",
+				"-order-1 grid content-start gap-3 rounded-2xl border bg-card p-4 transition-colors duration-150 2xl:order-none",
 				isDropTarget && "bg-primary/10 ring-2 ring-primary",
 			)}
 		>
@@ -409,7 +409,16 @@ function Unplanned({
 					? t("schedule.allPlanned")
 					: t("schedule.unplannedHint")}
 			</p>
-			{jobs.map(card)}
+			{jobs.length > 0 && (
+				// One scrolling row, so a long list never pushes the week out of view.
+				<div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 2xl:grid 2xl:overflow-visible">
+					{jobs.map((job) => (
+						<div key={job.id} className="w-60 shrink-0 2xl:w-auto">
+							{card(job)}
+						</div>
+					))}
+				</div>
+			)}
 		</section>
 	);
 }
