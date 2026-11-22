@@ -19,7 +19,7 @@ type FieldProps = {
 	className?: string;
 };
 
-function Field({
+export function Field({
 	id,
 	label,
 	hint,
