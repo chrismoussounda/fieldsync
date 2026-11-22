@@ -383,6 +383,8 @@ export const fr = {
 	map: {
 		hint: "Touchez la carte pour placer le repère sur l'entrée, puis faites-le glisser pour l'ajuster. L'itinéraire n'est proposé qu'avec un repère.",
 		empty: "Touchez la carte pour placer le repère",
+		sitePin:
+			"Le repère du site est utilisé. Touchez pour en placer un pour cette intervention",
 		here: "Ma position",
 		locating: "Localisation…",
 		clear: "Retirer le repère",

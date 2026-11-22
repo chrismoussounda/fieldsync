@@ -126,11 +126,14 @@ export function LocationField({
 	id,
 	label,
 	value,
+	fallback = null,
 	onChange,
 }: {
 	id: string;
 	label: string;
 	value: Location | null;
+	/** Where the job is without its own pin: its site's pin, shown faded. */
+	fallback?: Location | null;
 	onChange: (value: Location | null) => void;
 }) {
 	const { t } = useTranslation();
@@ -163,14 +166,22 @@ export function LocationField({
 			>
 				<MapContainer
 					ref={setMap}
-					center={at(value ?? DEFAULT_CENTER)}
-					zoom={value ? CLOSE : WIDE}
+					center={at(value ?? fallback ?? DEFAULT_CENTER)}
+					zoom={value || fallback ? CLOSE : WIDE}
 					scrollWheelZoom={false}
 					attributionControl={false}
 				>
 					<Tiles />
 					<FitBox />
 					<OnTap onTap={onChange} />
+					{!value && fallback && (
+						<Marker
+							position={at(fallback)}
+							icon={PIN}
+							opacity={0.5}
+							interactive={false}
+						/>
+					)}
 					{value && (
 						<Marker
 							position={at(value)}
@@ -188,7 +199,7 @@ export function LocationField({
 				{!value && (
 					<p className="pointer-events-none absolute inset-x-3 bottom-3 z-[1000] flex animate-in items-center justify-center gap-2 rounded-lg bg-background/90 px-3 py-2 text-sm font-medium shadow-sm duration-300 fade-in-0">
 						<MapPinned aria-hidden className="size-4 text-primary" />
-						{t("map.empty")}
+						{fallback ? t("map.sitePin") : t("map.empty")}
 					</p>
 				)}
 			</fieldset>

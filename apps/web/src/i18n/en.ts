@@ -387,6 +387,7 @@ export const en: Messages<typeof fr> = {
 	map: {
 		hint: "Tap the map to drop the pin on the entrance, then drag it to adjust. Directions are only offered with a pin.",
 		empty: "Tap the map to drop the pin",
+		sitePin: "The site's pin is used. Tap to drop one for this job",
 		here: "My position",
 		locating: "Locating…",
 		clear: "Remove the pin",

@@ -179,6 +179,7 @@ export function OrderSheet({
 					id="order-location"
 					label={t("order.form.location")}
 					value={draft.location}
+					fallback={sites?.find((s) => s.id === draft.siteId)?.location ?? null}
 					onChange={(location) => setEdits((e) => ({ ...e, location }))}
 				/>
 			)}
