@@ -18,6 +18,7 @@ import { OrderDetail } from "./screens/OrderDetail.tsx";
 import { OrderReport } from "./screens/OrderReport.tsx";
 import { Orders } from "./screens/Orders.tsx";
 import { Overview } from "./screens/Overview.tsx";
+import { Schedule } from "./screens/Schedule.tsx";
 import { SiteDetail } from "./screens/SiteDetail.tsx";
 import { Sites } from "./screens/Sites.tsx";
 import { Team } from "./screens/Team.tsx";
@@ -106,6 +107,28 @@ const overview = createRoute({
 		return (
 			<Only when={canManage(user.role)}>
 				<Overview db={db} />
+			</Only>
+		);
+	},
+});
+
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
+
+const schedule = createRoute({
+	getParentRoute: () => root,
+	path: "/schedule",
+	component: function SchedulePage() {
+		const { db, sync, user } = useApp();
+		const day = useRouterState({
+			select: (s) => new URLSearchParams(s.location.searchStr).get("day"),
+		});
+		return (
+			<Only when={canManage(user.role)}>
+				<Schedule
+					db={db}
+					loop={sync.loop}
+					day={day && DAY.test(day) ? day : null}
+				/>
 			</Only>
 		);
 	},
@@ -211,6 +234,7 @@ export const router = createRouter({
 		order,
 		report,
 		overview,
+		schedule,
 		sites,
 		site,
 		conflicts,

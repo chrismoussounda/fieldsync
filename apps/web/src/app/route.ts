@@ -3,6 +3,7 @@ export const ROUTES = {
 	list: "#/",
 	filtered: (query: string) => `#/?${query}`,
 	overview: "#/overview",
+	schedule: (day?: string) => (day ? `#/schedule?day=${day}` : "#/schedule"),
 	new: "#/?new=1",
 	debug: "#/debug",
 	conflicts: "#/conflicts",

@@ -1,6 +1,7 @@
 import { canManage } from "@fieldsync/work-orders";
 import { Outlet, useRouterState } from "@tanstack/react-router";
 import {
+	CalendarRange,
 	ClipboardList,
 	GitMerge,
 	LayoutDashboard,
@@ -55,6 +56,15 @@ export function Shell() {
 				label: t("nav.overview"),
 				icon: LayoutDashboard,
 				owns: under("/overview"),
+			},
+			manage,
+		),
+		...show(
+			{
+				href: ROUTES.schedule(),
+				label: t("nav.schedule"),
+				icon: CalendarRange,
+				owns: under("/schedule"),
 			},
 			manage,
 		),

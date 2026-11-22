@@ -59,7 +59,9 @@ export function merge(
 			} else if (
 				current !== undefined &&
 				current !== op.base[field] &&
-				byAnotherDevice(current, op)
+				byAnotherDevice(current, op) &&
+				// Two people choosing the same value is agreement, not a conflict.
+				!sameValue(state.fields[field], value)
 			) {
 				const theirs = { value: state.fields[field] ?? null, hlc: current };
 				conflicts.push({
@@ -93,3 +95,7 @@ function later(current: string | null, hlc: string): string {
 function byAnotherDevice(hlc: string, op: Op): boolean {
 	return decode(hlc).node !== decode(op.hlc).node;
 }
+
+// Values are JSON written by one app, so their keys come in the same order.
+const sameValue = (a: unknown, b: unknown) =>
+	JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
