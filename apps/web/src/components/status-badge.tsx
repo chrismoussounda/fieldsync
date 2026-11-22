@@ -17,13 +17,20 @@ const STATUSES = [
 	"cancelled",
 ] as const;
 
-export function StatusBadge({ status }: { status: string }) {
+export function StatusBadge({
+	status,
+	size = "default",
+}: {
+	status: string;
+	size?: "default" | "sm";
+}) {
 	const { t } = useTranslation();
 	const known = STATUSES.find((s) => s === status);
 	return (
 		<span
 			className={cn(
-				"inline-flex shrink-0 items-center rounded-full px-3 py-1 text-sm font-medium transition-colors duration-300",
+				"inline-flex shrink-0 items-center rounded-full font-medium transition-colors duration-300",
+				size === "sm" ? "px-2 py-0.5 text-xs" : "px-3 py-1 text-sm",
 				TONE[status] ?? TONE.open,
 			)}
 		>
