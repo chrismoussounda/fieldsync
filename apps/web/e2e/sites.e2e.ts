@@ -38,8 +38,8 @@ test("a site is kept once, picked on its orders and read on site", async ({
 		info.getByRole("link", { name: "+242 06 000 0009" }),
 	).toHaveAttribute("href", "tel:+242060000009");
 	await info.getByRole("link", { name: "Site page and past jobs" }).click();
-	await expect(tech.getByLabel("Name")).toBeDisabled();
-	await expect(tech.getByRole("button", { name: "Save" })).toHaveCount(0);
+	await expect(tech.getByRole("heading", { name })).toBeVisible();
+	await expect(tech.getByRole("button", { name: "Edit" })).toHaveCount(0);
 	await expect(tech.getByRole("link", { name: title })).toContainText(
 		"Assigned",
 	);
@@ -47,6 +47,7 @@ test("a site is kept once, picked on its orders and read on site", async ({
 	await tech.context().setOffline(false);
 	await open(office, title);
 	await office.getByRole("link", { name: "Site page and past jobs" }).click();
+	await office.getByRole("button", { name: "Edit" }).click();
 	await office.getByLabel("Phone").fill("+242 06 000 0010");
 	await office.getByRole("button", { name: "Save", exact: true }).click();
 	await expect(office.locator(".badge")).toHaveText("Synced");
@@ -54,4 +55,21 @@ test("a site is kept once, picked on its orders and read on site", async ({
 	await sync(tech);
 	await open(tech, title);
 	await expect(tech.locator(".site-info")).toContainText("+242 06 000 0010");
+});
+
+test("on a phone, a site is added from a bottom drawer", async ({
+	browser,
+}) => {
+	const name = `Kiosk ${Date.now()}`;
+	const office = await device(browser, "dispatch@fieldsync.demo");
+	await office.setViewportSize({ width: 390, height: 844 });
+	await office.goto("/#/sites");
+	await office.getByRole("link", { name: "New site" }).click();
+	await office.getByRole("button", { name: "Save" }).click();
+	await expect(office.getByText("Give the site a name.")).toBeVisible();
+	await office.getByLabel("Name").fill(name);
+	await office.getByRole("button", { name: "Save" }).click();
+	await expect(office.getByRole("dialog")).toHaveCount(0);
+	await office.getByRole("link", { name }).click();
+	await expect(office.getByRole("heading", { name })).toBeVisible();
 });

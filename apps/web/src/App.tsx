@@ -157,9 +157,15 @@ function SignedIn({ db, session, user }: Props & { user: User }) {
 						/>
 					) : route.name === "report" ? (
 						<OrderReport db={db} id={route.id} />
-					) : route.name === "sites" ? (
-						<Sites db={db} user={user} />
-					) : route.name === "site" ? (
+					) : route.name === "sites" ||
+						(route.name === "site" && route.id === null) ? (
+						<Sites
+							db={db}
+							loop={sync.loop}
+							user={user}
+							creating={route.name === "site"}
+						/>
+					) : route.name === "site" && route.id ? (
 						<SiteDetail
 							key={route.id}
 							db={db}
