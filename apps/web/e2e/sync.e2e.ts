@@ -64,8 +64,10 @@ test("two edits of the same field are settled and logged for the office", async 
 
 	await office.goto("/#/conflicts");
 	const entry = office.locator("li", { hasText: title });
-	await expect(entry).toContainText("Kept Cancelled by Grâce Mabiala");
-	await expect(entry).toContainText(`Overwritten Done by ${JUNIOR}`);
+	await expect(entry).toContainText(/Kept\s*Cancelled\s*by Grâce Mabiala/);
+	await expect(entry).toContainText(
+		new RegExp(`Overwritten\\s*Done\\s*by ${JUNIOR}`),
+	);
 	await entry.getByRole("button", { name: "Mark reviewed" }).click();
 	await expect(entry).toHaveCount(0);
 });
