@@ -372,6 +372,19 @@ export const fr = {
 			other: "Modification enregistrée",
 		},
 	},
+	map: {
+		hint: "Touchez la carte pour placer le repère, puis faites-le glisser pour l'ajuster. L'itinéraire mène à ce point.",
+		empty: "Touchez la carte pour placer le repère",
+		fromAddress: "Trouver l'adresse",
+		looking: "Recherche…",
+		here: "Ma position",
+		locating: "Localisation…",
+		clear: "Retirer le repère",
+		notFound: "Adresse introuvable sur la carte. Placez le repère à la main.",
+		lookupFailed: "La recherche d'adresse a besoin du réseau.",
+		noPosition:
+			"Impossible d'obtenir votre position. Vérifiez l'autorisation de localisation.",
+	},
 	sites: {
 		title: "Sites clients",
 		count_one: "{{count}} site",

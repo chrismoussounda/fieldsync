@@ -376,6 +376,18 @@ export const en: Messages<typeof fr> = {
 			other: "Change saved",
 		},
 	},
+	map: {
+		hint: "Tap the map to drop the pin, then drag it to adjust. Directions lead to this point.",
+		empty: "Tap the map to drop the pin",
+		fromAddress: "Find the address",
+		looking: "Looking…",
+		here: "My position",
+		locating: "Locating…",
+		clear: "Remove the pin",
+		notFound: "Address not found on the map. Drop the pin by hand.",
+		lookupFailed: "Looking up an address needs the network.",
+		noPosition: "Could not get your position. Check the location permission.",
+	},
 	sites: {
 		title: "Customer sites",
 		count_one: "{{count}} site",

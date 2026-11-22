@@ -136,6 +136,40 @@
 	}
 }
 
+/* Maps: the pin in the brand colour, controls in the app's look, and dark tiles in dark mode. */
+@layer components {
+	.map-pin {
+		filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.3));
+	}
+	.map-pin path {
+		fill: var(--primary);
+		stroke: var(--primary-foreground);
+		stroke-width: 2;
+	}
+	.map-pin circle {
+		fill: var(--primary-foreground);
+	}
+	.leaflet-bar {
+		@apply overflow-hidden rounded-lg border-0 shadow-md ring-1 ring-foreground/10;
+	}
+	.leaflet-bar a,
+	.leaflet-bar a:hover {
+		@apply size-9 border-border bg-popover leading-9 text-foreground no-underline;
+	}
+	.leaflet-bar a:hover {
+		@apply bg-muted;
+	}
+	.leaflet-control-attribution {
+		@apply rounded-tl-md bg-background/80 text-xs text-muted-foreground;
+	}
+	.leaflet-control-attribution a {
+		@apply text-muted-foreground;
+	}
+	.dark .leaflet-tile-pane {
+		filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9);
+	}
+}
+
 /* Motion off for people who asked their device for less of it. Unlayered, so
    it wins over every utility. */
 @media (prefers-reduced-motion: reduce) {
