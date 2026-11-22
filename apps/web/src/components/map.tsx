@@ -293,7 +293,19 @@ export function JobsMap({
 						icon={jobPin(order.status, order.id === chosen)}
 						title={order.title}
 						zIndexOffset={order.id === chosen ? 1000 : 0}
-						eventHandlers={{ click: () => onChoose(order.id) }}
+						eventHandlers={{
+							// A pin's title is only a tooltip; screen readers need a name.
+							add: (e) =>
+								(e.target as L.Marker)
+									.getElement()
+									?.setAttribute("aria-label", order.title),
+							click: () => onChoose(order.id),
+							// Leaflet focuses pins but leaves Enter to popups.
+							keypress: (e) => {
+								const key = (e.originalEvent as KeyboardEvent).key;
+								if (key === "Enter" || key === " ") onChoose(order.id);
+							},
+						}}
 					/>
 				))}
 			</MapContainer>
