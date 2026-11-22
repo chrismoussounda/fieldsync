@@ -104,8 +104,10 @@ test("an offline edit to an order reassigned meanwhile is refused and rolled bac
 	await expect(tech.getByRole("link", { name: title })).toHaveCount(0);
 
 	await tech.goto("/#/debug");
-	await expect(tech.locator(".outbox li")).toContainText(["refused"]);
-	await expect(tech.locator(".outbox li")).toContainText(["FORBIDDEN"]);
+	const refused = tech.locator(".outbox li");
+	await expect(refused).toContainText("Refused");
+	await expect(refused).toContainText(`“${title}”`);
+	await expect(refused).toContainText("no longer allowed");
 	await tech.getByRole("button", { name: "Clear 1 refused change" }).click();
-	await expect(tech.getByText("Nothing waiting.")).toBeVisible();
+	await expect(tech.getByText("Everything is sent.")).toBeVisible();
 });
