@@ -3,8 +3,10 @@ import type { Op } from "@fieldsync/protocol";
 import { hash, verify } from "@node-rs/argon2";
 import type { Kysely } from "kysely";
 import { WORK_ORDER_SCOPING } from "./auth/policy.ts";
+import { type AuthConfig, openSession, type Session } from "./auth/session.ts";
 import { createUser } from "./auth/users.ts";
 import type { Database, Role } from "./db/schema.ts";
+import { ApiError } from "./errors.ts";
 import { handlePush } from "./sync/push.ts";
 import { resetOrg } from "./sync/reset.ts";
 
@@ -244,4 +246,31 @@ async function seedOrders(db: Kysely<Database>, now: number): Promise<void> {
 		// Filed under each order's assignee, so it reaches that technician's phone.
 		{ authorize: () => true, scoping: WORK_ORDER_SCOPING, now: () => now },
 	);
+}
+
+/** The demo accounts a visitor can try without a password. Not the admin:
+ * an admin could disable the demo users or revoke devices for everyone. */
+export const DEMO_ROLES = {
+	dispatcher: "dispatch@fieldsync.demo",
+	technician: "junior@fieldsync.demo",
+} as const;
+
+export async function demoLogin(
+	db: Kysely<Database>,
+	config: AuthConfig,
+	{
+		role,
+		deviceId,
+		deviceName,
+	}: { role: keyof typeof DEMO_ROLES; deviceId: string; deviceName: string },
+): Promise<Session> {
+	const user = await db
+		.selectFrom("users")
+		.select(["id", "org_id", "name", "role", "disabled_at"])
+		.where("org_id", "=", DEMO_ORG)
+		.where("email", "=", DEMO_ROLES[role])
+		.executeTakeFirst();
+	if (!user) throw new ApiError(404, "NOT_FOUND");
+	if (user.disabled_at) throw new ApiError(403, "ACCOUNT_DISABLED");
+	return openSession(db, config, user, deviceId, deviceName);
 }
