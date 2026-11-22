@@ -131,7 +131,7 @@ export function Shell() {
 				</div>
 			</aside>
 			<div className="min-w-0">
-				<header className="print:hidden! sticky top-0 z-10 flex h-16 items-center gap-3 border-b bg-background/85 px-4 backdrop-blur">
+				<header className="print:hidden! sticky top-0 z-10 flex h-16 items-center gap-3 border-b bg-background px-4">
 					<a href={ROUTES.list} className="md:hidden">
 						<Logo />
 					</a>
@@ -146,7 +146,7 @@ export function Shell() {
 			<Toaster position="top-center" />
 			<nav
 				aria-label={t("nav.main")}
-				className="print:hidden! fixed inset-x-3 bottom-3 z-20 grid auto-cols-fr grid-flow-col rounded-2xl border bg-card/95 p-1.5 shadow-lg backdrop-blur md:hidden"
+				className="print:hidden! fixed inset-x-3 bottom-3 z-20 grid auto-cols-fr grid-flow-col rounded-2xl border bg-card p-1.5 shadow-lg md:hidden"
 			>
 				{[...items, account].map((item) => (
 					<TabLink key={item.href} item={item} path={path} />

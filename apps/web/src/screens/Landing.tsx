@@ -42,7 +42,7 @@ export function Landing() {
 
 	return (
 		<div className="min-h-dvh bg-background">
-			<header className="sticky top-0 z-10 border-b bg-background/85 backdrop-blur">
+			<header className="sticky top-0 z-10 border-b bg-background">
 				<div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 md:px-8">
 					<Logo />
 					<div className="ml-auto flex items-center gap-1">

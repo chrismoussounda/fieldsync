@@ -137,7 +137,7 @@ export function OrderTime({ db, loop, user, orderId, order }: Props) {
 				(phone ? (
 					<div
 						data-action-bar
-						className="fixed inset-x-3 bottom-24 z-20 rounded-2xl border bg-card/95 p-2 shadow-lg backdrop-blur"
+						className="fixed inset-x-3 bottom-24 z-20 rounded-2xl border bg-card p-2 shadow-lg"
 					>
 						{action}
 					</div>
