@@ -18,7 +18,6 @@ import { useTranslation } from "react-i18next";
 import { initials } from "@/components/person";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { Toaster } from "@/components/ui/sonner";
-import { usePhone } from "@/lib/use-phone";
 import { cn } from "@/lib/utils";
 import { useApp } from "./app/context.ts";
 import { ROUTES } from "./app/route.ts";
@@ -49,7 +48,6 @@ export function Shell() {
 	const { t } = useTranslation();
 	const { session, user, sync, pending } = useApp();
 	const path = useRouterState({ select: (s) => s.location.pathname });
-	const phone = usePhone();
 	const manage = canManage(user.role);
 	const admin = user.role === "admin";
 	const show = (item: NavItem, shown: boolean) => (shown ? [item] : []);
@@ -147,12 +145,9 @@ export function Shell() {
 	return (
 		<div className="min-h-dvh md:grid md:grid-cols-[17rem_1fr]">
 			<aside className="print:hidden! sticky top-0 hidden h-dvh flex-col gap-6 border-r bg-sidebar p-4 md:flex">
-				<div className="grid gap-3">
-					<a href={ROUTES.list}>
-						<Logo />
-					</a>
-					{!phone && <SyncBadge loop={sync.loop} pending={pending} />}
-				</div>
+				<a href={ROUTES.list}>
+					<Logo />
+				</a>
 				<nav aria-label={t("nav.main")} className="grid gap-1">
 					{[...items, ...office].map((item) => (
 						<SideLink key={item.href} item={item} path={path} />
@@ -177,16 +172,14 @@ export function Shell() {
 				</div>
 			</aside>
 			<div className="min-w-0">
-				{phone && (
-					<header className="print:hidden! sticky top-0 z-10 flex h-14 items-center gap-3 border-b bg-background/95 px-4 backdrop-blur">
-						<a href={ROUTES.list}>
-							<Logo />
-						</a>
-						<div className="ml-auto">
-							<SyncBadge loop={sync.loop} pending={pending} />
-						</div>
-					</header>
-				)}
+				<header className="print:hidden! sticky top-0 z-10 flex h-14 items-center gap-3 border-b bg-background/95 px-4 backdrop-blur md:px-10">
+					<a href={ROUTES.list} className="md:hidden">
+						<Logo />
+					</a>
+					<div className="ml-auto">
+						<SyncBadge loop={sync.loop} pending={pending} />
+					</div>
+				</header>
 				<main className="px-4 pt-6 pb-32 has-[[data-action-bar]]:pb-52 md:px-10 md:pt-8 md:pb-14 print:p-0">
 					{/* Each page fades in as it opens. */}
 					<div
