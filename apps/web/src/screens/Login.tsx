@@ -54,6 +54,7 @@ export function Login({ session }: { session: Session }) {
 						name="email"
 						type="email"
 						autoComplete="username"
+						placeholder={t("login.emailPlaceholder")}
 						required
 						className="h-11"
 					/>
@@ -65,6 +66,7 @@ export function Login({ session }: { session: Session }) {
 						name="password"
 						type="password"
 						autoComplete="current-password"
+						placeholder={t("login.passwordPlaceholder")}
 						required
 						className="h-11"
 					/>

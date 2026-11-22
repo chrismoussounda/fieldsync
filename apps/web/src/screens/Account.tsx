@@ -136,18 +136,21 @@ function ChangePassword({ session }: { session: Session }) {
 			<Field
 				name="current"
 				label={t("account.current")}
+				placeholder={t("account.currentPlaceholder")}
 				autoComplete="current-password"
 			/>
 			<div className="grid gap-4 sm:grid-cols-2">
 				<Field
 					name="next"
 					label={t("account.next")}
+					placeholder={t("account.nextPlaceholder", { min: MIN_PASSWORD })}
 					autoComplete="new-password"
 					minLength={MIN_PASSWORD}
 				/>
 				<Field
 					name="repeat"
 					label={t("account.repeat")}
+					placeholder={t("account.repeatPlaceholder")}
 					autoComplete="new-password"
 				/>
 			</div>
@@ -174,11 +177,13 @@ function ChangePassword({ session }: { session: Session }) {
 function Field({
 	name,
 	label,
+	placeholder,
 	autoComplete,
 	minLength,
 }: {
 	name: string;
 	label: string;
+	placeholder: string;
 	autoComplete: string;
 	minLength?: number;
 }) {
@@ -189,6 +194,7 @@ function Field({
 				id={name}
 				name={name}
 				type="password"
+				placeholder={placeholder}
 				required
 				minLength={minLength}
 				autoComplete={autoComplete}

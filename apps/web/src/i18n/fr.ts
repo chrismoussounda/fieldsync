@@ -98,6 +98,8 @@ export const fr = {
 		email: "E-mail",
 		password: "Mot de passe",
 		submit: "Se connecter",
+		emailPlaceholder: "vous@entreprise.com",
+		passwordPlaceholder: "Votre mot de passe",
 		busy: "Connexion…",
 		UNAUTHORIZED: "E-mail ou mot de passe incorrect.",
 		ACCOUNT_DISABLED:
@@ -117,6 +119,9 @@ export const fr = {
 		current: "Mot de passe actuel",
 		next: "Nouveau mot de passe",
 		repeat: "Répétez-le",
+		currentPlaceholder: "Votre mot de passe actuel",
+		nextPlaceholder: "{{min}} caractères minimum",
+		repeatPlaceholder: "Le même, une deuxième fois",
 		hint: "Au moins {{min}} caractères. Vos autres appareils vous demanderont de vous reconnecter.",
 		mismatch: "Les deux nouveaux mots de passe ne sont pas identiques.",
 		changed: "Mot de passe modifié.",
