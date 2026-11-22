@@ -83,10 +83,18 @@ export class Session {
 	}
 
 	async login(email: string, password: string): Promise<User> {
+		return this.#signIn("/auth/login", { email, password });
+	}
+
+	/** Signs in to a demo account; demo servers only. */
+	async demo(role: "dispatcher" | "technician"): Promise<User> {
+		return this.#signIn("/auth/demo", { role });
+	}
+
+	async #signIn(path: string, body: Record<string, string>): Promise<User> {
 		const request = async () =>
-			this.#post<Tokens>("/auth/login", {
-				email,
-				password,
+			this.#post<Tokens>(path, {
+				...body,
 				deviceId: await this.deviceId(),
 				deviceName: deviceName(navigator.userAgent),
 			});
