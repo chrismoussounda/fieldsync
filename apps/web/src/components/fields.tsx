@@ -65,7 +65,7 @@ const describedBy = ({ id, error, hint }: FieldProps) =>
 export function TextField({
 	type = "text",
 	...props
-}: FieldProps & { type?: "text" | "tel" | "email" | "search" }) {
+}: FieldProps & { type?: "text" | "tel" | "email" | "search" | "password" }) {
 	return (
 		<Field {...props}>
 			<Input
