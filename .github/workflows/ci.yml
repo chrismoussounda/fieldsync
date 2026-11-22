@@ -19,7 +19,8 @@ jobs:
       - run: pnpm run lint
       - run: pnpm run typecheck
       - run: pnpm run test
-      - run: pnpm --filter @fieldsync/web build
+      # The same build Vercel runs: the web app and the API function.
+      - run: node scripts/vercel-build.ts
 
   integration:
     runs-on: ubuntu-latest
