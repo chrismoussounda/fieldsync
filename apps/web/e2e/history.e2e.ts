@@ -1,5 +1,13 @@
 import { expect, test } from "@playwright/test";
-import { createOrder, device, JUNIOR, open, save, sync } from "./devices.ts";
+import {
+	createOrder,
+	device,
+	JUNIOR,
+	open,
+	section,
+	setStatus,
+	sync,
+} from "./devices.ts";
 
 const OFFICE = "Grâce Mabiala";
 
@@ -15,12 +23,10 @@ test("an order's history shows who changed what, synced or not", async ({
 	// Offline, his own edit is listed as waiting, above the office's.
 	await tech.context().setOffline(true);
 	await open(tech, title);
-	await tech.getByLabel("Status").selectOption({ label: "In progress" });
-	await save(tech);
-	await open(tech, title);
-	const history = tech.locator(".history li");
+	await setStatus(tech, "In progress");
+	const history = section(tech, "History").getByRole("listitem");
 	await expect(history.first()).toContainText("Not synced yet");
-	await expect(history.first()).toContainText("Status In progress");
+	await expect(history.first()).toContainText(/Status\s*In progress/);
 
 	// Online, it comes back from the server under his name.
 	await tech.context().setOffline(false);
@@ -30,11 +36,11 @@ test("an order's history shows who changed what, synced or not", async ({
 
 	await sync(office);
 	await open(office, title);
-	const entries = office.locator(".timeline > li");
+	const entries = section(office, "History").getByRole("listitem");
 	await expect(entries).toHaveCount(2);
 	await expect(entries.nth(0)).toContainText(JUNIOR);
-	await expect(entries.nth(0)).toContainText("Status In progress");
+	await expect(entries.nth(0)).toContainText(/Status\s*In progress/);
 	await expect(entries.nth(1)).toContainText(OFFICE);
-	await expect(entries.nth(1)).toContainText(`Title ${title}`);
-	await expect(entries.nth(1)).toContainText(`Assignee ${JUNIOR}`);
+	await expect(entries.nth(1)).toContainText(title);
+	await expect(entries.nth(1)).toContainText(new RegExp(`Assignees*${JUNIOR}`));
 });

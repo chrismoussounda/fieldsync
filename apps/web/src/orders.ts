@@ -6,6 +6,7 @@ import {
 	STATUSES,
 } from "@fieldsync/work-orders";
 import i18n from "i18next";
+import { formatDay } from "./lib/format.ts";
 
 export { WORK_ORDER } from "@fieldsync/work-orders";
 
@@ -68,6 +69,7 @@ export function describeValue(
 	}
 	if (field === "status") return statusLabel(text);
 	if (field === "priority") return priorityLabel(text);
+	if (field === "dueDate") return formatDay(text);
 	return text.length > SHORT ? `${text.slice(0, SHORT - 1)}…` : text;
 }
 

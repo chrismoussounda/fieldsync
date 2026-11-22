@@ -5,6 +5,7 @@ import {
 	JUNIOR,
 	open,
 	scribble,
+	section,
 	sync,
 } from "./devices.ts";
 
@@ -19,12 +20,15 @@ test("the customer signs on the technician's phone, offline", async ({
 
 	await tech.context().setOffline(true);
 	await open(tech, title);
+	await tech
+		.getByRole("button", { name: "Get the customer's signature" })
+		.click();
 	const save = tech.getByRole("button", { name: "Save signature" });
 	await tech.getByLabel("Customer name").fill("Mr Kaya");
 	await expect(save).toBeDisabled();
 	await scribble(tech);
 	await save.click();
-	const signature = tech.locator(".signature");
+	const signature = section(tech, "Customer signature");
 	await expect(signature).toContainText("Signed by Mr Kaya");
 	await expect(signature).toContainText("Not synced");
 
@@ -33,8 +37,9 @@ test("the customer signs on the technician's phone, offline", async ({
 
 	await sync(office);
 	await open(office, title);
-	await expect(office.locator(".signature")).toContainText(`Signed by Mr Kaya`);
-	await expect(office.locator(".signature")).toContainText(`with ${JUNIOR}`);
+	const signed = section(office, "Customer signature");
+	await expect(signed).toContainText("Signed by Mr Kaya");
+	await expect(signed).toContainText(`with ${JUNIOR}`);
 	await expect
 		.poll(() =>
 			office
@@ -43,5 +48,5 @@ test("the customer signs on the technician's phone, offline", async ({
 				.catch(() => 0),
 		)
 		.toBe(600);
-	await expect(office.locator(".photos")).toContainText("No photos yet.");
+	await expect(section(office, "Photos")).toContainText("No photos yet.");
 });

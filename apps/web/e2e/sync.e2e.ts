@@ -2,10 +2,15 @@ import { expect, test } from "@playwright/test";
 import {
 	createOrder,
 	device,
+	edit,
 	JUNIOR,
 	MERVEILLE,
 	open,
-	save,
+	pick,
+	saveSheet,
+	section,
+	setStatus,
+	statusOf,
 	sync,
 } from "./devices.ts";
 
@@ -20,9 +25,12 @@ test("an edit made offline reaches the office once back online", async ({
 
 	await tech.context().setOffline(true);
 	await open(tech, title);
-	await tech.getByLabel("Notes").fill("No signal in the basement");
-	await save(tech);
+	await (await edit(tech))
+		.getByLabel("Notes")
+		.fill("No signal in the basement");
+	await saveSheet(tech);
 	await expect(tech.locator(".badge")).toHaveText("Offline · 1 waiting");
+	await tech.goto("/#/?status=all");
 	await expect(
 		tech.getByRole("row").filter({ hasText: title }).getByLabel("Not synced"),
 	).toBeVisible();
@@ -31,7 +39,7 @@ test("an edit made offline reaches the office once back online", async ({
 	await expect(tech.locator(".badge")).toHaveText("Synced");
 	await sync(office);
 	await open(office, title);
-	await expect(office.getByLabel("Notes")).toHaveValue(
+	await expect(section(office, "Notes")).toContainText(
 		"No signal in the basement",
 	);
 });
@@ -47,12 +55,10 @@ test("two edits of the same field are settled and logged for the office", async 
 
 	await tech.context().setOffline(true);
 	await open(tech, title);
-	await tech.getByLabel("Status").selectOption({ label: "Done" });
-	await save(tech);
+	await setStatus(tech, "Done");
 
 	await open(office, title);
-	await office.getByLabel("Status").selectOption({ label: "Cancelled" });
-	await save(office);
+	await setStatus(office, "Cancelled");
 	await expect(office.locator(".badge")).toHaveText("Synced");
 
 	await tech.context().setOffline(false);
@@ -60,7 +66,7 @@ test("two edits of the same field are settled and logged for the office", async 
 
 	// The later edit wins, on every device.
 	await open(tech, title);
-	await expect(tech.getByLabel("Status")).toHaveValue("cancelled");
+	await expect(statusOf(tech)).toHaveAccessibleName("Status: Cancelled");
 
 	await office.goto("/#/conflicts");
 	const entry = office.locator("li", { hasText: title });
@@ -83,12 +89,13 @@ test("an offline edit to an order reassigned meanwhile is refused and rolled bac
 
 	await tech.context().setOffline(true);
 	await open(tech, title);
-	await tech.getByLabel("Notes").fill("Started the job");
-	await save(tech);
+	await (await edit(tech)).getByLabel("Notes").fill("Started the job");
+	await saveSheet(tech);
 
 	await open(office, title);
-	await office.getByLabel("Assigned to").selectOption({ label: MERVEILLE });
-	await save(office);
+	await edit(office);
+	await pick(office, "Assigned to", MERVEILLE);
+	await saveSheet(office);
 
 	await tech.context().setOffline(false);
 	await expect(tech.locator(".badge")).toHaveText("Synced");

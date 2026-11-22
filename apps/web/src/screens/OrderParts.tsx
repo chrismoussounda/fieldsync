@@ -6,7 +6,15 @@ import {
 	PART,
 } from "@fieldsync/work-orders";
 import { useLiveQuery } from "dexie-react-hooks";
-import { type FormEvent, useState } from "react";
+import { Package, Plus, X } from "lucide-react";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
+import { ComboField } from "@/components/combo-field";
+import { TextField } from "@/components/fields";
+import { FormSheet } from "@/components/form-sheet";
+import { Section } from "@/components/section";
+import { Button } from "@/components/ui/button";
 import { formatQuantity, partNames, partsOf } from "../app/parts.ts";
 import type { Member } from "../app/workspace.ts";
 import type { User } from "../auth/session.ts";
@@ -25,13 +33,11 @@ const UNITS = ["pcs", "m", "L", "kg"];
 
 /** Parts and materials used on the job, recorded on site, offline too. */
 export function OrderParts({ db, loop, user, orderId, order }: Props) {
+	const { t } = useTranslation();
 	const all = useLiveQuery(() => partsOf(db), [db]);
 	const members = useLiveQuery(() => db.getMeta<Member[]>("members"), [db]);
 	const names = new Map(members?.map((m) => [m.id, m.name]));
-	const [name, setName] = useState("");
-	const [quantity, setQuantity] = useState("1");
-	const [unit, setUnit] = useState("");
-	const [error, setError] = useState<string | null>(null);
+	const [adding, setAdding] = useState(false);
 	const office = canManage(user.role);
 	const canAdd = office || order.assigneeId === user.id;
 
@@ -39,107 +45,157 @@ export function OrderParts({ db, loop, user, orderId, order }: Props) {
 	const parts = all.filter((p) => p.orderId === orderId);
 	if (parts.length === 0 && !canAdd) return null;
 
-	function add(event: FormEvent) {
-		event.preventDefault();
-		const amount = Number(quantity);
-		if (!name.trim()) return setError("Name the part.");
-		if (!(amount > 0 && amount <= MAX_QUANTITY)) {
-			return setError("Enter a quantity above 0.");
-		}
-		setError(null);
-		void loop.mutate({
-			entityType: PART,
-			entityId: crypto.randomUUID(),
-			patch: {
-				orderId,
-				name: name.trim(),
-				quantity: amount,
-				unit: unit.trim() || null,
-				addedBy: user.id,
-				addedAt: new Date().toISOString(),
-			},
-		});
-		setName("");
-		setQuantity("1");
+	return (
+		<Section
+			title={t("order.parts.title")}
+			action={
+				canAdd && (
+					<Button variant="outline" onPress={() => setAdding(true)}>
+						<Plus aria-hidden />
+						{t("order.parts.add")}
+					</Button>
+				)
+			}
+		>
+			{parts.length === 0 ? (
+				<p className="text-muted-foreground">{t("order.parts.empty")}</p>
+			) : (
+				<ul className="grid divide-y">
+					{parts.map((p) => (
+						<li key={p.id} className="flex items-center gap-3 py-3">
+							<span className="grid size-10 shrink-0 place-items-center rounded-xl bg-muted text-muted-foreground">
+								<Package aria-hidden className="size-5" />
+							</span>
+							<span className="grid min-w-0 flex-1">
+								<span className="truncate font-medium">
+									<span className="tabular-nums">{formatQuantity(p)}</span>{" "}
+									{p.name}
+								</span>
+								<span className="text-sm text-muted-foreground">
+									{names.get(p.addedBy) ?? t("values.someone")}
+								</span>
+							</span>
+							{(office || (canAdd && p.addedBy === user.id)) && (
+								<Button
+									variant="ghost"
+									size="icon-sm"
+									aria-label={t("order.parts.remove", { name: p.name })}
+									onPress={() =>
+										void loop.mutate({
+											entityType: PART,
+											entityId: p.id,
+											kind: "delete",
+										})
+									}
+								>
+									<X aria-hidden />
+								</Button>
+							)}
+						</li>
+					))}
+				</ul>
+			)}
+			{adding && (
+				<AddPart
+					suggestions={partNames(all)}
+					onClose={() => setAdding(false)}
+					onAdd={(part) =>
+						void loop.mutate({
+							entityType: PART,
+							entityId: crypto.randomUUID(),
+							patch: {
+								orderId,
+								...part,
+								addedBy: user.id,
+								addedAt: new Date().toISOString(),
+							},
+						})
+					}
+				/>
+			)}
+		</Section>
+	);
+}
+
+function AddPart({
+	suggestions,
+	onClose,
+	onAdd,
+}: {
+	suggestions: string[];
+	onClose: () => void;
+	onAdd: (part: {
+		name: string;
+		quantity: number;
+		unit: string | null;
+	}) => void;
+}) {
+	const { t } = useTranslation();
+	const [name, setName] = useState("");
+	const [quantity, setQuantity] = useState("1");
+	const [unit, setUnit] = useState("");
+	const [errors, setErrors] = useState<{ name?: string; quantity?: string }>(
+		{},
+	);
+
+	function submit() {
+		const amount = Number(quantity.replace(",", "."));
+		const next = {
+			name: name.trim() ? undefined : t("order.parts.nameRequired"),
+			quantity:
+				amount > 0 && amount <= MAX_QUANTITY
+					? undefined
+					: t("order.parts.quantityInvalid"),
+		};
+		setErrors(next);
+		if (next.name || next.quantity) return;
+		onAdd({ name: name.trim(), quantity: amount, unit: unit.trim() || null });
+		toast.success(
+			`${formatQuantity({ quantity: amount, unit: unit.trim() || null })} ${name.trim()}`,
+		);
+		onClose();
 	}
 
 	return (
-		<section className="card parts">
-			<h3>Parts and materials</h3>
-			{parts.length === 0 && <p className="muted">None recorded.</p>}
-			<ul className="items">
-				{parts.map((p) => (
-					<li key={p.id}>
-						<span>
-							<strong>{formatQuantity(p)}</strong> {p.name}
-						</span>
-						<span className="muted meta">
-							{names.get(p.addedBy) ?? "Someone"}
-						</span>
-						{(office || (canAdd && p.addedBy === user.id)) && (
-							<button
-								type="button"
-								className="link"
-								aria-label={`Remove ${p.name}`}
-								onClick={() =>
-									void loop.mutate({
-										entityType: PART,
-										entityId: p.id,
-										kind: "delete",
-									})
-								}
-							>
-								Remove
-							</button>
-						)}
-					</li>
-				))}
-			</ul>
-			{canAdd && (
-				<form className="add-part" onSubmit={add}>
-					<input
-						aria-label="Part"
-						placeholder="Part, like “Pump seal 32 mm”"
-						list="part-names"
-						maxLength={MAX_PART_NAME}
-						value={name}
-						onChange={(e) => setName(e.target.value)}
-					/>
-					<datalist id="part-names">
-						{partNames(all).map((n) => (
-							<option key={n} value={n} />
-						))}
-					</datalist>
-					<input
-						aria-label="Quantity"
-						type="number"
-						inputMode="decimal"
-						min="0"
-						step="any"
-						value={quantity}
-						onChange={(e) => setQuantity(e.target.value)}
-					/>
-					<input
-						aria-label="Unit"
-						placeholder="Unit"
-						list="part-units"
-						maxLength={MAX_UNIT}
-						value={unit}
-						onChange={(e) => setUnit(e.target.value)}
-					/>
-					<datalist id="part-units">
-						{UNITS.map((u) => (
-							<option key={u} value={u} />
-						))}
-					</datalist>
-					<button type="submit">Add part</button>
-				</form>
-			)}
-			{error && (
-				<p role="alert" className="error">
-					{error}
-				</p>
-			)}
-		</section>
+		<FormSheet
+			open
+			onOpenChange={(open) => !open && onClose()}
+			title={t("order.parts.add")}
+			submitLabel={t("order.parts.add")}
+			onSubmit={submit}
+		>
+			<ComboField
+				id="part-name"
+				label={t("order.parts.name")}
+				placeholder={t("order.parts.namePlaceholder")}
+				suggestions={suggestions}
+				required
+				maxLength={MAX_PART_NAME}
+				value={name}
+				onChange={setName}
+				error={errors.name}
+			/>
+			<div className="grid grid-cols-2 gap-4">
+				<TextField
+					id="part-quantity"
+					label={t("order.parts.quantity")}
+					placeholder={t("order.parts.quantityPlaceholder")}
+					required
+					inputMode="decimal"
+					value={quantity}
+					onChange={setQuantity}
+					error={errors.quantity}
+				/>
+				<ComboField
+					id="part-unit"
+					label={t("order.parts.unit")}
+					placeholder={t("order.parts.unitPlaceholder")}
+					suggestions={UNITS}
+					maxLength={MAX_UNIT}
+					value={unit}
+					onChange={setUnit}
+				/>
+			</div>
+		</FormSheet>
 	);
 }

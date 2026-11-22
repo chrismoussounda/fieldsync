@@ -2,10 +2,13 @@ import { expect, test } from "@playwright/test";
 import {
 	createOrder,
 	device,
+	edit,
 	JUNIOR,
 	MERVEILLE,
 	open,
-	save,
+	pick,
+	saveSheet,
+	section,
 	sync,
 } from "./devices.ts";
 
@@ -32,9 +35,9 @@ test("a technician's phone holds only his orders, and follows reassignments", as
 
 	// Reassigned: it leaves his phone and arrives on hers, history included.
 	await open(office, title);
-	await office.getByLabel("Notes").fill("Bring the long ladder");
-	await office.getByLabel("Assigned to").selectOption({ label: MERVEILLE });
-	await save(office);
+	await (await edit(office)).getByLabel("Notes").fill("Bring the long ladder");
+	await pick(office, "Assigned to", MERVEILLE);
+	await saveSheet(office);
 	await expect(office.locator(".badge")).toHaveText("Synced");
 
 	await sync(junior);
@@ -42,7 +45,7 @@ test("a technician's phone holds only his orders, and follows reassignments", as
 	await expect(junior.getByRole("link", { name: title })).toHaveCount(0);
 	await sync(merveille);
 	await open(merveille, title);
-	await expect(merveille.getByLabel("Notes")).toHaveValue(
+	await expect(section(merveille, "Notes")).toContainText(
 		"Bring the long ladder",
 	);
 });

@@ -1,5 +1,13 @@
 import { expect, type Page, test } from "@playwright/test";
-import { createOrder, device, JUNIOR, open, sync } from "./devices.ts";
+import {
+	createOrder,
+	device,
+	JUNIOR,
+	open,
+	saveSheet,
+	section,
+	sync,
+} from "./devices.ts";
 
 // A real 1x1 PNG, enough for the browser to decode and shrink.
 const PNG = Buffer.from(
@@ -29,13 +37,14 @@ test("a photo taken offline reaches the office once back online", async ({
 
 	await tech.context().setOffline(true);
 	await open(tech, title);
-	await tech.getByLabel("Caption").fill("Leaking valve");
 	await tech.getByLabel("Add photo").setInputFiles({
 		name: "valve.png",
 		mimeType: "image/png",
 		buffer: PNG,
 	});
-	const photos = tech.locator(".photos");
+	await tech.getByRole("dialog").getByLabel("Caption").fill("Leaking valve");
+	await saveSheet(tech);
+	const photos = section(tech, "Photos");
 	await expect(
 		photos.getByRole("img", { name: "Leaking valve" }),
 	).toBeVisible();
@@ -46,12 +55,16 @@ test("a photo taken offline reaches the office once back online", async ({
 
 	await sync(office);
 	await open(office, title);
-	await expect(office.locator(".photos")).toContainText("Leaking valve");
+	await expect(section(office, "Photos")).toContainText("Leaking valve");
 	await decoded(office, "Leaking valve");
 
 	await office.getByRole("button", { name: "Leaking valve" }).click();
 	const viewer = office.getByRole("dialog", { name: "Leaking valve" });
-	await expect(viewer).toContainText(`by ${JUNIOR}`);
+	await expect(viewer).toContainText(`By ${JUNIOR}`);
 	await viewer.getByRole("button", { name: "Delete photo" }).click();
-	await expect(office.locator(".photos")).toContainText("No photos yet.");
+	await office
+		.getByRole("alertdialog")
+		.getByRole("button", { name: "Delete photo" })
+		.click();
+	await expect(section(office, "Photos")).toContainText("No photos yet.");
 });

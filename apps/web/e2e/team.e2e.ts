@@ -21,9 +21,14 @@ test("an admin adds a technician, who later gets disabled", async ({
 
 	// She can be assigned work right away.
 	await admin.goto("/#/new");
+	await admin
+		.getByRole("dialog")
+		.getByRole("button", { name: "Assigned to" })
+		.click();
 	await expect(
-		admin.getByLabel("Assigned to").locator("option", { hasText: "Ines" }),
-	).toHaveCount(1);
+		admin.getByRole("option", { name: "Ines Mabiala" }),
+	).toBeVisible();
+	await admin.keyboard.press("Escape");
 
 	// She signs in and replaces the password the admin gave her.
 	const phone = await device(browser, EMAIL, FIRST);

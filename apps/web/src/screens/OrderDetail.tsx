@@ -2,112 +2,215 @@ import { type EntityState, isDeleted } from "@fieldsync/merge";
 import {
 	canManage,
 	editableFields,
-	FIELDS,
-	type Field,
-	MAX_LENGTH,
-	PRIORITIES,
 	STATUSES,
 	WORK_ORDER,
 } from "@fieldsync/work-orders";
 import { useLiveQuery } from "dexie-react-hooks";
-import { type FormEvent, useState } from "react";
+import {
+	ArrowLeft,
+	Building2,
+	CalendarDays,
+	ChevronDown,
+	FileText,
+	Flame,
+	KeyRound,
+	MapPin,
+	Navigation,
+	Pencil,
+	Phone,
+	Trash2,
+	UserRound,
+} from "lucide-react";
+import { type ReactNode, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
+import { Confirm } from "@/components/confirm";
+import { Section } from "@/components/section";
+import { StatusBadge } from "@/components/status-badge";
+import { Button, LinkButton } from "@/components/ui/button";
+import {
+	DropdownMenu,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { formatDay } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { itemsOf } from "../app/checklists.ts";
 import { ROUTES } from "../app/route.ts";
-import { sitesOf, telLink } from "../app/sites.ts";
+import { type Site, sitesOf, telLink } from "../app/sites.ts";
 import type { Member } from "../app/workspace.ts";
 import type { Session, User } from "../auth/session.ts";
-import {
-	type Draft,
-	patchOf,
-	priorityLabel,
-	statusLabel,
-	toDraft,
-} from "../orders.ts";
+import { isOverdue, localDate } from "../filters.ts";
+import { type Order, priorityLabel, statusLabel, toOrder } from "../orders.ts";
 import type { SyncLoop } from "../sync/loop.ts";
 import type { LocalDb } from "../sync/storage.ts";
 import { OrderChecklist } from "./OrderChecklist.tsx";
 import { OrderHistory } from "./OrderHistory.tsx";
 import { OrderParts } from "./OrderParts.tsx";
 import { OrderPhotos } from "./OrderPhotos.tsx";
+import { OrderSheet } from "./OrderSheet.tsx";
 import { OrderSignature } from "./OrderSignature.tsx";
 import { OrderTime } from "./OrderTime.tsx";
 
-type Props = { db: LocalDb; loop: SyncLoop; session: Session; user: User };
+type Props = {
+	db: LocalDb;
+	loop: SyncLoop;
+	session: Session;
+	user: User;
+	id: string;
+};
 
-/** An existing work order, or a new one when `id` is null. */
-export function OrderDetail({ id, ...props }: Props & { id: string | null }) {
+/** A work order: what to do, where, and everything recorded on site. */
+export function OrderDetail({ db, loop, session, user, id }: Props) {
+	const { t } = useTranslation();
 	const state = useLiveQuery(
-		async () =>
-			id
-				? ((await props.db.entities.get([WORK_ORDER, id]))?.state ?? null)
-				: null,
-		[props.db, id],
+		async () => (await db.entities.get([WORK_ORDER, id]))?.state ?? null,
+		[db, id],
 	);
+	const sites = useLiveQuery(() => sitesOf(db), [db]);
+	const members = useLiveQuery(() => db.getMeta<Member[]>("members"), [db]);
+	const [editing, setEditing] = useState(false);
+	const [deleting, setDeleting] = useState(false);
+
 	if (state === undefined) return null;
-	if (id && (!state || isDeleted(state))) {
+	const order = state && !isDeleted(state) ? toOrder(id, state) : null;
+	if (!state || !order) {
 		return (
-			<section className="card">
-				<p>This work order no longer exists.</p>
-				<a href={ROUTES.list}>Back to the list</a>
-			</section>
+			<div className="grid place-items-center gap-3 rounded-2xl border border-dashed p-12 text-center">
+				<p className="font-medium">{t("order.gone")}</p>
+				<BackLink />
+			</div>
 		);
 	}
+	const editable = editableFields(user, state.fields);
+	const office = canManage(user.role);
+	const site = sites?.find((s) => s.id === order.siteId) ?? null;
+	const assignee = order.assigneeId
+		? (members?.find((m) => m.id === order.assigneeId)?.name ?? null)
+		: null;
+	const sections = { db, loop, user, orderId: id, order: state.fields };
+
+	async function remove() {
+		await loop.mutate({ entityType: WORK_ORDER, entityId: id, kind: "delete" });
+		toast.success(t("order.deleted"));
+		window.location.hash = ROUTES.list;
+	}
+
+	async function setStatus(status: string) {
+		await loop.mutate({
+			entityType: WORK_ORDER,
+			entityId: id,
+			patch: { status },
+		});
+		toast.success(t("order.statusChanged", { status: statusLabel(status) }));
+		if (status === "done") {
+			const unticked = (await itemsOf(db, id)).filter((i) => !i.done).length;
+			if (unticked > 0) toast.warning(t("order.unticked", { count: unticked }));
+		}
+	}
+
 	return (
-		<div className="detail">
-			<OrderForm key={id ?? "new"} id={id} state={state} {...props} />
-			{id && state && (
-				<OrderChecklist
-					db={props.db}
-					loop={props.loop}
-					user={props.user}
-					orderId={id}
-					order={state.fields}
+		<div className="grid grid-cols-1 gap-6">
+			<BackLink />
+			<header className="grid gap-4">
+				<div className="flex flex-wrap items-start justify-between gap-4">
+					<h1 className="min-w-0 text-2xl font-semibold tracking-tight break-words md:text-3xl">
+						{order.title}
+					</h1>
+					<div className="flex flex-wrap gap-2">
+						<LinkButton
+							href={ROUTES.report(id)}
+							variant="outline"
+							className="bg-card"
+						>
+							<FileText aria-hidden />
+							{t("order.report")}
+						</LinkButton>
+						{editable.size > 0 && (
+							<Button
+								variant="outline"
+								className="bg-card"
+								onPress={() => setEditing(true)}
+							>
+								<Pencil aria-hidden />
+								{t("order.edit")}
+							</Button>
+						)}
+						{office && (
+							<Button
+								variant="destructive"
+								aria-label={t("order.delete")}
+								onPress={() => setDeleting(true)}
+							>
+								<Trash2 aria-hidden />
+								<span className="max-sm:hidden">{t("order.delete")}</span>
+							</Button>
+						)}
+					</div>
+				</div>
+				<div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-muted-foreground">
+					{editable.has("status") ? (
+						<StatusMenu status={order.status} onPick={setStatus} />
+					) : (
+						<StatusBadge status={order.status} />
+					)}
+					{order.priority === "urgent" && (
+						<span className="flex items-center gap-1.5 font-medium text-status-urgent">
+							<Flame aria-hidden className="size-4" />
+							{priorityLabel(order.priority)}
+						</span>
+					)}
+					<Meta icon={<CalendarDays />} label={t("order.due")}>
+						<Due order={order} />
+					</Meta>
+					<Meta icon={<UserRound />} label={t("order.technician")}>
+						{assignee ?? t("orders.unassigned")}
+					</Meta>
+				</div>
+				{editable.size === 0 && (
+					<p className="rounded-xl bg-muted p-3 text-muted-foreground">
+						{t("order.readOnly")}
+					</p>
+				)}
+			</header>
+			<div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_24rem] xl:grid-cols-[minmax(0,1fr)_28rem]">
+				<div className="grid grid-cols-1 gap-6">
+					<Place order={order} site={site} className="lg:hidden" />
+					<Text order={order} />
+					<OrderChecklist {...sections} />
+					<OrderParts {...sections} />
+					<OrderPhotos {...sections} />
+					<OrderSignature {...sections} />
+				</div>
+				<aside className="grid grid-cols-1 gap-6">
+					<Place order={order} site={site} className="max-lg:hidden" />
+					<OrderTime {...sections} />
+					<OrderHistory
+						db={db}
+						session={session}
+						id={id}
+						stamp={latestStamp(state)}
+					/>
+				</aside>
+			</div>
+			{editing && (
+				<OrderSheet
+					open
+					onOpenChange={setEditing}
+					db={db}
+					loop={loop}
+					user={user}
+					order={{ id, state }}
 				/>
 			)}
-			{id && state && (
-				<OrderTime
-					db={props.db}
-					loop={props.loop}
-					user={props.user}
-					orderId={id}
-					order={state.fields}
-				/>
-			)}
-			{id && state && (
-				<OrderParts
-					db={props.db}
-					loop={props.loop}
-					user={props.user}
-					orderId={id}
-					order={state.fields}
-				/>
-			)}
-			{id && state && (
-				<OrderSignature
-					db={props.db}
-					loop={props.loop}
-					user={props.user}
-					orderId={id}
-					order={state.fields}
-				/>
-			)}
-			{id && state && (
-				<OrderPhotos
-					db={props.db}
-					loop={props.loop}
-					user={props.user}
-					orderId={id}
-					order={state.fields}
-				/>
-			)}
-			{id && state && (
-				<OrderHistory
-					db={props.db}
-					session={props.session}
-					id={id}
-					stamp={latestStamp(state)}
-				/>
-			)}
+			<Confirm
+				open={deleting}
+				onOpenChange={setDeleting}
+				title={t("order.deleteTitle")}
+				description={t("order.deleteBody")}
+				confirmLabel={t("order.delete")}
+				onConfirm={() => void remove()}
+			/>
 		</div>
 	);
 }
@@ -121,208 +224,192 @@ function latestStamp(state: EntityState): string {
 	].reduce((a, b) => (b > a ? b : a), "");
 }
 
-function OrderForm({
-	db,
-	loop,
-	user,
-	id,
-	state,
-}: Props & { id: string | null; state: EntityState | null }) {
-	const members = useLiveQuery(() => db.getMeta<Member[]>("members"), [db]);
-	const sites = useLiveQuery(() => sitesOf(db), [db]);
-	const unticked = useLiveQuery(
-		async () =>
-			id ? (await itemsOf(db, id)).filter((i) => !i.done).length : 0,
-		[db, id],
-	);
-	// Only what the user typed; every other field shows the live value, so
-	// changes synced while the form is open appear in it.
-	const [edits, setEdits] = useState<Partial<Draft>>(() =>
-		id ? {} : { priority: "normal" },
-	);
-	const [error, setError] = useState<string | null>(null);
-	const [confirmDelete, setConfirmDelete] = useState(false);
-
-	const live = toDraft(state);
-	const draft: Draft = { ...live, ...edits };
-	const editable: ReadonlySet<Field> = id
-		? editableFields(user, state?.fields ?? null)
-		: new Set(canManage(user.role) ? FIELDS : []);
-	const set = (field: Field) => (value: string) =>
-		setEdits((e) => ({ ...e, [field]: value }));
-
-	async function save(event: FormEvent) {
-		event.preventDefault();
-		if (!draft.title.trim()) return setError("Give the work order a title.");
-		const patch = patchOf(live, draft, editable);
-		if (!id && !draft.status) {
-			patch.status = draft.assigneeId ? "assigned" : "open";
-		}
-		if (Object.keys(patch).length > 0) {
-			await loop.mutate({
-				entityType: WORK_ORDER,
-				entityId: id ?? crypto.randomUUID(),
-				patch,
-			});
-		}
-		window.location.hash = ROUTES.list;
-	}
-
-	async function remove() {
-		if (!id) return;
-		await loop.mutate({ entityType: WORK_ORDER, entityId: id, kind: "delete" });
-		window.location.hash = ROUTES.list;
-	}
-
-	// Disabled technicians keep their name on past orders but get no new ones.
-	const technicians =
-		members?.filter(
-			(m) =>
-				m.role === "technician" &&
-				(m.active !== false || m.id === draft.assigneeId),
-		) ?? [];
-	const field = (name: Field) => ({
-		value: draft[name],
-		disabled: !editable.has(name),
-		maxLength: (MAX_LENGTH as Partial<Record<Field, number>>)[name],
-		onChange: (e: { target: { value: string } }) => set(name)(e.target.value),
-	});
-
-	const site = sites?.find((s) => s.id === draft.siteId);
-	const pickSite = (siteId: string) => {
-		const address = sites?.find((s) => s.id === siteId)?.address;
-		setEdits((e) => ({ ...e, siteId, ...(address ? { address } : {}) }));
-	};
-
+function BackLink() {
+	const { t } = useTranslation();
 	return (
-		<form className="card form" onSubmit={save}>
-			<div className="toolbar">
-				<h2>{id ? "Work order" : "New work order"}</h2>
-				{id && <a href={ROUTES.report(id)}>Job report</a>}
-				<a href={ROUTES.list}>Back</a>
-			</div>
-			{editable.size === 0 && (
-				<p className="muted">
-					Only the assigned technician or the office can change this order.
-				</p>
-			)}
-			<label>
-				Title
-				<input {...field("title")} required />
-			</label>
-			<label>
-				Description
-				<textarea {...field("description")} rows={3} />
-			</label>
-			<label>
-				Site
-				<select {...field("siteId")} onChange={(e) => pickSite(e.target.value)}>
-					<option value="">No site</option>
-					{draft.siteId && !site && (
-						<option value={draft.siteId}>A removed site</option>
-					)}
-					{sites?.map((s) => (
-						<option key={s.id} value={s.id}>
-							{s.name}
-						</option>
-					))}
-				</select>
-			</label>
-			{site && (
-				<div className="site-info">
-					{site.contactName && <span>{site.contactName}</span>}
-					{site.contactPhone && (
-						<a href={telLink(site.contactPhone)}>{site.contactPhone}</a>
-					)}
-					{site.accessNotes && <p className="muted">{site.accessNotes}</p>}
-					<a href={ROUTES.site(site.id)}>Site page and past jobs</a>
-				</div>
-			)}
-			<label>
-				Address
-				<input {...field("address")} />
-			</label>
-			<div className="row">
-				<label>
-					Priority
-					<select {...field("priority")}>
-						{PRIORITIES.map((p) => (
-							<option key={p} value={p}>
-								{priorityLabel(p)}
-							</option>
-						))}
-					</select>
-				</label>
-				<label>
-					Due
-					<input type="date" {...field("dueDate")} />
-				</label>
-			</div>
-			<label>
-				Assigned to
-				<select {...field("assigneeId")}>
-					<option value="">Unassigned</option>
-					{technicians.map((m) => (
-						<option key={m.id} value={m.id}>
-							{m.name}
-						</option>
-					))}
-				</select>
-			</label>
-			{id && (
-				<label>
-					Status
-					<select {...field("status")}>
-						{STATUSES.map((s) => (
-							<option key={s} value={s}>
-								{statusLabel(s)}
-							</option>
-						))}
-					</select>
-				</label>
-			)}
-			<label>
-				Notes
-				<textarea {...field("notes")} rows={4} />
-			</label>
-			{draft.status === "done" && (unticked ?? 0) > 0 && (
-				<p className="warning">
-					{unticked} checklist {unticked === 1 ? "step is" : "steps are"} not
-					ticked.
-				</p>
-			)}
-			{error && (
-				<p role="alert" className="error">
-					{error}
-				</p>
-			)}
-			<div className="actions">
-				{editable.size > 0 && <button type="submit">Save</button>}
-				{id && canManage(user.role) && !confirmDelete && (
-					<button
-						type="button"
-						className="link"
-						onClick={() => setConfirmDelete(true)}
-					>
-						Delete
-					</button>
+		<a
+			href={ROUTES.list}
+			className="flex w-fit items-center gap-1.5 font-medium text-muted-foreground hover:text-foreground"
+		>
+			<ArrowLeft aria-hidden className="size-4" />
+			{t("order.back")}
+		</a>
+	);
+}
+
+function Meta({
+	icon,
+	label,
+	children,
+}: {
+	icon: ReactNode;
+	label: string;
+	children: ReactNode;
+}) {
+	return (
+		<span className="flex items-center gap-1.5">
+			<span aria-hidden className="[&_svg]:size-4">
+				{icon}
+			</span>
+			<span className="sr-only">{label}</span>
+			{children}
+		</span>
+	);
+}
+
+function Due({ order }: { order: Order }) {
+	const { t } = useTranslation();
+	if (!order.dueDate) return <span>{t("orders.noDate")}</span>;
+	const late = isOverdue(order, localDate());
+	return (
+		<span className={cn(late && "font-medium text-destructive")}>
+			{formatDay(order.dueDate)}
+			{late && ` · ${t("orders.overdue")}`}
+		</span>
+	);
+}
+
+function StatusMenu({
+	status,
+	onPick,
+}: {
+	status: string;
+	onPick: (status: string) => Promise<void>;
+}) {
+	const { t } = useTranslation();
+	return (
+		<DropdownMenuTrigger>
+			<Button
+				variant="ghost"
+				className="h-auto gap-1 rounded-full p-0 hover:bg-transparent"
+				aria-label={t("order.changeStatus", { status: statusLabel(status) })}
+			>
+				<StatusBadge status={status} />
+				<ChevronDown aria-hidden className="size-4 text-muted-foreground" />
+			</Button>
+			<DropdownMenu
+				className="min-w-52"
+				selectionMode="single"
+				selectedKeys={[status]}
+			>
+				{STATUSES.map((s) => (
+					<DropdownMenuItem key={s} id={s} onAction={() => void onPick(s)}>
+						{statusLabel(s)}
+					</DropdownMenuItem>
+				))}
+			</DropdownMenu>
+		</DropdownMenuTrigger>
+	);
+}
+
+/** Where to go and who to ask for, read before leaving. */
+function Place({
+	order,
+	site,
+	className,
+}: {
+	order: Order;
+	site: Site | null;
+	className?: string;
+}) {
+	const { t } = useTranslation();
+	const address = order.address || site?.address || "";
+	if (!site && !address) return null;
+	return (
+		<div className={className}>
+			<Section title={t("order.site")}>
+				{site && (
+					<div className="flex items-center gap-3">
+						<span className="grid size-10 shrink-0 place-items-center rounded-xl bg-accent text-accent-foreground">
+							<Building2 aria-hidden className="size-5" />
+						</span>
+						<div className="grid min-w-0">
+							<span className="truncate font-semibold">{site.name}</span>
+							<a
+								href={ROUTES.site(site.id)}
+								className="w-fit text-sm font-medium"
+							>
+								{t("order.sitePage")}
+							</a>
+						</div>
+					</div>
 				)}
-				{confirmDelete && (
-					<span className="confirm">
-						Delete this work order?
-						<button type="button" className="danger" onClick={remove}>
-							Delete
-						</button>
-						<button
-							type="button"
-							className="link"
-							onClick={() => setConfirmDelete(false)}
+				{address && (
+					<p className="flex gap-2">
+						<MapPin
+							aria-hidden
+							className="mt-0.5 size-4 shrink-0 text-muted-foreground"
+						/>
+						{address}
+					</p>
+				)}
+				{site?.contactName && (
+					<p className="flex items-center gap-2">
+						<UserRound
+							aria-hidden
+							className="size-4 shrink-0 text-muted-foreground"
+						/>
+						{site.contactName}
+						{site.contactPhone && (
+							<a href={telLink(site.contactPhone)}>{site.contactPhone}</a>
+						)}
+					</p>
+				)}
+				{site?.accessNotes && (
+					<p className="flex gap-2 rounded-xl bg-warning/10 p-3 whitespace-pre-line">
+						<KeyRound aria-hidden className="mt-0.5 size-4 shrink-0" />
+						{site.accessNotes}
+					</p>
+				)}
+				<div className="grid grid-cols-2 gap-2">
+					{site?.contactPhone && (
+						<LinkButton href={telLink(site.contactPhone)} className="h-11">
+							<Phone aria-hidden />
+							{t("order.call")}
+						</LinkButton>
+					)}
+					{address && (
+						<LinkButton
+							href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`}
+							target="_blank"
+							rel="noreferrer"
+							variant="outline"
+							className={cn("h-11", !site?.contactPhone && "col-span-2")}
 						>
-							Cancel
-						</button>
-					</span>
-				)}
-			</div>
-		</form>
+							<Navigation aria-hidden />
+							{t("order.directions")}
+						</LinkButton>
+					)}
+				</div>
+			</Section>
+		</div>
+	);
+}
+
+function Text({ order }: { order: Order }) {
+	const { t } = useTranslation();
+	return (
+		<div className="grid gap-6 md:grid-cols-2">
+			<Section title={t("order.description")}>
+				<p
+					className={cn(
+						"whitespace-pre-line",
+						!order.description && "text-muted-foreground",
+					)}
+				>
+					{order.description || t("order.noDescription")}
+				</p>
+			</Section>
+			<Section title={t("order.notes")}>
+				<p
+					className={cn(
+						"whitespace-pre-line",
+						!order.notes && "text-muted-foreground",
+					)}
+				>
+					{order.notes || t("order.noNotes")}
+				</p>
+			</Section>
+		</div>
 	);
 }

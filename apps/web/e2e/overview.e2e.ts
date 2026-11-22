@@ -43,7 +43,10 @@ test("the office finds work from the overview and the filters", async ({
 
 	// The filters stay when coming back from an order.
 	await late.getByRole("link").click();
-	await office.getByRole("link", { name: "Back" }).click();
+	await office
+		.getByRole("main")
+		.getByRole("link", { name: "Work orders" })
+		.click();
 	await expect(assignee).not.toContainText("Anyone");
 	await office.getByRole("button", { name: "Clear filters" }).click();
 	await expect(assignee).toContainText("Anyone");

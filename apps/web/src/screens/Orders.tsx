@@ -38,7 +38,9 @@ import {
 	matches,
 } from "../filters.ts";
 import { byUrgency, type Order, toOrder, WORK_ORDER } from "../orders.ts";
+import type { SyncLoop } from "../sync/loop.ts";
 import type { LocalDb } from "../sync/storage.ts";
+import { OrderSheet } from "./OrderSheet.tsx";
 
 const SAVED = "fieldsync.filters";
 
@@ -70,7 +72,14 @@ const STRIPE: Record<string, string> = {
 	cancelled: "bg-muted-foreground/40",
 };
 
-type Props = { db: LocalDb; user: User; query: string | null };
+type Props = {
+	db: LocalDb;
+	/** Null until sync has started; creating needs it. */
+	loop: SyncLoop | null;
+	user: User;
+	query: string | null;
+	creating: boolean;
+};
 type Row = Order & {
 	assignee: string | null;
 	late: boolean;
@@ -78,7 +87,7 @@ type Row = Order & {
 	progress: { done: number; total: number } | null;
 };
 
-export function Orders({ db, user, query }: Props) {
+export function Orders({ db, loop, user, query, creating }: Props) {
 	const { t } = useTranslation();
 	const phone = usePhone();
 	const [filters, setFilters] = useState(() => initial(user, query));
@@ -265,6 +274,18 @@ export function Orders({ db, user, query }: Props) {
 				<PhoneList orders={orders} empty={empty()} />
 			) : (
 				<OrderTable orders={orders} empty={empty()} />
+			)}
+			{creating && loop && (
+				<OrderSheet
+					open
+					onOpenChange={(open) => {
+						if (!open) window.location.hash = ROUTES.list;
+					}}
+					db={db}
+					loop={loop}
+					user={user}
+					order={null}
+				/>
 			)}
 			{phone && (
 				<Drawer open={filtering} onOpenChange={setFiltering}>

@@ -4,7 +4,15 @@
 	MAX_ITEM_LABEL,
 } from "@fieldsync/work-orders";
 import { useLiveQuery } from "dexie-react-hooks";
-import { type FormEvent, useEffect, useState } from "react";
+import { Plus, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { TextField } from "@/components/fields";
+import { FormSheet } from "@/components/form-sheet";
+import { Section } from "@/components/section";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { cn } from "@/lib/utils";
 import { type Item, itemsOf } from "../app/checklists.ts";
 import type { Member } from "../app/workspace.ts";
 import type { User } from "../auth/session.ts";
@@ -21,19 +29,22 @@ type Props = {
 
 /** Steps the office sets for the job; the technician ticks them, offline too. */
 export function OrderChecklist({ db, loop, user, orderId, order }: Props) {
+	const { t } = useTranslation();
 	const items = useLiveQuery(() => itemsOf(db, orderId), [db, orderId]);
 	const members = useLiveQuery(() => db.getMeta<Member[]>("members"), [db]);
 	const names = new Map(members?.map((m) => [m.id, m.name]));
-	const [label, setLabel] = useState("");
+	const [adding, setAdding] = useState(false);
 	// The tick shows at once, until the stored value catches up; after that,
 	// changes from other devices show again.
 	const [ticked, setTicked] = useState<Record<string, boolean>>({});
 	useEffect(() => {
-		setTicked((t) => {
+		setTicked((current) => {
 			const stored = new Map(items?.map((i) => [i.id, i.done]));
-			const left = Object.entries(t).filter(([id, v]) => stored.get(id) !== v);
-			return left.length === Object.keys(t).length
-				? t
+			const left = Object.entries(current).filter(
+				([id, v]) => stored.get(id) !== v,
+			);
+			return left.length === Object.keys(current).length
+				? current
 				: Object.fromEntries(left);
 		});
 	}, [items]);
@@ -50,7 +61,7 @@ export function OrderChecklist({ db, loop, user, orderId, order }: Props) {
 	) => loop.mutate({ entityType: CHECKLIST_ITEM, entityId: id, patch });
 
 	function tick(item: Item, checked: boolean) {
-		setTicked((t) => ({ ...t, [item.id]: checked }));
+		setTicked((current) => ({ ...current, [item.id]: checked }));
 		void write(item.id, {
 			done: checked,
 			doneBy: checked ? user.id : null,
@@ -58,77 +69,138 @@ export function OrderChecklist({ db, loop, user, orderId, order }: Props) {
 		});
 	}
 
-	function add(event: FormEvent) {
-		event.preventDefault();
-		const text = label.trim();
-		if (!text) return;
-		const last = items?.at(-1)?.position ?? 0;
-		void write(crypto.randomUUID(), {
-			orderId,
-			label: text,
-			position: last + 1,
-		});
-		setLabel("");
-	}
-
 	return (
-		<section className="card checklist">
-			<div className="toolbar">
-				<h3>Checklist</h3>
-				{items.length > 0 && (
-					<span className="muted">
-						{done} of {items.length} done
-					</span>
-				)}
-			</div>
-			<ul className="items">
-				{items.map((item) => (
-					<li key={item.id}>
-						<label className="toggle">
-							<input
-								type="checkbox"
-								checked={ticked[item.id] ?? item.done}
-								disabled={!canTick}
-								onChange={(e) => tick(item, e.target.checked)}
-							/>
-							<span className={item.done ? "done" : ""}>{item.label}</span>
-						</label>
-						{item.done && item.doneBy && (
-							<span className="muted meta">
-								{names.get(item.doneBy) ?? "Someone"}
-							</span>
-						)}
-						{office && (
-							<button
-								type="button"
-								className="link"
-								aria-label={`Remove ${item.label}`}
-								onClick={() =>
-									void loop.mutate({
-										entityType: CHECKLIST_ITEM,
-										entityId: item.id,
-										kind: "delete",
-									})
-								}
-							>
-								Remove
-							</button>
-						)}
-					</li>
-				))}
-			</ul>
-			{office && (
-				<form className="add-item" onSubmit={add}>
-					<input
-						aria-label="New step"
-						placeholder="New step, like “Close the main valve”"
-						maxLength={MAX_ITEM_LABEL}
-						value={label}
-						onChange={(e) => setLabel(e.target.value)}
+		<Section
+			title={t("order.checklist.title")}
+			aside={
+				items.length > 0 &&
+				t("order.checklist.progress", { done, total: items.length })
+			}
+			action={
+				office && (
+					<Button variant="outline" onPress={() => setAdding(true)}>
+						<Plus aria-hidden />
+						{t("order.checklist.add")}
+					</Button>
+				)
+			}
+		>
+			{items.length > 0 && (
+				<div className="h-2 overflow-hidden rounded-full bg-muted">
+					<div
+						className="h-full rounded-full bg-status-done transition-all"
+						style={{ width: `${(done / items.length) * 100}%` }}
 					/>
-					<button type="submit">Add step</button>
-				</form>
+				</div>
 			)}
-		</section>
+			{items.length === 0 ? (
+				<p className="text-muted-foreground">{t("order.checklist.empty")}</p>
+			) : (
+				<ul className="-mx-2 grid">
+					{items.map((item) => {
+						const checked = ticked[item.id] ?? item.done;
+						return (
+							<li
+								key={item.id}
+								className="flex min-h-12 items-center gap-3 rounded-xl px-2 hover:bg-muted/50"
+							>
+								<Checkbox
+									isSelected={checked}
+									isDisabled={!canTick}
+									onChange={(next) => tick(item, next)}
+									className="flex-1 gap-3 py-2 text-base"
+								>
+									<span
+										className={cn(
+											checked && "text-muted-foreground line-through",
+										)}
+									>
+										{item.label}
+									</span>
+								</Checkbox>
+								{item.done && item.doneBy && (
+									<span className="text-sm text-muted-foreground">
+										{t("order.checklist.doneBy", {
+											name: names.get(item.doneBy) ?? t("values.someone"),
+										})}
+									</span>
+								)}
+								{office && (
+									<Button
+										variant="ghost"
+										size="icon-sm"
+										aria-label={t("order.checklist.remove", {
+											label: item.label,
+										})}
+										onPress={() =>
+											void loop.mutate({
+												entityType: CHECKLIST_ITEM,
+												entityId: item.id,
+												kind: "delete",
+											})
+										}
+									>
+										<X aria-hidden />
+									</Button>
+								)}
+							</li>
+						);
+					})}
+				</ul>
+			)}
+			{adding && (
+				<AddStep
+					onClose={() => setAdding(false)}
+					onAdd={(label) =>
+						void write(crypto.randomUUID(), {
+							orderId,
+							label,
+							position: (items.at(-1)?.position ?? 0) + 1,
+						})
+					}
+				/>
+			)}
+		</Section>
+	);
+}
+
+/** Stays open after each step, so several can be added in a row. */
+function AddStep({
+	onClose,
+	onAdd,
+}: {
+	onClose: () => void;
+	onAdd: (label: string) => void;
+}) {
+	const { t } = useTranslation();
+	const [label, setLabel] = useState("");
+	const [error, setError] = useState<string | null>(null);
+	return (
+		<FormSheet
+			open
+			onOpenChange={(open) => !open && onClose()}
+			title={t("order.checklist.add")}
+			submitLabel={t("order.checklist.add")}
+			onSubmit={() => {
+				const text = label.trim();
+				if (!text) return setError(t("order.checklist.stepRequired"));
+				onAdd(text);
+				setLabel("");
+			}}
+		>
+			<TextField
+				id="checklist-step"
+				label={t("order.checklist.step")}
+				placeholder={t("order.checklist.stepPlaceholder")}
+				required
+				maxLength={MAX_ITEM_LABEL}
+				value={label}
+				onChange={(v) => {
+					setError(null);
+					setLabel(v);
+				}}
+				error={error}
+			/>
+		</FormSheet>
 	);
 }

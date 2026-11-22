@@ -11,9 +11,11 @@ import {
 	Users,
 } from "lucide-react";
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { I18nProvider } from "react-aria-components";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
+import { useLanguage } from "@/i18n";
 import { cn } from "@/lib/utils";
 import { ROUTES, type Route, useRoute } from "./app/route.ts";
 import { type Sync, startSync } from "./app/workspace.ts";
@@ -42,9 +44,18 @@ export function App({ db, session }: Props) {
 		session.subscribe,
 		session.snapshot,
 	);
-	if (revoked) return <Revoked session={session} />;
-	if (!user) return <Login session={session} />;
-	return <SignedIn key={user.id} db={db} session={session} user={user} />;
+	const language = useLanguage();
+	return (
+		<I18nProvider locale={language === "fr" ? "fr-FR" : "en-GB"}>
+			{revoked ? (
+				<Revoked session={session} />
+			) : user ? (
+				<SignedIn key={user.id} db={db} session={session} user={user} />
+			) : (
+				<Login session={session} />
+			)}
+		</I18nProvider>
+	);
 }
 
 function SignedIn({ db, session, user }: Props & { user: User }) {
@@ -144,16 +155,18 @@ function SignedIn({ db, session, user }: Props & { user: User }) {
 						{sync && <SyncBadge loop={sync.loop} pending={pending} />}
 					</div>
 				</header>
-				<main className="px-4 pt-6 pb-32 md:px-10 md:pt-10 md:pb-14 print:p-0">
+				<main className="px-4 pt-6 pb-32 has-[[data-action-bar]]:pb-52 md:px-10 md:pt-10 md:pb-14 print:p-0">
 					{route.name === "overview" && canManage(user.role) ? (
 						<Overview db={db} />
-					) : route.name === "list" || !sync ? (
+					) : route.name === "list" || route.name === "new" || !sync ? (
 						// A new link's filters replace the current ones.
 						<Orders
 							key={route.name === "list" ? route.query : null}
 							db={db}
+							loop={sync?.loop ?? null}
 							user={user}
 							query={route.name === "list" ? route.query : null}
+							creating={route.name === "new"}
 						/>
 					) : route.name === "report" ? (
 						<OrderReport db={db} id={route.id} />
@@ -184,13 +197,16 @@ function SignedIn({ db, session, user }: Props & { user: User }) {
 					) : route.name === "debug" ? (
 						<Debug db={db} sync={sync} />
 					) : (
-						<OrderDetail
-							db={db}
-							loop={sync.loop}
-							session={session}
-							user={user}
-							id={route.name === "order" ? route.id : null}
-						/>
+						route.name === "order" && (
+							<OrderDetail
+								key={route.id}
+								db={db}
+								loop={sync.loop}
+								session={session}
+								user={user}
+								id={route.id}
+							/>
+						)
 					)}
 				</main>
 			</div>
