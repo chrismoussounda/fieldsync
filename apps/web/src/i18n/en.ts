@@ -48,6 +48,13 @@ export const en: Messages<typeof fr> = {
 		anyway: "Sign out anyway",
 		cancel: "Cancel",
 	},
+	status: {
+		open: "Open",
+		assigned: "Assigned",
+		in_progress: "In progress",
+		done: "Done",
+		cancelled: "Cancelled",
+	},
 	login: {
 		title: "Sign in",
 		email: "Email",

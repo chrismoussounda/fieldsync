@@ -44,6 +44,13 @@ export const fr = {
 		anyway: "Se déconnecter quand même",
 		cancel: "Annuler",
 	},
+	status: {
+		open: "Ouverte",
+		assigned: "Assignée",
+		in_progress: "En cours",
+		done: "Terminée",
+		cancelled: "Annulée",
+	},
 	login: {
 		title: "Connexion",
 		email: "E-mail",
