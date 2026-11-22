@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import rateLimit from "@fastify/rate-limit";
 import { PROTOCOL_VERSION } from "@fieldsync/protocol";
 import { MAX_PHOTO_BYTES, PHOTO_TYPES } from "@fieldsync/work-orders";
@@ -36,13 +37,14 @@ import {
 import { normalizeEmail } from "../auth/users.ts";
 import { listConflicts, reviewConflict } from "../conflicts.ts";
 import type { Database } from "../db/schema.ts";
+import { resetDemo } from "../demo.ts";
 import { ApiError } from "../errors.ts";
 import { entityHistory } from "../history.ts";
 import { readPhotoFile, storePhotoFile } from "../photos.ts";
 import { handleGetEntity } from "../sync/entity.ts";
 import { handlePull, MAX_PULL_LIMIT } from "../sync/pull.ts";
 import { handlePush } from "../sync/push.ts";
-import { postgresStore } from "./rate-store.ts";
+import { postgresStore, pruneRateLimits } from "./rate-store.ts";
 
 /** Requests allowed: sign-ins per account and address per 15 minutes,
  * refreshes per address and sync requests per device, per minute. */
@@ -59,9 +61,18 @@ export type ServerOptions = {
 	limits?: Limits;
 	/** Read the client address from X-Forwarded-For, behind a proxy. */
 	trustProxy?: boolean;
+	/** Lets a scheduled job reset the demo; the route exists only with one. */
+	cronSecret?: string | undefined;
 };
 
 const rateLimited = () => new ApiError(429, "RATE_LIMITED");
+
+// Compared in constant time, so the answer's timing gives nothing away.
+function sameSecret(given: string | undefined, expected: string): boolean {
+	const a = Buffer.from(given ?? "");
+	const b = Buffer.from(expected);
+	return a.length === b.length && timingSafeEqual(a, b);
+}
 
 const MAX_PUSH_OPS = 100;
 
@@ -131,6 +142,7 @@ export function buildServer({
 	logger = false,
 	limits = DEFAULT_LIMITS,
 	trustProxy = false,
+	cronSecret,
 }: ServerOptions): FastifyInstance {
 	const app = Fastify({ logger, bodyLimit: 1024 * 1024, trustProxy });
 	const config: AuthConfig = { secret, now };
@@ -159,6 +171,17 @@ export function buildServer({
 			return reply.code(503).send({ status: "unavailable" });
 		}
 	});
+
+	if (cronSecret) {
+		app.get("/demo/reset", async (request) => {
+			if (!sameSecret(request.headers.authorization, `Bearer ${cronSecret}`)) {
+				throw new ApiError(401, "UNAUTHORIZED");
+			}
+			await resetDemo(db);
+			await pruneRateLimits(db);
+			return { status: "ok" };
+		});
+	}
 
 	app.register(async (auth) => {
 		// After parsing, so a sign-in is counted per account, not only per address.

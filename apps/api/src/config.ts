@@ -12,6 +12,12 @@ const Env = z.object({
 		.transform((v) => v === "true"),
 	// Sign-ins per account and address per 15 minutes.
 	LOGIN_LIMIT: z.coerce.number().int().min(1).default(10),
+	// Open connections per copy of the server; small on hosted functions.
+	DB_POOL_MAX: z.coerce.number().int().min(1).default(10),
+	// Seeds the demo org on start when set; nothing happens if it exists.
+	DEMO_PASSWORD: z.string().min(8).optional(),
+	// Lets a scheduled job reset the demo, sent as "Authorization: Bearer …".
+	CRON_SECRET: z.string().min(16).optional(),
 	LOG_LEVEL: z
 		.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
 		.default("info"),

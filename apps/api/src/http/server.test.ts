@@ -12,6 +12,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createUser } from "../auth/users.ts";
 import type { Database, Role } from "../db/schema.ts";
 import { createTestDb, emptyTestDb } from "../db/testing.ts";
+import { DEMO_ORG, seedDemo } from "../demo.ts";
 import { buildServer } from "./server.ts";
 
 const ORG = "00000000-0000-4000-8000-000000000001";
@@ -677,5 +678,35 @@ describe("rate limits", () => {
 		expect((await pull()).statusCode).toBe(200);
 		expect((await pull()).statusCode).toBe(200);
 		expect((await pull()).statusCode).toBe(429);
+	});
+});
+
+describe("demo reset", () => {
+	const CRON = "a cron secret, long enough";
+
+	it("puts the demo back for the scheduled job, and no one else", async () => {
+		const cron = buildServer({ db, secret: SECRET, cronSecret: CRON });
+		await seedDemo(db, "demo password");
+		await db.deleteFrom("entities").where("org_id", "=", DEMO_ORG).execute();
+		const reset = (authorization?: string) =>
+			cron.inject({
+				url: "/demo/reset",
+				headers: authorization ? { authorization } : {},
+			});
+
+		expect((await reset()).statusCode).toBe(401);
+		expect((await reset("Bearer not the secret")).statusCode).toBe(401);
+		expect((await reset(`Bearer ${CRON}`)).statusCode).toBe(200);
+		const orders = await db
+			.selectFrom("entities")
+			.select("id")
+			.where("org_id", "=", DEMO_ORG)
+			.execute();
+		expect(orders.length).toBeGreaterThan(0);
+		await cron.close();
+	});
+
+	it("does not exist without a secret", async () => {
+		expect((await app.inject("/demo/reset")).statusCode).toBe(404);
 	});
 });
