@@ -9,7 +9,7 @@ signature, all offline. Every change syncs as soon as the network is back,
 and when two people edit the same thing, the latest wins and the office can
 review what was overwritten.
 
-**Live demo:** [fieldsync-iota.vercel.app](https://fieldsync-iota.vercel.app). On the sign-in page, try it **as the office** or **as a technician**, no account needed. The demo starts over every night.
+**Live demo:** [fieldsync-iota.vercel.app](https://fieldsync-iota.vercel.app). Try it **as the office** or **as a technician**, no account needed: you get your own copy for a day, and can open it on your phone too.
 
 | Office: the week's schedule                | Office: the jobs on a map        |
 | ------------------------------------------ | -------------------------------- |

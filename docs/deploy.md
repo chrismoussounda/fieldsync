@@ -4,7 +4,7 @@ Everything runs on free plans:
 
 - **Vercel** serves the web app and runs the API as one function under `/api`, from a single project.
 - **Neon** holds the Postgres database, photos included.
-- A **Vercel cron job** puts the demo back as it started, every night.
+- A **Vercel cron job** deletes expired visitor demos and puts the shared demo accounts' data back as it started, every night.
 
 `node scripts/vercel-build.ts` builds both parts in Vercel's [Build Output](https://vercel.com/docs/build-output-api/v3) format; `vercel.json` tells Vercel to run it. CI runs the same build on every pull request.
 
@@ -46,6 +46,7 @@ Every push to `main` then deploys to production; other branches get preview depl
 
 ## Good to know
 
+- **Visitor demos.** Each visitor gets their own copy of the demo, entered with a link and deleted after a day (by the nightly job, or when the next demo starts). At most 100 at once, each with 5 MB of photos and 20 people, which stays inside Neon's free 1 GB. `LOGIN_LIMIT` also caps how many demos one address starts per hour.
 - **No sleeping server.** Each request starts the function in about a second when it is not already warm. While someone has the app open, it syncs every 15 seconds, and it works offline in between anyway.
 - **Free plan limits.** Requests up to 4.5 MB (photos are capped at 4 MB, and phones shrink them well below), 1 million function calls a month, one cron run a day. Going over pauses the project until the next month rather than billing.
 - **Sign-in limits** are counted in the database (`rate_limits`), so every copy of the function shares them. The nightly reset clears the old counts.
