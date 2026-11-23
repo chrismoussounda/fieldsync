@@ -4,6 +4,7 @@ import type { Kysely } from "kysely";
 import { audienceOf, WORK_ORDER_SCOPING } from "./auth/policy.ts";
 import type { Principal } from "./auth/session.ts";
 import type { Database } from "./db/schema.ts";
+import { checkRoomForPhoto } from "./demo-limits.ts";
 import { ApiError } from "./errors.ts";
 import { readEntity } from "./sync/records.ts";
 import { canSee } from "./sync/scope.ts";
@@ -53,6 +54,7 @@ export async function storePhotoFile(
 	) {
 		throw new ApiError(400, "FILE_MISMATCH");
 	}
+	await checkRoomForPhoto(db, principal.orgId, id, bytes.length);
 	await db
 		.insertInto("photo_files")
 		.values({

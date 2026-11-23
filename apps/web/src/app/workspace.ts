@@ -22,6 +22,7 @@ export type Sync = {
 	loop: SyncLoop;
 	network: NetworkSwitch;
 	storage: DexieStorage;
+	photos: PhotoTransfer;
 };
 
 /** Starts syncing as the signed-in user; returns the parts and how to stop it. */
@@ -62,7 +63,7 @@ export async function startSync(
 		});
 	});
 	return {
-		sync: { client, loop, network, storage },
+		sync: { client, loop, network, storage, photos },
 		stop: () => {
 			stopLoop();
 			afterSync();

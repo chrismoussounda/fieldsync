@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useState, useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -17,14 +17,16 @@ type Props = { session: Session; user: User; pending: number };
 /** The signed-in user's own account and this device's preferences. */
 export function Account({ session, user, pending }: Props) {
 	const { t } = useTranslation();
+	const { demo } = useSyncExternalStore(session.subscribe, session.snapshot);
 	return (
-		<div className="grid max-w-3xl gap-6">
+		<div className="grid gap-6">
 			<PageHeader
 				title={t("nav.account")}
 				description={`${user.name} · ${t(`roles.${user.role}`)}`}
 			/>
 			<Preferences />
-			<ChangePassword session={session} />
+			{/* The people of the demo have no password. */}
+			{!demo?.entry && <ChangePassword session={session} />}
 			<div className="grid md:hidden">
 				<SignOut session={session} pending={pending} />
 			</div>
@@ -37,8 +39,10 @@ function Preferences() {
 	const language = useLanguage();
 	const theme = useTheme();
 	return (
-		<section className="grid gap-4 rounded-2xl border bg-card p-6">
-			<h2 className="font-semibold">{t("preferences.title")}</h2>
+		<section className="grid gap-5 rounded-2xl border bg-card p-6 sm:grid-cols-2">
+			<h2 className="font-semibold sm:col-span-full">
+				{t("preferences.title")}
+			</h2>
 			<Choice
 				label={t("preferences.language")}
 				value={language}
@@ -129,13 +133,13 @@ function ChangePassword({ session }: { session: Session }) {
 			onSubmit={submit}
 		>
 			<h2 className="font-semibold">{t("account.password")}</h2>
-			<Field
-				name="current"
-				label={t("account.current")}
-				placeholder={t("account.currentPlaceholder")}
-				autoComplete="current-password"
-			/>
-			<div className="grid gap-4 sm:grid-cols-2">
+			<div className="grid gap-4 xl:grid-cols-3">
+				<Field
+					name="current"
+					label={t("account.current")}
+					placeholder={t("account.currentPlaceholder")}
+					autoComplete="current-password"
+				/>
 				<Field
 					name="next"
 					label={t("account.next")}

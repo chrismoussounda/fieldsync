@@ -43,6 +43,7 @@ export async function signIn(
 	password: string,
 ): Promise<void> {
 	await page.goto("/#/login");
+	await page.getByRole("button", { name: "I have an account" }).click();
 	await page.getByLabel("Email").fill(email);
 	await page.getByLabel("Password").fill(password);
 	await page.getByRole("button", { name: "Sign in" }).click();

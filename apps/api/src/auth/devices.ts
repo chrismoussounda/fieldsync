@@ -54,20 +54,16 @@ export async function revokeDevice(
 	now: number,
 ): Promise<void> {
 	requireAdmin(principal);
-	await db.transaction().execute(async (tx) => {
-		const device = await tx
-			.updateTable("devices")
-			.set((eb) => ({
-				revoked_at: eb.fn.coalesce("revoked_at", eb.val(new Date(now))),
-			}))
-			.where("id", "=", deviceId)
-			.where("org_id", "=", principal.orgId)
-			.returning("id")
-			.executeTakeFirst();
-		if (!device) throw new ApiError(404, "NOT_FOUND");
-		await tx
-			.deleteFrom("refresh_tokens")
-			.where("device_id", "=", deviceId)
-			.execute();
-	});
+	// Its refresh tokens stay, useless: one that comes back is how a device that
+	// was reloaded learns it was locked out.
+	const device = await db
+		.updateTable("devices")
+		.set((eb) => ({
+			revoked_at: eb.fn.coalesce("revoked_at", eb.val(new Date(now))),
+		}))
+		.where("id", "=", deviceId)
+		.where("org_id", "=", principal.orgId)
+		.returning("id")
+		.executeTakeFirst();
+	if (!device) throw new ApiError(404, "NOT_FOUND");
 }

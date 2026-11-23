@@ -30,6 +30,8 @@ export type FileRow = {
 	type: string;
 	bytes: ArrayBuffer;
 	uploaded: 0 | 1;
+	/** The demo has no room for it, so it stays on this device. */
+	refused?: true;
 };
 
 export class LocalDb extends Dexie {

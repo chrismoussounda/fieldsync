@@ -12,6 +12,7 @@ test("speaks French first, then keeps the chosen language and theme", async ({
 		}),
 	).toBeVisible();
 	await page.getByRole("link", { name: "Se connecter" }).click();
+	await page.getByRole("button", { name: "J'ai un compte" }).click();
 	await page.getByLabel("E-mail").fill("junior@fieldsync.demo");
 	await page.getByLabel("Mot de passe").fill(process.env.DEMO_PASSWORD ?? "");
 	await page.getByRole("button", { name: "Se connecter" }).click();

@@ -37,7 +37,12 @@ import {
 import { normalizeEmail } from "../auth/users.ts";
 import { listConflicts, reviewConflict } from "../conflicts.ts";
 import type { Database } from "../db/schema.ts";
-import { DEMO_ROLES, demoLogin, resetDemo } from "../demo.ts";
+import { PEOPLE, type Person, resetDemo } from "../demo.ts";
+import {
+	createWorkspace,
+	deleteExpiredWorkspaces,
+	enterWorkspace,
+} from "../demo-workspaces.ts";
 import { ApiError } from "../errors.ts";
 import { entityHistory } from "../history.ts";
 import { readPhotoFile, storePhotoFile } from "../photos.ts";
@@ -63,7 +68,7 @@ export type ServerOptions = {
 	trustProxy?: boolean;
 	/** Lets a scheduled job reset the demo; the route exists only with one. */
 	cronSecret?: string | undefined;
-	/** Lets visitors try the demo accounts without a password. */
+	/** Lets visitors try their own copy of the demo, without a password. */
 	demo?: boolean;
 };
 
@@ -86,10 +91,12 @@ const LoginBody = z.object({
 });
 
 const DemoBody = z.object({
-	role: z.enum(Object.keys(DEMO_ROLES) as [keyof typeof DEMO_ROLES]),
+	person: z.enum(Object.keys(PEOPLE) as [Person]),
 	deviceId: z.uuid(),
 	deviceName: z.string().min(1).max(100),
 });
+
+const EnterDemoBody = DemoBody.extend({ key: z.string().min(1).max(100) });
 
 const RefreshBody = z.object({ refreshToken: z.string().min(1).max(100) });
 
@@ -187,6 +194,7 @@ export function buildServer({
 				throw new ApiError(401, "UNAUTHORIZED");
 			}
 			await resetDemo(db);
+			await deleteExpiredWorkspaces(db, now());
 			await pruneRateLimits(db);
 			return { status: "ok" };
 		});
@@ -220,13 +228,26 @@ export function buildServer({
 
 		if (demo) {
 			auth.post(
+				"/demo/workspaces",
+				{
+					config: { rateLimit: { max: limits.login, timeWindow: "1 hour" } },
+				},
+				async (request, reply) =>
+					reply
+						.code(201)
+						.send(
+							await createWorkspace(db, config, DemoBody.parse(request.body)),
+						),
+			);
+			auth.post(
 				"/auth/demo",
 				{
 					config: {
-						rateLimit: { max: limits.login * 3, timeWindow: "15 minutes" },
+						rateLimit: { max: limits.login * 6, timeWindow: "15 minutes" },
 					},
 				},
-				async (request) => demoLogin(db, config, DemoBody.parse(request.body)),
+				async (request) =>
+					enterWorkspace(db, config, EnterDemoBody.parse(request.body)),
 			);
 		}
 

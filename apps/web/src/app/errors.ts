@@ -12,6 +12,9 @@ const KNOWN = [
 	"OWN_ACCOUNT",
 	"WRONG_PASSWORD",
 	"RATE_LIMITED",
+	"DEMO_ENDED",
+	"DEMO_FULL",
+	"DEMO_LIMIT",
 ] as const;
 
 /** A sentence for the user; requests that never reached the server mean offline. */

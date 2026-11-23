@@ -13,8 +13,9 @@ import {
 	UserRound,
 	Users,
 } from "lucide-react";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useState, useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
+import { DemoButton } from "@/components/demo-sheet";
 import { initials } from "@/components/person";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { Toaster } from "@/components/ui/sonner";
@@ -47,6 +48,7 @@ const under =
 export function Shell() {
 	const { t } = useTranslation();
 	const { session, user, sync, pending } = useApp();
+	const { demo } = useSyncExternalStore(session.subscribe, session.snapshot);
 	const path = useRouterState({ select: (s) => s.location.pathname });
 	const manage = canManage(user.role);
 	const admin = user.role === "admin";
@@ -174,9 +176,10 @@ export function Shell() {
 			<div className="min-w-0">
 				<header className="print:hidden! sticky top-0 z-10 flex h-14 items-center gap-3 border-b bg-background/95 px-4 backdrop-blur md:px-10">
 					<a href={ROUTES.list} className="md:hidden">
-						<Logo />
+						<Logo compact={demo !== null} />
 					</a>
-					<div className="ml-auto">
+					<div className="ml-auto flex items-center gap-2">
+						{demo && <DemoButton demo={demo} />}
 						<SyncBadge loop={sync.loop} pending={pending} />
 					</div>
 				</header>

@@ -282,9 +282,9 @@ export function PhotoImage({
 				)}
 			/>
 			{file?.uploaded === 0 && (
-				<span className="absolute bottom-2 left-2 flex items-center gap-1 rounded-full bg-background/90 px-2 py-0.5 text-xs font-medium text-warning">
-					<CloudOff aria-hidden className="size-3.5" />
-					{t("order.photos.notSynced")}
+				<span className="absolute right-2 bottom-2 left-2 flex w-fit items-center gap-1 rounded-xl bg-background/90 px-2 py-0.5 text-left text-xs font-medium text-warning">
+					<CloudOff aria-hidden className="size-3.5 shrink-0" />
+					{t(file.refused ? "order.photos.noRoom" : "order.photos.notSynced")}
 				</span>
 			)}
 		</span>
