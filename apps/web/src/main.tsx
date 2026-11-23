@@ -2,10 +2,18 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App.tsx";
-import { openWorkspace } from "./app/workspace.ts";
+import { openWorkspace } from "./app/open.ts";
 import "./i18n/index.ts";
 import "./lib/theme.ts";
 import "./index.css";
+
+// A page left open across a release asks for files the release replaced.
+window.addEventListener("vite:preloadError", () => {
+	// Once per tab, so a file that stays missing cannot reload it forever.
+	if (!navigator.onLine || sessionStorage.getItem("reloaded")) return;
+	sessionStorage.setItem("reloaded", "1");
+	window.location.reload();
+});
 
 const root = document.getElementById("root");
 if (!root) throw new Error("Missing #root");

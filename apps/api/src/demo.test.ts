@@ -1,9 +1,9 @@
 import type { Kysely } from "kysely";
 import { afterAll, beforeAll, expect, it } from "vitest";
-import { login } from "./auth/session.ts";
+import { login, REFRESH_TTL_MS } from "./auth/session.ts";
 import type { Database } from "./db/schema.ts";
 import { createTestDb } from "./db/testing.ts";
-import { DEMO_ORG, resetDemo, seedDemo } from "./demo.ts";
+import { DEMO_ORG, demoLogin, resetDemo, seedDemo } from "./demo.ts";
 import { handlePull } from "./sync/pull.ts";
 
 let db: Kysely<Database>;
@@ -114,4 +114,35 @@ it("resets the demo orders under a new epoch and keeps the users", async () => {
 		.select((eb) => eb.ref("fields", "->>").key("assigneeId").as("assignee"))
 		.execute();
 	expect(assigned.filter((a) => a.assignee !== null)).toHaveLength(4);
+});
+
+it("forgets a visitor's device once its session has run out, unless revoked", async () => {
+	const config = {
+		secret: new TextEncoder().encode("x".repeat(32)),
+		now: Date.now,
+	};
+	const visit = async () => {
+		const deviceId = crypto.randomUUID();
+		await demoLogin(db, config, {
+			role: "technician",
+			deviceId,
+			deviceName: "Phone",
+		});
+		return deviceId;
+	};
+	const visitor = await visit();
+	const lost = await visit();
+	await db
+		.updateTable("devices")
+		.set({ revoked_at: new Date() })
+		.where("id", "=", lost)
+		.execute();
+	const kept = async () =>
+		(await db.selectFrom("devices").select("id").execute()).map((d) => d.id);
+
+	await resetDemo(db);
+	expect(await kept()).toContain(visitor);
+
+	await resetDemo(db, Date.now() + REFRESH_TTL_MS + 60_000);
+	expect(await kept()).toEqual([lost]);
 });

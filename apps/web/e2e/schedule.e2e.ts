@@ -34,6 +34,9 @@ const job = (page: Page, title: string) =>
  * cell: a busy cell grows past the bottom of the window.
  */
 async function drag(page: Page, title: string, to: ReturnType<typeof cell>) {
+	// A card grabbed while the page settles is dropped beside its cell.
+	const target = await to.elementHandle();
+	await target?.waitForElementState("stable");
 	await job(page, title).dragTo(to, { targetPosition: { x: 24, y: 24 } });
 }
 const toPlan = (page: Page) => page.getByRole("region", { name: /^To plan/ });
@@ -104,6 +107,7 @@ test("weeks page through, and finished jobs stay put", async ({ browser }) => {
 	await unplanned(office, title);
 	await office.goto("/#/schedule");
 	await drag(office, title, cell(office, JUNIOR));
+	await expect(cell(office, JUNIOR).getByText(title)).toBeVisible();
 
 	const range = office.getByText(/\d{4}$/).first();
 	const thisWeek = await range.textContent();

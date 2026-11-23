@@ -22,7 +22,7 @@ review what was overwritten.
 ## Features
 
 - **Offline first**: the app installs on the phone, opens without a network, and every change is saved on the device before it is sent
-- **A hand-built sync engine**: per-field last-writer-wins with hybrid logical clocks, idempotent pushes, cursor-based pulls and a conflict log for the office ([protocol](docs/protocol.md))
+- **A hand-built sync engine**: per-field last-writer-wins with hybrid logical clocks, idempotent pushes, cursor-based pulls and a conflict log for the office ([how it works](docs/sync-engine.md), [protocol](docs/protocol.md))
 - **Each technician syncs only their own jobs**, and gets a job's whole history when it is assigned to them
 - **Schedule board**: drag jobs onto a technician and a day, with undo
 - **Map**: every job as a pin coloured by status, directions to the exact door

@@ -1,18 +1,18 @@
-import { RouterProvider } from "@tanstack/react-router";
-import { useLiveQuery } from "dexie-react-hooks";
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { lazy, Suspense, useSyncExternalStore } from "react";
 import { I18nProvider } from "react-aria-components";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/i18n";
-import { AppContext } from "./app/context.ts";
-import { type Sync, startSync } from "./app/workspace.ts";
-import type { Session, User } from "./auth/session.ts";
-import { router } from "./routes.tsx";
+import type { Session } from "./auth/session.ts";
 import { Landing } from "./screens/Landing.tsx";
 import { Login } from "./screens/Login.tsx";
-import { Logo } from "./screens/Logo.tsx";
+import { Opening } from "./screens/Opening.tsx";
 import type { LocalDb } from "./sync/storage.ts";
+
+// Visitors don't pay for the app; the service worker has it ready for sign-in.
+const SignedIn = lazy(() =>
+	import("./SignedIn.tsx").then((m) => ({ default: m.SignedIn })),
+);
 
 type Props = { db: LocalDb; session: Session };
 
@@ -27,7 +27,9 @@ export function App({ db, session }: Props) {
 			{revoked ? (
 				<Revoked session={session} />
 			) : user ? (
-				<SignedIn key={user.id} db={db} session={session} user={user} />
+				<Suspense fallback={<Opening />}>
+					<SignedIn key={user.id} db={db} session={session} user={user} />
+				</Suspense>
 			) : (
 				<Public session={session} />
 			)}
@@ -44,49 +46,7 @@ const subscribe = (listener: () => void) => {
 function Public({ session }: { session: Session }) {
 	const hash = useSyncExternalStore(subscribe, () => window.location.hash);
 	const home = hash === "" || hash === "#" || hash === "#/";
-	return home ? <Landing /> : <Login session={session} />;
-}
-
-function SignedIn({ db, session, user }: Props & { user: User }) {
-	const [sync, setSync] = useState<Sync | null>(null);
-	const pending =
-		useLiveQuery(
-			() => db.outbox.where("status").anyOf("pending", "inflight").count(),
-			[db],
-		) ?? 0;
-
-	useEffect(() => {
-		let stop: (() => void) | undefined;
-		let cancelled = false;
-		void startSync(db, session).then((started) => {
-			if (cancelled) return started.stop();
-			stop = started.stop;
-			setSync(started.sync);
-		});
-		return () => {
-			cancelled = true;
-			stop?.();
-		};
-	}, [db, session]);
-
-	const app = useMemo(
-		() => sync && { db, session, user, sync, pending },
-		[db, session, user, sync, pending],
-	);
-	if (!app) {
-		return (
-			<div className="grid min-h-dvh place-items-center">
-				<span className="animate-pulse">
-					<Logo />
-				</span>
-			</div>
-		);
-	}
-	return (
-		<AppContext.Provider value={app}>
-			<RouterProvider router={router} />
-		</AppContext.Provider>
-	);
+	return home ? <Landing session={session} /> : <Login session={session} />;
 }
 
 function Revoked({ session }: { session: Session }) {

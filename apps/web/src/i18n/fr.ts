@@ -563,13 +563,21 @@ export const fr = {
 		title: "Les interventions terrain, même sans réseau.",
 		subtitle:
 			"FieldSync donne à vos techniciens tout ce qu'il faut sur place : la checklist, le temps passé, les pièces, les photos et la signature du client. Tout est enregistré sur le téléphone et se synchronise dès que le réseau revient.",
-		start: "Commencer",
+		tryIt: "Essayez tout de suite, choisissez un côté :",
 		how: "Voir comment ça marche",
 		previewJob: "Remplacer la pompe à eau",
 		previewSite: "Boulangerie La Paix · Poto-Poto",
 		previewOffline: "Hors ligne · 3 en attente",
 		previewClock: "Sur place depuis 09:12",
 		previewSteps: "2 sur 3 étapes faites",
+		screensTitle: "Ce que voit le bureau",
+		scheduleAlt:
+			"Le planning de la semaine, avec les interventions de chaque technicien par jour",
+		scheduleCaption:
+			"La semaine par technicien : glissez une intervention pour la déplacer.",
+		mapAlt: "Chaque intervention en repère sur une carte du Congo",
+		mapCaption:
+			"Toutes les interventions sur une carte, colorées par statut, avec l'itinéraire jusqu'à la porte.",
 		featuresTitle: "Pensé pour le terrain",
 		featuresSubtitle:
 			"Le bureau planifie, le technicien exécute, et personne n'attend le réseau.",
@@ -598,8 +606,18 @@ export const fr = {
 		step2Body: "Même s'il n'a plus de réseau en arrivant.",
 		step3Title: "Le client signe, le bureau voit tout",
 		step3Body: "Le rapport arrive dès que le téléphone se reconnecte.",
+		engineTitle: "Un moteur de synchronisation fait main",
+		engineBody:
+			"Aucune bibliothèque de synchronisation en dessous : les règles qui décident de ce que chaque appareil obtient sont écrites et testées ici. L'article explique les problèmes et les choix.",
+		engineLink: "Lire comment ça marche",
+		proofClocks:
+			"Les modifications restent dans l'ordre même quand l'horloge d'un téléphone est fausse.",
+		proofMerge:
+			"Deux personnes peuvent modifier la même intervention hors ligne ; leurs changements se fusionnent champ par champ.",
+		proofSim:
+			"Un simulateur joue 500 sessions aléatoires avec des requêtes perdues ou en retard, et vérifie que tous les appareils finissent identiques.",
 		ctaTitle: "Prêt à essayer ?",
-		ctaBody: "Connectez-vous avec un compte de démonstration.",
+		ctaBody: "Visitez côté bureau ou côté technicien, sans compte.",
 		footer:
 			"FieldSync, un projet de démonstration de synchronisation hors ligne.",
 		source: "Code source",
