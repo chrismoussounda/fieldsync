@@ -1,17 +1,16 @@
-import { Building2, HardHat } from "lucide-react";
-import { type FormEvent, useState } from "react";
+import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
+import { TryDemo } from "@/components/try-demo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { messageFor } from "../app/errors.ts";
+import { useSignIn } from "../app/use-sign-in.ts";
 import type { Session } from "../auth/session.ts";
 import { Logo } from "./Logo.tsx";
 
 export function Login({ session }: { session: Session }) {
 	const { t } = useTranslation();
-	const [error, setError] = useState<string | null>(null);
-	const [busy, setBusy] = useState(false);
+	const { error, busy, attempt } = useSignIn();
 
 	async function submit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
@@ -19,26 +18,6 @@ export function Login({ session }: { session: Session }) {
 		await attempt(() =>
 			session.login(String(form.get("email")), String(form.get("password"))),
 		);
-	}
-
-	async function attempt(signIn: () => Promise<unknown>) {
-		setBusy(true);
-		setError(null);
-		try {
-			await signIn();
-		} catch (e) {
-			setError(
-				messageFor(e, {
-					UNAUTHORIZED: t("login.UNAUTHORIZED"),
-					ACCOUNT_DISABLED: t("login.ACCOUNT_DISABLED"),
-					DEVICE_REVOKED: t("login.DEVICE_REVOKED"),
-					DEVICE_TAKEN: t("login.DEVICE_TAKEN"),
-					NOT_FOUND: t("login.noDemo"),
-				}),
-			);
-		} finally {
-			setBusy(false);
-		}
 	}
 
 	return (
@@ -95,26 +74,7 @@ export function Login({ session }: { session: Session }) {
 							{t("login.demoHint")}
 						</p>
 					</div>
-					<div className="grid gap-2">
-						<Button
-							variant="outline"
-							isDisabled={busy}
-							className="h-11"
-							onPress={() => void attempt(() => session.demo("dispatcher"))}
-						>
-							<Building2 aria-hidden />
-							{t("login.asOffice")}
-						</Button>
-						<Button
-							variant="outline"
-							isDisabled={busy}
-							className="h-11"
-							onPress={() => void attempt(() => session.demo("technician"))}
-						>
-							<HardHat aria-hidden />
-							{t("login.asTechnician")}
-						</Button>
-					</div>
+					<TryDemo session={session} />
 				</section>
 			</form>
 		</main>

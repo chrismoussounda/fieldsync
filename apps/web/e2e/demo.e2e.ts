@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { blankDevice, JUNIOR } from "./devices.ts";
 
-test("a visitor tries the demo from the sign-in page, without a password", async ({
+test("a visitor tries the demo from the landing or the sign-in page, without a password", async ({
 	browser,
 }) => {
 	const tech = await blankDevice(browser);
@@ -18,8 +18,8 @@ test("a visitor tries the demo from the sign-in page, without a password", async
 	await expect(tech.getByText(JUNIOR, { exact: false }).first()).toBeVisible();
 
 	const office = await blankDevice(browser);
-	await office.goto("/#/login");
-	await office.getByRole("button", { name: "As the office" }).click();
+	await office.goto("/");
+	await office.getByRole("button", { name: "As the office" }).first().click();
 	await expect(
 		office.getByRole("link", { name: "Schedule" }).first(),
 	).toBeVisible();

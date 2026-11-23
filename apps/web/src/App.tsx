@@ -44,7 +44,7 @@ const subscribe = (listener: () => void) => {
 function Public({ session }: { session: Session }) {
 	const hash = useSyncExternalStore(subscribe, () => window.location.hash);
 	const home = hash === "" || hash === "#" || hash === "#/";
-	return home ? <Landing /> : <Login session={session} />;
+	return home ? <Landing session={session} /> : <Login session={session} />;
 }
 
 function SignedIn({ db, session, user }: Props & { user: User }) {

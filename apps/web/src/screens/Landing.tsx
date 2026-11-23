@@ -1,5 +1,6 @@
 import {
-	ArrowRight,
+	ArrowDown,
+	BookOpen,
 	CheckCircle2,
 	CloudOff,
 	FileSignature,
@@ -14,17 +15,21 @@ import {
 	WifiOff,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { TryDemo } from "@/components/try-demo";
 import { Button, LinkButton } from "@/components/ui/button";
 import { LANGUAGES, setLanguage, useLanguage } from "@/i18n";
 import { setTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
+import type { Session } from "../auth/session.ts";
 import { Logo } from "./Logo.tsx";
 
 const LOGIN = "#/login";
+const ENGINE =
+	"https://github.com/chrismoussounda/fieldsync/blob/main/docs/sync-engine.md";
 const SOURCE = "https://github.com/chrismoussounda/fieldsync";
 
 /** What FieldSync is, for anyone not signed in. */
-export function Landing() {
+export function Landing({ session }: { session: Session }) {
 	const { t } = useTranslation();
 	const features = [
 		{ icon: CloudOff, title: "offlineTitle", body: "offlineBody" },
@@ -40,15 +45,17 @@ export function Landing() {
 		["step3Title", "step3Body"],
 	] as const;
 
+	const proofs = ["proofClocks", "proofMerge", "proofSim"] as const;
+
 	return (
-		<div className="min-h-dvh bg-background">
+		<div className="min-h-dvh overflow-x-clip bg-background">
 			<header className="sticky top-0 z-10 border-b bg-background">
-				<div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 md:px-8">
-					<Logo />
+				<div className="mx-auto flex h-16 max-w-6xl items-center gap-1 px-4 sm:gap-3 md:px-8">
+					<Logo compact />
 					<div className="ml-auto flex items-center gap-1">
 						<LanguageSwitch />
 						<ThemeSwitch />
-						<LinkButton href={LOGIN} className="ml-2">
+						<LinkButton href={LOGIN} className="px-2.5 sm:ml-2 sm:px-4">
 							{t("landing.signIn")}
 						</LinkButton>
 					</div>
@@ -68,29 +75,37 @@ export function Landing() {
 						<p className="max-w-xl text-lg text-muted-foreground">
 							{t("landing.subtitle")}
 						</p>
-						<div className="flex flex-wrap gap-3">
-							<LinkButton href={LOGIN} size="lg" className="h-12 px-6">
-								{t("landing.start")}
-								<ArrowRight aria-hidden />
-							</LinkButton>
+						<div className="grid gap-3">
+							<p className="font-medium">{t("landing.tryIt")}</p>
+							<TryDemo
+								session={session}
+								variants={["default", "outline"]}
+								className="sm:flex sm:flex-wrap sm:gap-3"
+								buttonClassName="h-12 px-6"
+							/>
+							<p className="text-sm text-muted-foreground">
+								{t("login.demoHint")}
+							</p>
 							<Button
-								variant="outline"
-								size="lg"
-								className="h-12 bg-card px-6"
+								variant="link"
+								className="h-10 justify-self-start px-0"
 								onPress={() =>
 									document
-										.getElementById("features")
+										.getElementById("how")
 										?.scrollIntoView({ behavior: "smooth" })
 								}
 							>
 								{t("landing.how")}
+								<ArrowDown aria-hidden />
 							</Button>
 						</div>
 					</div>
 					<Preview />
 				</section>
 
-				<section id="features" className="border-y bg-card/50">
+				<Screens />
+
+				<section className="border-y bg-card/50">
 					<div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 md:px-8 lg:py-24">
 						<div className="grid max-w-2xl gap-3">
 							<h2 className="text-3xl font-semibold tracking-tight">
@@ -121,7 +136,10 @@ export function Landing() {
 					</div>
 				</section>
 
-				<section className="mx-auto grid max-w-6xl gap-10 px-4 py-16 md:px-8 lg:py-24">
+				<section
+					id="how"
+					className="mx-auto grid max-w-6xl scroll-mt-16 gap-10 px-4 py-16 md:px-8 lg:py-24"
+				>
 					<h2 className="text-3xl font-semibold tracking-tight">
 						{t("landing.stepsTitle")}
 					</h2>
@@ -140,7 +158,44 @@ export function Landing() {
 					</ol>
 				</section>
 
-				<section className="mx-auto max-w-6xl px-4 pb-16 md:px-8 lg:pb-24">
+				<section className="border-y bg-card/50">
+					<div className="mx-auto grid max-w-6xl items-center gap-8 px-4 py-16 md:px-8 lg:grid-cols-[1.1fr_1fr] lg:py-24">
+						<div className="grid gap-3">
+							<h2 className="text-3xl font-semibold tracking-tight">
+								{t("landing.engineTitle")}
+							</h2>
+							<p className="text-lg text-muted-foreground">
+								{t("landing.engineBody")}
+							</p>
+							<LinkButton
+								href={ENGINE}
+								target="_blank"
+								rel="noreferrer"
+								variant="outline"
+								className="mt-2 h-11 justify-self-start bg-card"
+							>
+								<BookOpen aria-hidden />
+								{t("landing.engineLink")}
+							</LinkButton>
+						</div>
+						<ul className="grid gap-3">
+							{proofs.map((proof) => (
+								<li
+									key={proof}
+									className="flex items-start gap-3 rounded-2xl border bg-card p-4"
+								>
+									<CheckCircle2
+										aria-hidden
+										className="mt-0.5 size-5 shrink-0 text-status-done"
+									/>
+									{t(`landing.${proof}`)}
+								</li>
+							))}
+						</ul>
+					</div>
+				</section>
+
+				<section className="mx-auto max-w-6xl px-4 py-16 lg:py-24 md:px-8 lg:pb-24">
 					<div className="grid gap-6 rounded-3xl bg-primary p-8 text-primary-foreground md:flex md:items-center md:justify-between md:p-12">
 						<div className="grid gap-2">
 							<h2 className="text-3xl font-semibold tracking-tight">
@@ -148,15 +203,13 @@ export function Landing() {
 							</h2>
 							<p className="text-lg opacity-90">{t("landing.ctaBody")}</p>
 						</div>
-						<LinkButton
-							href={LOGIN}
-							variant="secondary"
-							size="lg"
-							className="h-12 justify-self-start px-6"
-						>
-							{t("landing.signIn")}
-							<ArrowRight aria-hidden />
-						</LinkButton>
+						<TryDemo
+							session={session}
+							variants={["secondary", "secondary"]}
+							className="sm:flex sm:flex-wrap md:grid"
+							buttonClassName="h-12 px-6"
+							errorClassName="text-primary-foreground"
+						/>
 					</div>
 				</section>
 			</main>
@@ -173,6 +226,39 @@ export function Landing() {
 	);
 }
 
+/** The office's screens as they are, in the visitor's language. */
+function Screens() {
+	const { t } = useTranslation();
+	const language = useLanguage();
+	return (
+		<section className="mx-auto grid max-w-6xl gap-10 px-4 pb-16 md:px-8 lg:pb-24">
+			<h2 className="text-3xl font-semibold tracking-tight">
+				{t("landing.screensTitle")}
+			</h2>
+			<ul className="grid gap-6 lg:grid-cols-2">
+				{(["schedule", "map"] as const).map((screen) => (
+					<li key={screen} className="grid content-start gap-3">
+						<img
+							srcSet={`/screens/${screen}-${language}-720.webp 720w, /screens/${screen}-${language}.webp 1440w`}
+							sizes="(min-width: 1152px) 536px, (min-width: 1024px) 50vw, 100vw"
+							src={`/screens/${screen}-${language}.webp`}
+							alt={t(`landing.${screen}Alt`)}
+							width={1440}
+							height={860}
+							loading="lazy"
+							decoding="async"
+							className="h-auto w-full rounded-2xl border bg-card shadow-sm"
+						/>
+						<p className="text-muted-foreground">
+							{t(`landing.${screen}Caption`)}
+						</p>
+					</li>
+				))}
+			</ul>
+		</section>
+	);
+}
+
 /** A glance at the app on a phone, drawn with the app's own styles. */
 function Preview() {
 	const { t } = useTranslation();
@@ -184,7 +270,7 @@ function Preview() {
 			<div className="absolute -inset-6 -z-0 rounded-[3rem] bg-accent/60 blur-2xl" />
 			<div className="relative grid gap-4 rounded-[2.25rem] border-8 border-foreground/90 bg-background p-4 shadow-2xl">
 				<div className="flex items-center justify-between">
-					<Logo />
+					<Logo compact />
 					<span className="flex items-center gap-1.5 rounded-full bg-warning/15 px-3 py-1 text-xs font-medium text-warning">
 						<span className="size-2 rounded-full bg-warning" />
 						{t("landing.previewOffline")}
@@ -249,7 +335,7 @@ function LanguageSwitch() {
 	return (
 		<Button
 			variant="ghost"
-			aria-label={t(`languages.${next}`)}
+			aria-label={`${next.toUpperCase()}, ${t(`languages.${next}`)}`}
 			onPress={() => setLanguage(next)}
 			className="font-semibold uppercase"
 		>

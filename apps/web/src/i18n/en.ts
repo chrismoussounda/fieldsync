@@ -563,13 +563,19 @@ export const en: Messages<typeof fr> = {
 		title: "Field work orders, even without a signal.",
 		subtitle:
 			"FieldSync gives your technicians everything they need on site: the checklist, time spent, parts, photos and the customer's signature. Everything is saved on the phone and syncs as soon as the network is back.",
-		start: "Get started",
+		tryIt: "Try it now, pick a side:",
 		how: "See how it works",
 		previewJob: "Replace the water pump",
 		previewSite: "La Paix bakery · Poto-Poto",
 		previewOffline: "Offline · 3 waiting",
 		previewClock: "On site since 09:12",
 		previewSteps: "2 of 3 steps done",
+		screensTitle: "What the office sees",
+		scheduleAlt: "The week's schedule, with each technician's jobs by day",
+		scheduleCaption: "The week by technician: drag a job to move it.",
+		mapAlt: "Every job as a pin on a map of Congo",
+		mapCaption:
+			"Every job on a map, coloured by status, with the way to the door.",
 		featuresTitle: "Built for the field",
 		featuresSubtitle:
 			"The office plans, the technician does the job, and nobody waits for the network.",
@@ -598,8 +604,17 @@ export const en: Messages<typeof fr> = {
 		step2Body: "Even with no signal on arrival.",
 		step3Title: "The customer signs, the office sees it all",
 		step3Body: "The report arrives as soon as the phone reconnects.",
+		engineTitle: "A sync engine built by hand",
+		engineBody:
+			"No sync library underneath: the rules that decide what each device ends up with are written and tested here. The write-up explains the problems and the choices.",
+		engineLink: "Read how it works",
+		proofClocks: "Edits stay in order even when a phone's clock is wrong.",
+		proofMerge:
+			"Two people can change the same job offline; their edits merge field by field.",
+		proofSim:
+			"A simulator plays 500 random sessions with lost and late requests, and checks every device ends up the same.",
 		ctaTitle: "Ready to try it?",
-		ctaBody: "Sign in with a demo account.",
+		ctaBody: "Look around as the office or as a technician, no account needed.",
 		footer: "FieldSync, an offline-sync demo project.",
 		source: "Source code",
 		theme: "Change theme",
