@@ -3,7 +3,12 @@ import type { Op } from "@fieldsync/protocol";
 import { hash, verify } from "@node-rs/argon2";
 import type { Kysely } from "kysely";
 import { WORK_ORDER_SCOPING } from "./auth/policy.ts";
-import { type AuthConfig, openSession, type Session } from "./auth/session.ts";
+import {
+	type AuthConfig,
+	openSession,
+	REFRESH_TTL_MS,
+	type Session,
+} from "./auth/session.ts";
 import { createUser } from "./auth/users.ts";
 import type { Database, Role } from "./db/schema.ts";
 import { ApiError } from "./errors.ts";
@@ -179,8 +184,8 @@ async function keepDemoPassword(
 }
 
 /**
- * Puts the demo orders back as they started. Users and devices stay, so
- * signed-in visitors see their app start over at its next sync.
+ * Puts the demo orders back as they started. Users and devices in use stay,
+ * so signed-in visitors see their app start over at its next sync.
  */
 export async function resetDemo(
 	db: Kysely<Database>,
@@ -188,6 +193,42 @@ export async function resetDemo(
 ): Promise<void> {
 	await resetOrg(db, DEMO_ORG);
 	await seedOrders(db, now);
+	await forgetOldDevices(db, now);
+}
+
+/** Every visitor adds a device; once their session has run out, it is only clutter. */
+async function forgetOldDevices(
+	db: Kysely<Database>,
+	now: number,
+): Promise<void> {
+	await db.transaction().execute(async (tx) => {
+		const old = await tx
+			.selectFrom("devices")
+			.select("id")
+			.where("org_id", "=", DEMO_ORG)
+			// Forgetting a revoked device would let it back in.
+			.where("revoked_at", "is", null)
+			.where("registered_at", "<", new Date(now - REFRESH_TTL_MS))
+			.where(({ not, exists, selectFrom }) =>
+				not(
+					exists(
+						selectFrom("refresh_tokens")
+							.select("refresh_tokens.hash")
+							.whereRef("refresh_tokens.device_id", "=", "devices.id")
+							.where("refresh_tokens.expires_at", ">", new Date(now)),
+					),
+				),
+			)
+			.forUpdate()
+			.execute();
+		if (old.length === 0) return;
+		const ids = old.map((d) => d.id);
+		await tx
+			.deleteFrom("refresh_tokens")
+			.where("device_id", "in", ids)
+			.execute();
+		await tx.deleteFrom("devices").where("id", "in", ids).execute();
+	});
 }
 
 async function seedOrders(db: Kysely<Database>, now: number): Promise<void> {
