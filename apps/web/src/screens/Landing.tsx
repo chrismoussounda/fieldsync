@@ -84,7 +84,13 @@ export function Landing({ session }: { session: Session }) {
 								buttonClassName="h-12 px-6"
 							/>
 							<p className="text-sm text-muted-foreground">
-								{t("login.demoHint")}
+								{t("login.demoHint")}{" "}
+								<a
+									href={LOGIN}
+									className="font-medium whitespace-nowrap text-primary hover:underline"
+								>
+									{t("login.morePeople")}
+								</a>
 							</p>
 							<Button
 								variant="link"

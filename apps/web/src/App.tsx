@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/i18n";
 import type { Session } from "./auth/session.ts";
+import { JoinDemo } from "./screens/JoinDemo.tsx";
 import { Landing } from "./screens/Landing.tsx";
 import { Login } from "./screens/Login.tsx";
 import { Opening } from "./screens/Opening.tsx";
@@ -22,10 +23,13 @@ export function App({ db, session }: Props) {
 		session.snapshot,
 	);
 	const language = useLanguage();
+	const invited = /^#\/demo\/([\w-]+)$/.exec(useHash())?.[1];
 	return (
 		<I18nProvider locale={language === "fr" ? "fr-FR" : "en-GB"}>
 			{revoked ? (
 				<Revoked session={session} />
+			) : invited ? (
+				<JoinDemo session={session} invite={invited} user={user} />
 			) : user ? (
 				<Suspense fallback={<Opening />}>
 					<SignedIn key={user.id} db={db} session={session} user={user} />
@@ -42,9 +46,12 @@ const subscribe = (listener: () => void) => {
 	return () => window.removeEventListener("hashchange", listener);
 };
 
+const useHash = () =>
+	useSyncExternalStore(subscribe, () => window.location.hash);
+
 /** The landing page at the root; any other link asks to sign in first. */
 function Public({ session }: { session: Session }) {
-	const hash = useSyncExternalStore(subscribe, () => window.location.hash);
+	const hash = useHash();
 	const home = hash === "" || hash === "#" || hash === "#/";
 	return home ? <Landing session={session} /> : <Login session={session} />;
 }

@@ -238,6 +238,14 @@ const login = createRoute({
 	component: () => home,
 });
 
+// App shows the join page in place of all this; here only so the address is
+// not sent home before it does.
+const demo = createRoute({
+	getParentRoute: () => root,
+	path: "/demo/$key",
+	component: () => null,
+});
+
 export const router = createRouter({
 	routeTree: root.addChildren([
 		list,
@@ -254,6 +262,7 @@ export const router = createRouter({
 		account,
 		debug,
 		login,
+		demo,
 	]),
 	// Hash links work from the installed app's single offline page.
 	history: createHashHistory(),

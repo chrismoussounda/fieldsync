@@ -28,6 +28,7 @@ export class SyncLoop {
 	#status: SyncStatus = { state: "idle", lastSyncedAt: null };
 	#running: Promise<void> | null = null;
 	#again = false;
+	#halted = false;
 
 	constructor(options: SyncLoopOptions) {
 		this.#client = options.client;
@@ -66,8 +67,21 @@ export class SyncLoop {
 		return op;
 	}
 
+	/** Stops syncing, once any sync under way is over; undone by `resume`. */
+	async halt(): Promise<void> {
+		this.#halted = true;
+		this.#again = false;
+		await this.#running;
+	}
+
+	resume(): void {
+		this.#halted = false;
+		void this.run();
+	}
+
 	/** One sync at a time; asking during a run schedules one more after it. */
 	run(): Promise<void> {
+		if (this.#halted) return this.#running ?? Promise.resolve();
 		if (this.#running) {
 			this.#again = true;
 			return this.#running;

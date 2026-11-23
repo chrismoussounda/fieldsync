@@ -105,4 +105,17 @@ describe("SyncLoop", () => {
 		await loop.run();
 		expect(loop.status().state).toBe("error");
 	});
+
+	it("stops once the sync under way is over, until resumed", async () => {
+		const { loop, pulls } = setup();
+		void loop.run();
+		await loop.halt();
+		expect(pulls()).toBe(1);
+		expect(loop.status().state).toBe("idle");
+		await loop.run();
+		expect(pulls()).toBe(1);
+		loop.resume();
+		await loop.run();
+		expect(pulls()).toBeGreaterThan(1);
+	});
 });

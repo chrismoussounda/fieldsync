@@ -5,6 +5,26 @@ import { deviceName } from "./device-name.ts";
 export type Role = "technician" | "dispatcher" | "admin";
 export type User = { id: string; name: string; role: Role };
 
+export type Person = "admin" | "dispatch" | "junior" | "merveille";
+
+/** The visitor's own copy of the demo; whoever has the key can enter it. */
+export type Demo = { key: string; person: Person; expiresAt: string };
+
+type State = {
+	user: User | null;
+	revoked: boolean;
+	demo: Demo | null;
+	/** Signed out because the demo's time was up. */
+	demoEnded: boolean;
+};
+
+const SIGNED_OUT: State = {
+	user: null,
+	revoked: false,
+	demo: null,
+	demoEnded: false,
+};
+
 type Tokens = {
 	accessToken: string;
 	refreshToken: string;
@@ -12,7 +32,12 @@ type Tokens = {
 	user: User;
 };
 
-type Stored = { user: User; refreshToken: string };
+type DemoTokens = Tokens & { demo: Demo };
+
+type Stored = { user: User; refreshToken: string; demo?: Demo };
+
+/** The device this browser is for each person it has been in the demo. */
+type DemoDevices = { key: string; ids: Partial<Record<Person, string>> };
 
 export type SessionOptions = {
 	db: LocalDb;
@@ -37,10 +62,7 @@ export class Session {
 	#stored: Stored | null = null;
 	#access: { token: string; expiresAt: number } | null = null;
 	#refreshing: Promise<string> | null = null;
-	#state: { user: User | null; revoked: boolean } = {
-		user: null,
-		revoked: false,
-	};
+	#state: State = SIGNED_OUT;
 
 	constructor(options: SessionOptions) {
 		this.#db = options.db;
@@ -68,8 +90,10 @@ export class Session {
 	async load(): Promise<void> {
 		this.#stored = (await this.#db.getMeta<Stored>("session")) ?? null;
 		this.#setState({
+			...SIGNED_OUT,
 			user: this.#stored?.user ?? null,
 			revoked: (await this.#db.getMeta<boolean>("revoked")) ?? false,
+			demo: this.#stored?.demo ?? null,
 		});
 	}
 
@@ -86,9 +110,59 @@ export class Session {
 		return this.#signIn("/auth/login", { email, password });
 	}
 
-	/** Signs in to a demo account; demo servers only. */
-	async demo(role: "dispatcher" | "technician"): Promise<User> {
-		return this.#signIn("/auth/demo", { role });
+	/** Starts this visitor's own copy of the demo; demo servers only. */
+	startDemo(person: Person): Promise<User> {
+		return this.#enterDemo("/demo/workspaces", { person });
+	}
+
+	/** Enters a demo already started, here or on another device. */
+	async joinDemo(key: string, person: Person): Promise<User> {
+		const devices = await this.#db.getMeta<DemoDevices>("demoDevices");
+		const known = devices?.key === key ? devices.ids[person] : undefined;
+		try {
+			return await this.#enterDemo("/auth/demo", { key, person }, known);
+		} catch (error) {
+			// Locked out by the demo's own admin: come back as a new device.
+			if (!known || !isCode(error, "DEVICE_REVOKED")) throw error;
+			return this.#enterDemo("/auth/demo", { key, person });
+		}
+	}
+
+	/**
+	 * Replaces whatever this browser holds, but only once the server has let
+	 * the visitor in. Nothing may be syncing meanwhile.
+	 */
+	async #enterDemo(
+		path: string,
+		body: Record<string, string>,
+		deviceId: string = crypto.randomUUID(),
+	): Promise<User> {
+		// Left by an expired session of a real account: they must not be lost.
+		if (!this.#stored && (await this.#db.outbox.count()) > 0) {
+			throw new HttpError(409, "DEVICE_TAKEN");
+		}
+		const tokens = await this.#post<DemoTokens>(path, {
+			...body,
+			deviceId,
+			deviceName: deviceName(navigator.userAgent),
+		});
+		const { key, person } = tokens.demo;
+		const before = await this.#db.getMeta<DemoDevices>("demoDevices");
+		const devices: DemoDevices = {
+			key,
+			ids: {
+				...(before?.key === key ? before.ids : {}),
+				[person]: deviceId,
+			},
+		};
+		const db = this.#db;
+		await db.transaction("rw", db.tables, async () => {
+			await Promise.all(db.tables.map((table) => table.clear()));
+			await db.setMeta("deviceId", deviceId);
+			await db.setMeta("demoDevices", devices);
+		});
+		await this.#accept(tokens, tokens.demo);
+		return tokens.user;
 	}
 
 	async #signIn(path: string, body: Record<string, string>): Promise<User> {
@@ -134,7 +208,7 @@ export class Session {
 		this.#access = null;
 		await this.#db.delete();
 		await this.#db.open();
-		this.#setState({ user: null, revoked: false });
+		this.#setState(SIGNED_OUT);
 	}
 
 	/** Called with every failed API request, to react the moment access ends. */
@@ -159,31 +233,47 @@ export class Session {
 			const tokens = await this.#post<Tokens>("/auth/refresh", {
 				refreshToken,
 			});
-			await this.#accept(tokens);
+			await this.#accept(tokens, this.#stored?.demo);
 			return tokens.accessToken;
 		} catch (error) {
 			if (isCode(error, "DEVICE_REVOKED")) {
 				await this.#markRevoked();
+			} else if (
+				error instanceof HttpError &&
+				error.status === 401 &&
+				this.#stored?.demo
+			) {
+				const ended = Date.parse(this.#stored.demo.expiresAt) <= this.#now();
+				await this.signOut();
+				this.#setState({ ...SIGNED_OUT, demoEnded: ended });
 			} else if (error instanceof HttpError && error.status === 401) {
 				// Local data stays: unsynced changes go out after the next sign-in.
 				this.#stored = null;
 				this.#access = null;
 				await this.#db.meta.delete("session");
-				this.#setState({ user: null, revoked: false });
+				this.#setState(SIGNED_OUT);
 			}
 			throw error;
 		}
 	}
 
-	async #accept(tokens: Tokens): Promise<void> {
-		this.#stored = { user: tokens.user, refreshToken: tokens.refreshToken };
+	async #accept(tokens: Tokens, demo?: Demo): Promise<void> {
+		this.#stored = {
+			user: tokens.user,
+			refreshToken: tokens.refreshToken,
+			...(demo ? { demo } : {}),
+		};
 		this.#access = {
 			token: tokens.accessToken,
 			expiresAt: this.#now() + tokens.expiresIn * 1000,
 		};
 		await this.#db.setMeta("session", this.#stored);
 		if (this.#state.user?.id !== tokens.user.id) {
-			this.#setState({ user: tokens.user, revoked: false });
+			this.#setState({
+				...SIGNED_OUT,
+				user: tokens.user,
+				demo: demo ?? null,
+			});
 		}
 	}
 
@@ -198,7 +288,7 @@ export class Session {
 		return payload as T;
 	}
 
-	#setState(state: { user: User | null; revoked: boolean }): void {
+	#setState(state: State): void {
 		this.#state = state;
 		for (const listener of this.#listeners) listener();
 	}

@@ -639,10 +639,62 @@ export const fr = {
 		DEVICE_TAKEN:
 			"Des modifications d'un autre compte attendent encore sur cet appareil.",
 		demo: "Ou essayez la démo",
-		demoHint: "Sans compte. La démo repart de zéro chaque nuit.",
+		demoHint: "Sans compte. Vous avez votre propre copie, gardée un jour.",
+		morePeople: "Voir les quatre personnes",
 		asOffice: "Côté bureau",
 		asTechnician: "Côté technicien",
 		noDemo: "La démo n'est pas disponible sur ce serveur.",
+	},
+	demo: {
+		open: "Démo",
+		title: "Votre démo",
+		hint: "Cette copie est à vous. Elle sera supprimée le {{time}}.",
+		people: "Changer de personne",
+		peopleHint: "Voyez les mêmes interventions avec les yeux d'un autre.",
+		you: "Vous",
+		person: {
+			admin: "Gère l'équipe : personnes, appareils et tout le bureau",
+			dispatch: "Planifie et suit les interventions depuis le bureau",
+			junior: "Sur le terrain, avec deux interventions à faire",
+			merveille: "Sur le terrain, avec deux autres interventions",
+		},
+		device: "Ouvrir sur un autre appareil",
+		deviceHint:
+			"Scannez ce code avec votre téléphone et choisissez un technicien, puis travaillez sur les deux. Toute personne qui a le lien peut entrer.",
+		qr: "QR code pour rejoindre cette démo",
+		copy: "Copier le lien",
+		copied: "Lien copié",
+		copyFailed: "Copie impossible. Scannez plutôt le code.",
+		tries: "À essayer",
+		try: {
+			offlineTitle: "Travailler sans réseau",
+			offline:
+				"Ouvrez la démo sur votre téléphone avec Junior, passez en mode avion, avancez une intervention, puis reconnectez-vous.",
+			conflictTitle: "Modifier deux fois la même intervention",
+			conflict:
+				"Les deux appareils hors ligne, donnez un statut différent sur chacun. Reconnectez-vous, puis ouvrez Conflits.",
+			scheduleTitle: "Planifier la semaine",
+			schedule:
+				"Avec Grâce, glissez une intervention vers un autre jour ou technicien.",
+			signTitle: "Faire signer le client",
+			sign: "Avec Junior, ouvrez une intervention, faites signer le client, puis voyez le rapport.",
+			lockTitle: "Bloquer un téléphone perdu",
+			lock: "Avec Ange, ouvrez Appareils et bloquez votre téléphone.",
+		},
+		unsentTitle: "Changer de personne ?",
+		unsent_one:
+			"{{count}} modification n'a pas pu être envoyée et sera perdue.",
+		unsent_other:
+			"{{count}} modifications n'ont pas pu être envoyées et seront perdues.",
+		switchAnyway: "Changer quand même",
+		joinTitle: "Rejoindre la démo",
+		joinHint: "Choisissez qui vous êtes sur cet appareil.",
+		alreadyIn: "Vous êtes déjà connecté ici : {{name}}.",
+		alreadyHint:
+			"Déconnectez-vous d'abord pour entrer avec quelqu'un d'autre depuis ce lien.",
+		back: "Retour à l'application",
+		home: "Aller à l'accueil",
+		ended: "Votre démo est terminée. Lancez-en une autre quand vous voulez.",
 	},
 	revoked: {
 		title: "Appareil révoqué",
@@ -683,5 +735,9 @@ export const fr = {
 			"Vous ne pouvez pas changer votre propre rôle ni vous désactiver.",
 		WRONG_PASSWORD: "Le mot de passe actuel n'est pas le bon.",
 		RATE_LIMITED: "Trop de tentatives. Attendez quelques minutes et réessayez.",
+		DEMO_ENDED:
+			"Cette démo est terminée. Lancez la vôtre, c'est l'affaire d'une seconde.",
+		DEMO_FULL: "Trop de démos sont en cours. Réessayez plus tard.",
+		DEMO_LIMIT: "La démo n'a plus de place.",
 	},
 };

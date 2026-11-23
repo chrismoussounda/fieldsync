@@ -1,6 +1,6 @@
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { TryDemo } from "@/components/try-demo";
+import { StartDemo } from "@/components/try-demo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -74,7 +74,7 @@ export function Login({ session }: { session: Session }) {
 							{t("login.demoHint")}
 						</p>
 					</div>
-					<TryDemo session={session} />
+					<StartDemo session={session} />
 				</section>
 			</form>
 		</main>

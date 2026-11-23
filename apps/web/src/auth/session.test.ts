@@ -189,3 +189,121 @@ describe("Session", () => {
 		expect(calls).toBe(1);
 	});
 });
+
+describe("Session in the demo", () => {
+	const EXPIRES = new Date(1_000_000).toISOString();
+	const demoTokens = (key: string, person: string, userId = person) => ({
+		status: 201,
+		body: {
+			...tokens(1).body,
+			user: { ...USER, id: userId },
+			demo: { key, person, expiresAt: EXPIRES },
+		},
+	});
+	const left = async () => {
+		await db.setMeta("cursor", 7);
+		await db.files.put({
+			id: "f1",
+			type: "image/jpeg",
+			bytes: new ArrayBuffer(1),
+			uploaded: 1,
+		});
+	};
+
+	it("starts a demo, remembers it, and keeps it through a refresh", async () => {
+		const { fetch, sent } = fakeFetch(demoTokens("k", "junior"), tokens(2));
+		const auth = session(fetch);
+		await auth.startDemo("junior");
+		expect(sent[0]?.url).toBe("/api/demo/workspaces");
+		expect(sent[0]?.body).toMatchObject({ person: "junior" });
+		time += 900_000;
+		await auth.getToken();
+
+		const reopened = session(fakeFetch().fetch);
+		await reopened.load();
+		expect(reopened.snapshot().demo).toMatchObject({
+			key: "k",
+			person: "junior",
+		});
+	});
+
+	it("becomes someone else with nothing left of the first, as the same device when coming back", async () => {
+		const { fetch, sent } = fakeFetch(
+			demoTokens("k", "dispatch"),
+			demoTokens("k", "junior"),
+			demoTokens("k", "dispatch"),
+		);
+		const auth = session(fetch);
+		await auth.startDemo("dispatch");
+		await left();
+		await auth.joinDemo("k", "junior");
+		expect(sent[1]?.body).toMatchObject({ key: "k", person: "junior" });
+		expect(await db.getMeta("cursor")).toBeUndefined();
+		expect(await db.files.count()).toBe(0);
+		expect(auth.user?.id).toBe("junior");
+
+		await auth.joinDemo("k", "dispatch");
+		const [first, second, third] = sent.map((s) => s.body.deviceId);
+		expect(second).not.toBe(first);
+		expect(third).toBe(first);
+		expect(await auth.deviceId()).toBe(first);
+	});
+
+	it("comes back as a new device once locked out", async () => {
+		const { fetch, sent } = fakeFetch(
+			demoTokens("k", "junior"),
+			demoTokens("k", "admin"),
+			{ status: 401, body: { error: "DEVICE_REVOKED" } },
+			demoTokens("k", "junior"),
+		);
+		const auth = session(fetch);
+		await auth.startDemo("junior");
+		await auth.joinDemo("k", "admin");
+		await auth.joinDemo("k", "junior");
+		expect(sent[2]?.body.deviceId).toBe(sent[0]?.body.deviceId);
+		expect(sent[3]?.body.deviceId).not.toBe(sent[0]?.body.deviceId);
+		expect(auth.user?.id).toBe("junior");
+	});
+
+	it("changes nothing when it cannot get in", async () => {
+		const { fetch } = fakeFetch(demoTokens("k", "junior"), "network", {
+			status: 403,
+			body: { error: "ACCOUNT_DISABLED" },
+		});
+		const auth = session(fetch);
+		await auth.startDemo("junior");
+		await left();
+		await expect(auth.joinDemo("k", "admin")).rejects.toThrow();
+		await expect(auth.joinDemo("k", "admin")).rejects.toThrow();
+		expect(auth.user?.id).toBe("junior");
+		expect(await db.getMeta("cursor")).toBe(7);
+	});
+
+	it("never replaces changes left by a real account", async () => {
+		const { fetch, sent } = fakeFetch(demoTokens("k", "junior"));
+		await db.outbox.add({
+			opId: "op",
+			entityType: "work_order",
+			entityId: "o1",
+			op: {} as never,
+			status: "pending",
+		});
+		await expect(session(fetch).startDemo("junior")).rejects.toMatchObject({
+			code: "DEVICE_TAKEN",
+		});
+		expect(sent).toHaveLength(0);
+		expect(await db.outbox.count()).toBe(1);
+	});
+
+	it("says so and erases everything when the demo is over", async () => {
+		const gone = { status: 401, body: { error: "UNAUTHORIZED" } };
+		const auth = session(fakeFetch(demoTokens("k", "junior"), gone).fetch);
+		await auth.startDemo("junior");
+		await left();
+		time = 1_000_000;
+		await expect(auth.getToken()).rejects.toBeInstanceOf(HttpError);
+		expect(auth.snapshot()).toMatchObject({ user: null, demoEnded: true });
+		expect(await db.files.count()).toBe(0);
+		expect(await db.meta.count()).toBe(0);
+	});
+});

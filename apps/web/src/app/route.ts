@@ -7,6 +7,7 @@ export const ROUTES = {
 	map: "#/map",
 	new: "#/?new=1",
 	debug: "#/debug",
+	demo: (key: string) => `#/demo/${key}`,
 	conflicts: "#/conflicts",
 	devices: "#/devices",
 	team: "#/team",
