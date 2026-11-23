@@ -90,7 +90,6 @@ export async function setActive(
 			.where("user_id", "=", id)
 			.where("revoked_at", "is", null)
 			.execute();
-		await tx.deleteFrom("refresh_tokens").where("user_id", "=", id).execute();
 	});
 }
 

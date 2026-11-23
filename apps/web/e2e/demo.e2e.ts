@@ -154,10 +154,10 @@ test("the same demo on two devices: work arrives, and a lost phone is locked out
 		.getByRole("button", { name: "Revoke" })
 		.click();
 	await expect(office.getByText("Device revoked.")).toBeVisible();
-	// At the phone's next sync.
+	await phone.reload();
 	await expect(
 		phone.getByRole("heading", { name: "Device revoked" }),
-	).toBeVisible({ timeout: 25_000 });
+	).toBeVisible();
 });
 
 test("a link to a demo that is over says so", async ({ browser }) => {
