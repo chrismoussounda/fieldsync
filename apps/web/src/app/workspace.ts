@@ -1,11 +1,11 @@
 import { HttpError, HttpTransport, SyncClient } from "@fieldsync/sync-client";
-import { type Role, Session, type User } from "../auth/session.ts";
+import type { Role, Session, User } from "../auth/session.ts";
 import { SyncLoop } from "../sync/loop.ts";
-import { DexieStorage, LocalDb } from "../sync/storage.ts";
+import { DexieStorage, type LocalDb } from "../sync/storage.ts";
 import { NetworkSwitch } from "../sync/switch.ts";
+import { API_URL } from "./open.ts";
 import { type FileTransport, PhotoTransfer } from "./photos.ts";
 
-export const API_URL = import.meta.env.VITE_API_URL ?? "/api";
 const CLIENT_VERSION = "0.1.0";
 
 export type Member = {
@@ -16,17 +16,6 @@ export type Member = {
 	/** Sent to admins only. */
 	email?: string;
 };
-
-/** What the app needs before anyone signs in. */
-export async function openWorkspace(): Promise<{
-	db: LocalDb;
-	session: Session;
-}> {
-	const db = new LocalDb();
-	const session = new Session({ db, baseUrl: API_URL });
-	await session.load();
-	return { db, session };
-}
 
 export type Sync = {
 	client: SyncClient;
