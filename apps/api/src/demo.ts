@@ -3,15 +3,9 @@ import type { Op } from "@fieldsync/protocol";
 import { hash, verify } from "@node-rs/argon2";
 import type { Kysely } from "kysely";
 import { WORK_ORDER_SCOPING } from "./auth/policy.ts";
-import {
-	type AuthConfig,
-	openSession,
-	REFRESH_TTL_MS,
-	type Session,
-} from "./auth/session.ts";
+import { REFRESH_TTL_MS } from "./auth/session.ts";
 import { createUser } from "./auth/users.ts";
 import type { Database, Role } from "./db/schema.ts";
-import { ApiError } from "./errors.ts";
 import { handlePush } from "./sync/push.ts";
 import { resetOrg } from "./sync/reset.ts";
 
@@ -19,24 +13,19 @@ export const DEMO_ORG = "00000000-0000-4000-8000-00000000d001";
 // Writes the demo orders like any device, so they reach phones through pull.
 const SEED_DEVICE = "5eed0000-0000-4000-8000-000000000000";
 
-const USERS: { email: string; name: string; role: Role }[] = [
-	{ email: "admin@fieldsync.demo", name: "Ange Moukala", role: "admin" },
-	{
-		email: "dispatch@fieldsync.demo",
-		name: "Grâce Mabiala",
-		role: "dispatcher",
-	},
-	{
-		email: "junior@fieldsync.demo",
-		name: "Junior Nkounkou",
-		role: "technician",
-	},
-	{
-		email: "merveille@fieldsync.demo",
-		name: "Merveille Bouanga",
-		role: "technician",
-	},
-];
+export type Person = "admin" | "dispatch" | "junior" | "merveille";
+
+export const PEOPLE: Record<Person, { name: string; role: Role }> = {
+	admin: { name: "Ange Moukala", role: "admin" },
+	dispatch: { name: "Grâce Mabiala", role: "dispatcher" },
+	junior: { name: "Junior Nkounkou", role: "technician" },
+	merveille: { name: "Merveille Bouanga", role: "technician" },
+};
+
+const USERS = (Object.keys(PEOPLE) as Person[]).map((person) => ({
+	email: `${person}@fieldsync.demo`,
+	...PEOPLE[person],
+}));
 
 type Site = {
 	name: string;
@@ -81,7 +70,7 @@ type Order = {
 	/** Only for orders without a site; the others use the site's. */
 	location?: { lat: number; lng: number };
 	priority: "low" | "normal" | "urgent";
-	assignee: string | null;
+	assignee: Person | null;
 	status: string;
 	/** Days from the seed date; past means late, unless done. */
 	due: number;
@@ -93,7 +82,7 @@ const ORDERS: Order[] = [
 		site: "bakery",
 		address: "Avenue de la Paix, Poto-Poto, Brazzaville",
 		priority: "urgent",
-		assignee: "junior@fieldsync.demo",
+		assignee: "junior",
 		status: "assigned",
 		due: 0,
 	},
@@ -102,7 +91,7 @@ const ORDERS: Order[] = [
 		site: "clinic",
 		address: "Rue Mbochi, Bacongo, Brazzaville",
 		priority: "normal",
-		assignee: "junior@fieldsync.demo",
+		assignee: "junior",
 		status: "in_progress",
 		due: -2,
 	},
@@ -111,7 +100,7 @@ const ORDERS: Order[] = [
 		site: "coldStore",
 		address: "Boulevard Charles de Gaulle, Pointe-Noire",
 		priority: "normal",
-		assignee: "merveille@fieldsync.demo",
+		assignee: "merveille",
 		status: "assigned",
 		due: 2,
 	},
@@ -120,7 +109,7 @@ const ORDERS: Order[] = [
 		site: "coldStore",
 		address: "Boulevard Charles de Gaulle, Pointe-Noire",
 		priority: "low",
-		assignee: "merveille@fieldsync.demo",
+		assignee: "merveille",
 		status: "done",
 		due: -5,
 	},
@@ -152,7 +141,7 @@ export async function seedDemo(
 	for (const user of USERS) {
 		await createUser(db, { ...user, orgId: DEMO_ORG, password });
 	}
-	await seedOrders(db, now);
+	await seedOrders(db, DEMO_ORG, await demoUserIds(db), now);
 }
 
 /**
@@ -192,7 +181,7 @@ export async function resetDemo(
 	now = Date.now(),
 ): Promise<void> {
 	await resetOrg(db, DEMO_ORG);
-	await seedOrders(db, now);
+	await seedOrders(db, DEMO_ORG, await demoUserIds(db), now);
 	await forgetOldDevices(db, now);
 }
 
@@ -231,14 +220,28 @@ async function forgetOldDevices(
 	});
 }
 
-async function seedOrders(db: Kysely<Database>, now: number): Promise<void> {
+async function demoUserIds(db: Kysely<Database>): Promise<Map<Person, string>> {
 	const users = await db
 		.selectFrom("users")
 		.select(["id", "email"])
 		.where("org_id", "=", DEMO_ORG)
 		.execute();
 	const ids = new Map(users.map((u) => [u.email, u.id]));
+	return new Map(
+		(Object.keys(PEOPLE) as Person[]).flatMap((person) => {
+			const id = ids.get(`${person}@fieldsync.demo`);
+			return id ? [[person, id] as const] : [];
+		}),
+	);
+}
 
+/** Writes the sample sites and jobs, assigned to these users. */
+export async function seedOrders(
+	db: Kysely<Database>,
+	orgId: string,
+	ids: ReadonlyMap<Person, string>,
+	now: number,
+): Promise<void> {
 	const siteIds = new Map(
 		Object.keys(SITES).map((key) => [key, crypto.randomUUID()]),
 	);
@@ -282,36 +285,9 @@ async function seedOrders(db: Kysely<Database>, now: number): Promise<void> {
 	);
 	await handlePush(
 		db,
-		{ orgId: DEMO_ORG, deviceId: SEED_DEVICE },
+		{ orgId, deviceId: SEED_DEVICE },
 		{ ops: [...sites, ...orders] },
 		// Filed under each order's assignee, so it reaches that technician's phone.
 		{ authorize: () => true, scoping: WORK_ORDER_SCOPING, now: () => now },
 	);
-}
-
-/** The demo accounts a visitor can try without a password. Not the admin:
- * an admin could disable the demo users or revoke devices for everyone. */
-export const DEMO_ROLES = {
-	dispatcher: "dispatch@fieldsync.demo",
-	technician: "junior@fieldsync.demo",
-} as const;
-
-export async function demoLogin(
-	db: Kysely<Database>,
-	config: AuthConfig,
-	{
-		role,
-		deviceId,
-		deviceName,
-	}: { role: keyof typeof DEMO_ROLES; deviceId: string; deviceName: string },
-): Promise<Session> {
-	const user = await db
-		.selectFrom("users")
-		.select(["id", "org_id", "name", "role", "disabled_at"])
-		.where("org_id", "=", DEMO_ORG)
-		.where("email", "=", DEMO_ROLES[role])
-		.executeTakeFirst();
-	if (!user) throw new ApiError(404, "NOT_FOUND");
-	if (user.disabled_at) throw new ApiError(403, "ACCOUNT_DISABLED");
-	return openSession(db, config, user, deviceId, deviceName);
 }

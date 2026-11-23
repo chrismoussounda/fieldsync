@@ -220,7 +220,15 @@ export async function authenticate(
 		.where("revoked_at", "is", null)
 		.returning("id")
 		.executeTakeFirst();
-	if (!seen) throw revoked();
+	if (!seen) {
+		const known = await db
+			.selectFrom("devices")
+			.select("id")
+			.where("id", "=", claims.dev)
+			.executeTakeFirst();
+		// Deleted with its demo, rather than locked out.
+		throw known ? revoked() : unauthorized();
+	}
 
 	return {
 		orgId: claims.org,

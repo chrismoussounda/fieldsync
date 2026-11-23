@@ -13,7 +13,7 @@ import { createUser } from "../auth/users.ts";
 import type { Database, Role } from "../db/schema.ts";
 import { createTestDb, emptyTestDb } from "../db/testing.ts";
 import { DEMO_ORG, seedDemo } from "../demo.ts";
-import { buildServer } from "./server.ts";
+import { buildServer, DEFAULT_LIMITS } from "./server.ts";
 
 const ORG = "00000000-0000-4000-8000-000000000001";
 const PHONE = "0a1b2c3d-0000-4000-8000-000000000001";
@@ -712,33 +712,91 @@ describe("demo reset", () => {
 });
 
 describe("demo sign-in", () => {
-	const demo = (server: FastifyInstance, role: string, deviceId: string) =>
+	const visit = (
+		server: FastifyInstance,
+		url: string,
+		body: Record<string, string>,
+	) =>
 		server.inject({
 			method: "POST",
-			url: "/auth/demo",
-			payload: { role, deviceId, deviceName: "Visitor" },
+			url,
+			payload: {
+				deviceId: crypto.randomUUID(),
+				deviceName: "Visitor",
+				...body,
+			},
 		});
 
-	it("signs a visitor in as the demo dispatcher or technician, without a password", async () => {
+	it("gives a visitor their own demo, which others join with its key", async () => {
+		const open = buildServer({ db, secret: SECRET, demo: true });
+		const admin = await visit(open, "/demo/workspaces", { person: "admin" });
+		expect(admin.statusCode).toBe(201);
+		const { user, demo } = admin.json();
+		expect(user).toMatchObject({ role: "admin" });
+
+		const tech = await visit(open, "/auth/demo", {
+			person: "junior",
+			key: demo.key,
+		});
+		expect(tech.statusCode).toBe(200);
+		expect(tech.json().user).toMatchObject({ role: "technician" });
+
+		const stranger = await visit(open, "/auth/demo", {
+			person: "junior",
+			key: "guessed",
+		});
+		expect(stranger.statusCode).toBe(404);
+		expect(stranger.json()).toEqual({ error: "DEMO_ENDED" });
+		expect(
+			(await visit(open, "/demo/workspaces", { person: "nobody" })).statusCode,
+		).toBe(400);
+		await open.close();
+	});
+
+	it("limits how many demos one address starts", async () => {
+		const open = buildServer({
+			db,
+			secret: SECRET,
+			demo: true,
+			limits: { ...DEFAULT_LIMITS, login: 1 },
+		});
+		const start = () => visit(open, "/demo/workspaces", { person: "junior" });
+		expect((await start()).statusCode).toBe(201);
+		expect((await start()).statusCode).toBe(429);
+		await open.close();
+	});
+
+	it("deletes expired demos every night", async () => {
+		const CRON = "a cron secret long enough";
+		const start = Date.now();
 		const open = buildServer({ db, secret: SECRET, demo: true });
 		await seedDemo(db, "demo password");
-
-		const office = await demo(open, "dispatcher", crypto.randomUUID());
-		expect(office.statusCode).toBe(200);
-		expect(office.json().user).toMatchObject({ role: "dispatcher" });
-		const tech = await demo(open, "technician", crypto.randomUUID());
-		expect(tech.json().user).toMatchObject({ role: "technician" });
-		// An admin could disable the demo users for everyone.
-		expect((await demo(open, "admin", crypto.randomUUID())).statusCode).toBe(
-			400,
-		);
+		await visit(open, "/demo/workspaces", { person: "junior" });
+		const nightly = buildServer({
+			db,
+			secret: SECRET,
+			cronSecret: CRON,
+			now: () => start + 25 * 60 * 60 * 1000,
+		});
+		const response = await nightly.inject({
+			url: "/demo/reset",
+			headers: { authorization: `Bearer ${CRON}` },
+		});
+		expect(response.statusCode).toBe(200);
+		const left = await db
+			.selectFrom("orgs")
+			.select("id")
+			.where("demo_expires_at", "is not", null)
+			.execute();
+		expect(left).toEqual([]);
+		await nightly.close();
 		await open.close();
 	});
 
 	it("does not exist unless the demo is on", async () => {
-		await seedDemo(db, "demo password");
-		expect(
-			(await demo(app, "dispatcher", crypto.randomUUID())).statusCode,
-		).toBe(404);
+		for (const url of ["/demo/workspaces", "/auth/demo"]) {
+			const response = await visit(app, url, { person: "junior", key: "any" });
+			expect(response.statusCode).toBe(404);
+		}
 	});
 });

@@ -12,6 +12,9 @@ export type Database = {
 		name: string;
 		seq: Generated<Seq>;
 		epoch: Generated<string>;
+		demo_key_hash: string | null;
+		/** Set on a visitor's own copy of the demo. */
+		demo_expires_at: Date | null;
 		created_at: CreatedAt;
 	};
 	entities: {

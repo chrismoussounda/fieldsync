@@ -1,6 +1,7 @@
 import { hash, verify } from "@node-rs/argon2";
 import type { Kysely } from "kysely";
 import type { Database, Role } from "../db/schema.ts";
+import { checkRoomForUser } from "../demo-limits.ts";
 import { ApiError, isUniqueViolation } from "../errors.ts";
 import { requireAdmin } from "./devices.ts";
 import type { Principal } from "./session.ts";
@@ -44,6 +45,7 @@ export async function addUser(
 	user: Omit<NewUser, "orgId">,
 ): Promise<string> {
 	requireAdmin(principal);
+	await checkRoomForUser(db, principal.orgId);
 	try {
 		return await createUser(db, { ...user, orgId: principal.orgId });
 	} catch (error) {

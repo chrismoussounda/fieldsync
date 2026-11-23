@@ -3,7 +3,7 @@ import { afterAll, beforeAll, expect, it } from "vitest";
 import { login, REFRESH_TTL_MS } from "./auth/session.ts";
 import type { Database } from "./db/schema.ts";
 import { createTestDb } from "./db/testing.ts";
-import { DEMO_ORG, demoLogin, resetDemo, seedDemo } from "./demo.ts";
+import { DEMO_ORG, resetDemo, seedDemo } from "./demo.ts";
 import { handlePull } from "./sync/pull.ts";
 
 let db: Kysely<Database>;
@@ -123,8 +123,9 @@ it("forgets a visitor's device once its session has run out, unless revoked", as
 	};
 	const visit = async () => {
 		const deviceId = crypto.randomUUID();
-		await demoLogin(db, config, {
-			role: "technician",
+		await login(db, config, {
+			email: "junior@fieldsync.demo",
+			password: "a new demo password",
 			deviceId,
 			deviceName: "Phone",
 		});
