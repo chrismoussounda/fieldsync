@@ -144,7 +144,7 @@ export function JobMap({ db, user }: Props) {
 					/>
 				</div>
 
-				<aside className="grid gap-6 lg:max-h-[calc(100dvh-20rem)] lg:min-h-[28rem] lg:overflow-y-auto lg:pr-1">
+				<aside className="grid content-start gap-6 lg:max-h-[calc(100dvh-20rem)] lg:min-h-[28rem] lg:overflow-y-auto lg:pr-1">
 					{pick ? (
 						<Chosen
 							key={pick.order.id}
