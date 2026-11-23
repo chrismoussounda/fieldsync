@@ -262,6 +262,7 @@ export const en: Messages<typeof fr> = {
 			close: "Close",
 			notHere: "Not on this device yet",
 			notSynced: "Not synced",
+			noRoom: "Not sent: the demo has no room left for photos",
 		},
 		signature: {
 			title: "Customer signature",
@@ -633,7 +634,9 @@ export const en: Messages<typeof fr> = {
 		DEVICE_REVOKED: "This device was revoked by an admin.",
 		DEVICE_TAKEN:
 			"Changes from another account are still waiting on this device.",
-		demo: "Or try the demo",
+		demo: "Try the demo",
+		haveAccount: "I have an account",
+		accountHint: "Your company's admin creates your account.",
 		demoHint: "No account needed. You get your own copy, kept for a day.",
 		morePeople: "See all four people",
 		asOffice: "As the office",

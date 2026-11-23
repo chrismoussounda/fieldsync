@@ -1,5 +1,5 @@
 ﻿import "fake-indexeddb/auto";
-import { SyncClient } from "@fieldsync/sync-client";
+import { HttpError, SyncClient } from "@fieldsync/sync-client";
 import { FakeServer } from "@fieldsync/sync-client/testing";
 import { PHOTO } from "@fieldsync/work-orders";
 import { describe, expect, it } from "vitest";
@@ -95,6 +95,27 @@ describe("PhotoTransfer", () => {
 		server.offline = false;
 		await transfer.run();
 		expect(uploads).toEqual([id]);
+	});
+
+	it("says so, and stops trying, when the demo has no room for an image", async () => {
+		const { db, client, stored, add } = setup();
+		let tries = 0;
+		const transfer = new PhotoTransfer(db, {
+			upload: async () => {
+				tries += 1;
+				throw new HttpError(413, "DEMO_LIMIT");
+			},
+			download: async (id) => stored.get(id) ?? null,
+		});
+		const id = await add();
+		await client.syncOnce();
+		await transfer.run();
+		await transfer.run();
+		expect(tries).toBe(1);
+		expect(await db.files.get(id)).toMatchObject({
+			uploaded: 0,
+			refused: true,
+		});
 	});
 
 	it("drops the image of a photo the server refused", async () => {

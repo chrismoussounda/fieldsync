@@ -258,6 +258,7 @@ export const fr = {
 			close: "Fermer",
 			notHere: "Pas encore sur cet appareil",
 			notSynced: "Pas encore envoyée",
+			noRoom: "Non envoyée : la démo n'a plus de place pour les photos",
 		},
 		signature: {
 			title: "Signature du client",
@@ -638,7 +639,9 @@ export const fr = {
 		DEVICE_REVOKED: "Cet appareil a été révoqué par un administrateur.",
 		DEVICE_TAKEN:
 			"Des modifications d'un autre compte attendent encore sur cet appareil.",
-		demo: "Ou essayez la démo",
+		demo: "Essayez la démo",
+		haveAccount: "J'ai un compte",
+		accountHint: "L'administrateur de votre entreprise crée votre compte.",
 		demoHint: "Sans compte. Vous avez votre propre copie, gardée un jour.",
 		morePeople: "Voir les quatre personnes",
 		asOffice: "Côté bureau",

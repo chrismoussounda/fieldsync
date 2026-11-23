@@ -160,12 +160,15 @@ export class PhotoTransfer {
 				continue;
 			}
 			// The server must hold the record first.
-			if (queued.length > 0) continue;
+			if (queued.length > 0 || file.refused) continue;
 			try {
 				await this.#transport.upload(file.id, file);
 				await this.#db.files.update(file.id, { uploaded: 1 });
 			} catch (error) {
 				if (!(error instanceof HttpError)) return; // offline: try next time
+				if (error.code === "DEMO_LIMIT") {
+					await this.#db.files.update(file.id, { refused: true });
+				}
 			}
 		}
 	}
