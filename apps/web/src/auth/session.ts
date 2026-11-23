@@ -7,8 +7,14 @@ export type User = { id: string; name: string; role: Role };
 
 export type Person = "admin" | "dispatch" | "junior" | "merveille";
 
-/** The visitor's own copy of the demo; whoever has the key can enter it. */
-export type Demo = { key: string; person: Person; expiresAt: string };
+/**
+ * The visitor's own copy of the demo; whoever has the key can enter it. Null
+ * for someone its admin added, who signed in by email.
+ */
+export type Demo = {
+	entry: { key: string; person: Person } | null;
+	expiresAt: string;
+};
 
 type State = {
 	user: User | null;
@@ -30,9 +36,12 @@ type Tokens = {
 	refreshToken: string;
 	expiresIn: number;
 	user: User;
+	demo?: { expiresAt: string };
 };
 
-type DemoTokens = Tokens & { demo: Demo };
+type DemoTokens = Tokens & {
+	demo: { key: string; person: Person; expiresAt: string };
+};
 
 type Stored = { user: User; refreshToken: string; demo?: Demo };
 
@@ -146,7 +155,7 @@ export class Session {
 			deviceId,
 			deviceName: deviceName(navigator.userAgent),
 		});
-		const { key, person } = tokens.demo;
+		const { key, person, expiresAt } = tokens.demo;
 		const before = await this.#db.getMeta<DemoDevices>("demoDevices");
 		const devices: DemoDevices = {
 			key,
@@ -161,7 +170,7 @@ export class Session {
 			await db.setMeta("deviceId", deviceId);
 			await db.setMeta("demoDevices", devices);
 		});
-		await this.#accept(tokens, tokens.demo);
+		await this.#accept(tokens, { entry: { key, person }, expiresAt });
 		return tokens.user;
 	}
 
@@ -186,7 +195,10 @@ export class Session {
 			);
 			tokens = await request();
 		}
-		await this.#accept(tokens);
+		await this.#accept(
+			tokens,
+			tokens.demo && { entry: null, expiresAt: tokens.demo.expiresAt },
+		);
 		return tokens.user;
 	}
 

@@ -1,7 +1,12 @@
 import type { Kysely } from "kysely";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { revokeDevice } from "./auth/devices.ts";
-import { type AuthConfig, authenticate, refresh } from "./auth/session.ts";
+import {
+	type AuthConfig,
+	authenticate,
+	login,
+	refresh,
+} from "./auth/session.ts";
 import { addUser, setActive } from "./auth/team.ts";
 import type { Database } from "./db/schema.ts";
 import { createTestDb, emptyTestDb } from "./db/testing.ts";
@@ -108,8 +113,35 @@ describe("a visitor's own demo", () => {
 		const device = (await who(junior)).deviceId;
 		await revokeDevice(db, principal, device, time);
 		await expect(who(junior)).rejects.toThrow("DEVICE_REVOKED");
+		// Reloaded, it asks for a new session instead.
+		await expect(refresh(db, config, junior.refreshToken)).rejects.toThrow(
+			"DEVICE_REVOKED",
+		);
 		await setActive(db, principal, junior.user.id, false, time);
 		await expect(enter(demo.key, "junior")).rejects.toThrow("ACCOUNT_DISABLED");
+	});
+
+	it("says when it ends to someone its admin added, who signs in by email", async () => {
+		const principal = await who(await create("admin"));
+		const password = "long enough password";
+		const email = "new@fieldsync.demo";
+		await addUser(db, principal, {
+			email,
+			name: "New",
+			role: "technician",
+			password,
+		});
+		const signIn = () =>
+			login(db, config, {
+				email,
+				password,
+				deviceId: crypto.randomUUID(),
+				deviceName: "Phone",
+			});
+		const ends = new Date(time + WORKSPACE_TTL_MS).toISOString();
+		expect((await signIn()).demo).toEqual({ expiresAt: ends });
+		time += WORKSPACE_TTL_MS;
+		await expect(signIn()).rejects.toThrow("DEMO_ENDED");
 	});
 
 	it("is gone once expired, leaving the others and the shared demo", async () => {

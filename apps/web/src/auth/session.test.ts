@@ -221,9 +221,9 @@ describe("Session in the demo", () => {
 
 		const reopened = session(fakeFetch().fetch);
 		await reopened.load();
-		expect(reopened.snapshot().demo).toMatchObject({
-			key: "k",
-			person: "junior",
+		expect(reopened.snapshot().demo).toEqual({
+			entry: { key: "k", person: "junior" },
+			expiresAt: EXPIRES,
 		});
 	});
 
@@ -263,6 +263,16 @@ describe("Session in the demo", () => {
 		expect(sent[2]?.body.deviceId).toBe(sent[0]?.body.deviceId);
 		expect(sent[3]?.body.deviceId).not.toBe(sent[0]?.body.deviceId);
 		expect(auth.user?.id).toBe("junior");
+	});
+
+	it("knows the demo of someone who signed in to it by email", async () => {
+		const reply = {
+			status: 200,
+			body: { ...tokens(1).body, demo: { expiresAt: EXPIRES } },
+		};
+		const auth = session(fakeFetch(reply).fetch);
+		await auth.login("new@fieldsync.demo", "pw");
+		expect(auth.snapshot().demo).toEqual({ entry: null, expiresAt: EXPIRES });
 	});
 
 	it("changes nothing when it cannot get in", async () => {

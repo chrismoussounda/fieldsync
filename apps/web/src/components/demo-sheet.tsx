@@ -75,27 +75,31 @@ function DemoSheet({
 				title={t("demo.title")}
 				description={t("demo.hint", { time: ends })}
 			>
-				<section aria-labelledby="demo-people" className="grid gap-3">
-					<Heading
-						id="demo-people"
-						title={t("demo.people")}
-						hint={t("demo.peopleHint")}
-					/>
-					<DemoPeople
-						current={demo.person}
-						busy={busy}
-						onPick={(person) => void ask(person)}
-					/>
-					<Failure error={error} className="text-destructive" />
-				</section>
-				<section aria-labelledby="demo-device" className="grid gap-3">
-					<Heading
-						id="demo-device"
-						title={t("demo.device")}
-						hint={t("demo.deviceHint")}
-					/>
-					<Invite demo={demo} />
-				</section>
+				{demo.entry && (
+					<>
+						<section aria-labelledby="demo-people" className="grid gap-3">
+							<Heading
+								id="demo-people"
+								title={t("demo.people")}
+								hint={t("demo.peopleHint")}
+							/>
+							<DemoPeople
+								current={demo.entry.person}
+								busy={busy}
+								onPick={(person) => void ask(person)}
+							/>
+							<Failure error={error} className="text-destructive" />
+						</section>
+						<section aria-labelledby="demo-device" className="grid gap-3">
+							<Heading
+								id="demo-device"
+								title={t("demo.device")}
+								hint={t("demo.deviceHint")}
+							/>
+							<Invite invite={demo.entry.key} />
+						</section>
+					</>
+				)}
 				<section aria-labelledby="demo-tries" className="grid gap-3">
 					<Heading id="demo-tries" title={t("demo.tries")} />
 					<ul className="grid gap-4">
@@ -173,12 +177,13 @@ function useSwitch(demo: Demo) {
 	}
 
 	async function go(person: Person) {
+		if (!demo.entry) return;
 		setUnsent(null);
 		setBusy(true);
 		// A sync under way would write this person's data over the next one's.
 		await sync.loop.halt();
 		try {
-			await session.joinDemo(demo.key, person);
+			await session.joinDemo(demo.entry.key, person);
 			queries.clear();
 			window.location.hash = ROUTES.list;
 		} catch (e) {
@@ -191,9 +196,9 @@ function useSwitch(demo: Demo) {
 	return { unsent, busy, error, ask, go, cancel: () => setUnsent(null) };
 }
 
-function Invite({ demo }: { demo: Demo }) {
+function Invite({ invite }: { invite: string }) {
 	const { t } = useTranslation();
-	const link = `${window.location.origin}/${ROUTES.demo(demo.key)}`;
+	const link = `${window.location.origin}/${ROUTES.demo(invite)}`;
 	async function copy() {
 		try {
 			await navigator.clipboard.writeText(link);

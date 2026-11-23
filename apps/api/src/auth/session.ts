@@ -26,6 +26,8 @@ export type Session = {
 	refreshToken: string;
 	expiresIn: number;
 	user: { id: string; name: string; role: Role };
+	/** In a visitor's demo, signed in to by email. */
+	demo?: { expiresAt: string };
 };
 
 export type LoginInput = {
@@ -55,8 +57,17 @@ export async function login(
 ): Promise<Session> {
 	const user = await db
 		.selectFrom("users")
-		.select(["id", "org_id", "name", "role", "password_hash", "disabled_at"])
-		.where("email", "=", normalizeEmail(email))
+		.innerJoin("orgs", "orgs.id", "users.org_id")
+		.select([
+			"users.id",
+			"users.org_id",
+			"users.name",
+			"users.role",
+			"users.password_hash",
+			"users.disabled_at",
+			"orgs.demo_expires_at",
+		])
+		.where("users.email", "=", normalizeEmail(email))
 		.executeTakeFirst();
 	dummyHash ??= hash(randomUUID());
 	const valid = await verify(
@@ -64,10 +75,17 @@ export async function login(
 		password,
 	);
 	if (!user || !valid) throw unauthorized();
+	const ends = user.demo_expires_at;
+	if (ends && ends.getTime() <= config.now()) {
+		throw new ApiError(404, "DEMO_ENDED");
+	}
 	// Said only to someone who knows the password.
 	if (user.disabled_at) throw new ApiError(403, "ACCOUNT_DISABLED");
 
-	return openSession(db, config, user, deviceId, deviceName);
+	const session = await openSession(db, config, user, deviceId, deviceName);
+	return ends
+		? { ...session, demo: { expiresAt: ends.toISOString() } }
+		: session;
 }
 
 /** Registers the device to the user, once, and issues the session's tokens. */
