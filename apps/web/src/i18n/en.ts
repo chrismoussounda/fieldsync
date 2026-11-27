@@ -113,7 +113,7 @@ export const en: Messages<typeof fr> = {
 	},
 	overview: {
 		title: "Overview",
-		description: "Where the work stands, from this device's copy.",
+		description: "Where the work stands, based on this device's copy.",
 		allActive: "All active work",
 		unassigned: "Unassigned",
 		overdue: "Overdue",
@@ -133,9 +133,9 @@ export const en: Messages<typeof fr> = {
 		showReviewed: "Show reviewed",
 		offline: "The conflict log needs the network.",
 		none: "No conflicts to review.",
-		deletedOrder: "Deleted order",
+		deletedOrder: "Deleted work order",
 		concurrent_edit: "Changed on two devices at the same time",
-		edit_on_deleted: "Changed after the order was deleted",
+		edit_on_deleted: "Changed after the work order was deleted",
 		kept: "Kept",
 		overwritten: "Overwritten",
 		by: "by {{name}}, {{when}}",
@@ -157,7 +157,7 @@ export const en: Messages<typeof fr> = {
 		back: "Work orders",
 		gone: "This work order no longer exists.",
 		readOnly:
-			"Only the assigned technician or the office can change this order.",
+			"Only the assigned technician or the office can change this work order.",
 		report: "Job report",
 		edit: "Edit",
 		delete: "Delete",
@@ -196,7 +196,7 @@ export const en: Messages<typeof fr> = {
 			descriptionPlaceholder: "What the customer reported, what needs doing",
 			site: "Site",
 			sitePlaceholder: "Pick a site",
-			siteHint: "The site's address is copied in.",
+			siteHint: "The site's address is filled in for you.",
 			address: "Address",
 			addressPlaceholder: "Street, district, city",
 			location: "Position on the map",
@@ -224,7 +224,7 @@ export const en: Messages<typeof fr> = {
 		},
 		time: {
 			title: "Time on site",
-			total: "{{total}} in all",
+			total: "{{total}} in total",
 			start: "Start",
 			stop: "Stop",
 			since: "On site since {{time}}",
@@ -235,7 +235,7 @@ export const en: Messages<typeof fr> = {
 		},
 		parts: {
 			title: "Parts and materials",
-			empty: "None recorded.",
+			empty: "No parts recorded.",
 			add: "Add part",
 			name: "Part",
 			namePlaceholder: "E.g. Pump seal 32 mm",
@@ -276,7 +276,7 @@ export const en: Messages<typeof fr> = {
 			save: "Save signature",
 			clear: "Clear",
 			signedBy: "Signed by {{name}}",
-			with: "{{when}}, with {{name}}",
+			with: "{{when}}, collected by {{name}}",
 		},
 		history: {
 			title: "History",
@@ -284,8 +284,8 @@ export const en: Messages<typeof fr> = {
 			unknown: "System",
 			waiting: "Not synced yet",
 			refused: "Refused by the server",
-			deleted: "Deleted the order",
-			restored: "Restored the order",
+			deleted: "Deleted the work order",
+			restored: "Restored the work order",
 			replaced: "Newer edits had already replaced these.",
 			offline: "Changes from other devices need the network.",
 			empty: "No changes yet.",
@@ -293,7 +293,7 @@ export const en: Messages<typeof fr> = {
 		},
 	},
 	report: {
-		back: "Back to the order",
+		back: "Back to the work order",
 		print: "Print or save as PDF",
 		kind: "Service report",
 		reference: "Reference",
@@ -453,9 +453,9 @@ export const en: Messages<typeof fr> = {
 		jobCount_other: "{{count}} open",
 		noOpenJobs: "None",
 		new: "New site",
-		search: "Search a name, address or contact",
+		search: "Search by name, address or contact",
 		empty: "No sites yet.",
-		emptyHint: "Add the places your teams work at.",
+		emptyHint: "Add the places where your teams work.",
 		noMatch: "No site matches.",
 		allSites: "All sites",
 		gone: "This site no longer exists.",
@@ -475,7 +475,7 @@ export const en: Messages<typeof fr> = {
 		saved: "Site saved.",
 		deleted: "Site deleted.",
 		deleteTitle: "Delete this site?",
-		deleteBody: "Its orders keep their address.",
+		deleteBody: "Its work orders keep their address.",
 		editTitle: "Edit the site",
 		form: {
 			name: "Name",
@@ -576,16 +576,16 @@ export const en: Messages<typeof fr> = {
 		scheduleCaption: "The week by technician: drag a job to move it.",
 		mapAlt: "Every job as a pin on a map of Congo",
 		mapCaption:
-			"Every job on a map, coloured by status, with the way to the door.",
+			"Every job on a map, coloured by status, with directions to the door.",
 		featuresTitle: "Built for the field",
 		featuresSubtitle:
 			"The office plans, the technician does the job, and nobody waits for the network.",
 		offlineTitle: "Offline first",
 		offlineBody:
-			"Every change is saved on the device, then sent as soon as possible. Nothing gets lost in the basement.",
+			"Every change is saved on the device, then sent as soon as possible. Nothing gets lost, even in a basement.",
 		syncTitle: "Sync without conflicts",
 		syncBody:
-			"When two people change the same thing, the latest wins and the office sees what was overwritten.",
+			"When two people change the same thing, the latest change wins and the office sees what was overwritten.",
 		reportTitle: "Signed report",
 		reportBody:
 			"Checklist, time, parts, photos and the customer's signature in a report ready to print or save as PDF.",
@@ -597,7 +597,7 @@ export const en: Messages<typeof fr> = {
 			"Technicians, dispatchers and admins each see what they need. A lost phone is locked out in one click.",
 		languageTitle: "French and English",
 		languageBody:
-			"The whole app and its reports exist in both languages, light or dark.",
+			"The whole app and its reports come in both languages, in light or dark mode.",
 		stepsTitle: "How it works",
 		step1Title: "The office creates the job",
 		step1Body: "Site, technician, due date and checklist.",
@@ -607,13 +607,13 @@ export const en: Messages<typeof fr> = {
 		step3Body: "The report arrives as soon as the phone reconnects.",
 		engineTitle: "A sync engine built by hand",
 		engineBody:
-			"No sync library underneath: the rules that decide what each device ends up with are written and tested here. The write-up explains the problems and the choices.",
+			"No off-the-shelf sync library: the rules that decide what each device ends up with are written and tested in this project. The write-up explains the problems and the choices made.",
 		engineLink: "Read how it works",
 		proofClocks: "Edits stay in order even when a phone's clock is wrong.",
 		proofMerge:
 			"Two people can change the same job offline; their edits merge field by field.",
 		proofSim:
-			"A simulator plays 500 random sessions with lost and late requests, and checks every device ends up the same.",
+			"A simulator plays 500 random sessions with lost and late requests, and checks that every device ends up with the same data.",
 		ctaTitle: "Ready to try it?",
 		ctaBody: "Look around as the office or as a technician, no account needed.",
 		footer: "FieldSync, an offline-sync demo project.",
@@ -630,8 +630,9 @@ export const en: Messages<typeof fr> = {
 		passwordPlaceholder: "Your password",
 		busy: "Signing in…",
 		UNAUTHORIZED: "Wrong email or password.",
-		ACCOUNT_DISABLED: "This account was disabled. Ask an admin to turn it on.",
-		DEVICE_REVOKED: "This device was revoked by an admin.",
+		ACCOUNT_DISABLED:
+			"This account has been disabled. Ask an admin to enable it again.",
+		DEVICE_REVOKED: "This device has been revoked by an admin.",
 		DEVICE_TAKEN:
 			"Changes from another account are still waiting on this device.",
 		demo: "Try the demo",
@@ -667,7 +668,7 @@ export const en: Messages<typeof fr> = {
 		try: {
 			offlineTitle: "Work without a signal",
 			offline:
-				"Open the demo on your phone as Junior, turn on airplane mode, tick off a job, then come back online.",
+				"Open the demo on your phone as Junior, turn on airplane mode, move a job forward, then come back online.",
 			conflictTitle: "Change the same job twice",
 			conflict:
 				"With both devices offline, set a different status on each. Reconnect, then look under Conflicts.",
@@ -699,7 +700,7 @@ export const en: Messages<typeof fr> = {
 		password: "Change password",
 		current: "Current password",
 		next: "New password",
-		repeat: "Repeat it",
+		repeat: "Type it again",
 		currentPlaceholder: "Your current password",
 		nextPlaceholder: "At least {{min}} characters",
 		repeatPlaceholder: "The same, once more",
@@ -722,14 +723,14 @@ export const en: Messages<typeof fr> = {
 		offline: "No connection. This needs the network.",
 		refused: "The server refused this.",
 		BAD_REQUEST: "The server could not accept this. Check the fields.",
-		FORBIDDEN: "Your role may not do this.",
+		FORBIDDEN: "Your role does not allow this.",
 		NOT_FOUND: "This person is no longer in the team.",
 		EMAIL_TAKEN: "Someone in the team already uses this email.",
 		OWN_ACCOUNT: "You cannot change your own role or disable yourself.",
-		WRONG_PASSWORD: "The current password is not right.",
+		WRONG_PASSWORD: "The current password is incorrect.",
 		RATE_LIMITED: "Too many attempts. Wait a few minutes and try again.",
 		DEMO_ENDED: "This demo has ended. Start your own, it takes a second.",
 		DEMO_FULL: "Too many demos are running right now. Try again later.",
-		DEMO_LIMIT: "The demo has no room for more.",
+		DEMO_LIMIT: "The demo has run out of room.",
 	},
 };

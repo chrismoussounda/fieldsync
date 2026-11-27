@@ -35,14 +35,14 @@ test("an admin adds a technician, who later gets disabled", async ({
 	await phone.getByRole("link", { name: /Ines Mabiala/ }).click();
 	await phone.getByLabel("Current password").fill("not her password");
 	await phone.getByLabel("New password").fill(OWN);
-	await phone.getByLabel("Repeat it").fill(OWN);
+	await phone.getByLabel("Type it again").fill(OWN);
 	await phone.getByRole("button", { name: "Change password" }).click();
 	await expect(phone.getByRole("alert")).toHaveText(
-		"The current password is not right.",
+		"The current password is incorrect.",
 	);
 	await phone.getByLabel("Current password").fill(FIRST);
 	await phone.getByLabel("New password").fill(OWN);
-	await phone.getByLabel("Repeat it").fill(OWN);
+	await phone.getByLabel("Type it again").fill(OWN);
 	await phone.getByRole("button", { name: "Change password" }).click();
 	await expect(phone.getByRole("status")).toHaveText("Password changed.");
 
@@ -70,6 +70,6 @@ test("an admin adds a technician, who later gets disabled", async ({
 	const other = await blankDevice(browser);
 	await signIn(other, EMAIL, OWN);
 	await expect(other.getByRole("alert")).toHaveText(
-		"This account was disabled. Ask an admin to turn it on.",
+		"This account has been disabled. Ask an admin to enable it again.",
 	);
 });
