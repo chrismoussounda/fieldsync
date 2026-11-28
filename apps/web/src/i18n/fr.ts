@@ -520,7 +520,7 @@ export const fr = {
 		disabledToast: "Compte désactivé.",
 		disableTitle: "Désactiver {{name}} ?",
 		disableBody:
-			"Ses appareils seront bloqués. Les modifications qu'il n'a pas encore synchronisées n'arriveront pas au bureau.",
+			"Ses appareils seront bloqués. Les modifications qui n'ont pas encore été synchronisées n'arriveront pas au bureau.",
 		ownRole: "Un autre administrateur doit changer votre rôle.",
 		form: {
 			addTitle: "Ajouter quelqu'un",
