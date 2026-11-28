@@ -50,7 +50,7 @@ export function Landing({ session }: { session: Session }) {
 	return (
 		<div className="min-h-dvh overflow-x-clip bg-background">
 			<header className="sticky top-0 z-10 border-b bg-background">
-				<div className="mx-auto flex h-16 max-w-6xl items-center gap-1 px-4 sm:gap-3 md:px-8">
+				<div className="mx-auto flex h-16 max-w-[90rem] items-center gap-1 px-[clamp(1rem,4vw,3.5rem)] sm:gap-3">
 					<Logo compact />
 					<div className="ml-auto flex items-center gap-1">
 						<LanguageSwitch />
@@ -63,13 +63,13 @@ export function Landing({ session }: { session: Session }) {
 			</header>
 
 			<main>
-				<section className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-16 md:px-8 lg:grid-cols-[1.1fr_1fr] lg:py-24">
+				<section className="mx-auto grid max-w-[90rem] items-center gap-12 px-[clamp(1rem,4vw,3.5rem)] py-16 lg:grid-cols-[1.1fr_1fr] lg:py-24">
 					<div className="grid animate-in gap-6 duration-700 fade-in-0 slide-in-from-bottom-4">
 						<span className="flex w-fit items-center gap-2 rounded-full border bg-card px-3 py-1 text-sm font-medium text-muted-foreground">
 							<WifiOff aria-hidden className="size-4 text-primary" />
 							{t("landing.badge")}
 						</span>
-						<h1 className="text-4xl leading-tight font-semibold tracking-tight text-balance md:text-5xl">
+						<h1 className="text-4xl leading-tight font-semibold tracking-tight text-balance md:text-5xl 2xl:text-6xl">
 							{t("landing.title")}
 						</h1>
 						<p className="max-w-xl text-lg text-muted-foreground">
@@ -112,7 +112,7 @@ export function Landing({ session }: { session: Session }) {
 				<Screens />
 
 				<section className="border-y bg-card/50">
-					<div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 md:px-8 lg:py-24">
+					<div className="mx-auto grid max-w-[90rem] gap-10 px-[clamp(1rem,4vw,3.5rem)] py-16 lg:py-24">
 						<div className="grid max-w-2xl gap-3">
 							<h2 className="text-3xl font-semibold tracking-tight">
 								{t("landing.featuresTitle")}
@@ -144,7 +144,7 @@ export function Landing({ session }: { session: Session }) {
 
 				<section
 					id="how"
-					className="mx-auto grid max-w-6xl scroll-mt-16 gap-10 px-4 py-16 md:px-8 lg:py-24"
+					className="mx-auto grid max-w-[90rem] scroll-mt-16 gap-10 px-[clamp(1rem,4vw,3.5rem)] py-16 lg:py-24"
 				>
 					<h2 className="text-3xl font-semibold tracking-tight">
 						{t("landing.stepsTitle")}
@@ -165,7 +165,7 @@ export function Landing({ session }: { session: Session }) {
 				</section>
 
 				<section className="border-y bg-card/50">
-					<div className="mx-auto grid max-w-6xl items-center gap-8 px-4 py-16 md:px-8 lg:grid-cols-[1.1fr_1fr] lg:py-24">
+					<div className="mx-auto grid max-w-[90rem] items-center gap-8 px-[clamp(1rem,4vw,3.5rem)] py-16 lg:grid-cols-[1.1fr_1fr] lg:py-24">
 						<div className="grid gap-3">
 							<h2 className="text-3xl font-semibold tracking-tight">
 								{t("landing.engineTitle")}
@@ -201,7 +201,7 @@ export function Landing({ session }: { session: Session }) {
 					</div>
 				</section>
 
-				<section className="mx-auto max-w-6xl px-4 py-16 lg:py-24 md:px-8 lg:pb-24">
+				<section className="mx-auto max-w-[90rem] px-[clamp(1rem,4vw,3.5rem)] py-16 lg:py-24 lg:pb-24">
 					<div className="grid gap-6 rounded-3xl bg-primary p-8 text-primary-foreground md:flex md:items-center md:justify-between md:p-12">
 						<div className="grid gap-2">
 							<h2 className="text-3xl font-semibold tracking-tight">
@@ -221,7 +221,7 @@ export function Landing({ session }: { session: Session }) {
 			</main>
 
 			<footer className="border-t">
-				<div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-8 text-muted-foreground md:px-8">
+				<div className="mx-auto flex max-w-[90rem] flex-wrap items-center justify-between gap-4 px-[clamp(1rem,4vw,3.5rem)] py-8 text-muted-foreground">
 					<p>{t("landing.footer")}</p>
 					<a href={SOURCE} target="_blank" rel="noreferrer">
 						{t("landing.source")}
@@ -237,7 +237,7 @@ function Screens() {
 	const { t } = useTranslation();
 	const language = useLanguage();
 	return (
-		<section className="mx-auto grid max-w-6xl gap-10 px-4 pb-16 md:px-8 lg:pb-24">
+		<section className="mx-auto grid max-w-[90rem] gap-10 px-[clamp(1rem,4vw,3.5rem)] pb-16 lg:pb-24">
 			<h2 className="text-3xl font-semibold tracking-tight">
 				{t("landing.screensTitle")}
 			</h2>
@@ -271,7 +271,7 @@ function Preview() {
 	return (
 		<div
 			aria-hidden
-			className="relative mx-auto w-full max-w-sm animate-in delay-150 duration-700 fill-mode-backwards fade-in-0 zoom-in-95"
+			className="relative mx-auto w-full max-w-sm 2xl:max-w-md animate-in delay-150 duration-700 fill-mode-backwards fade-in-0 zoom-in-95"
 		>
 			<div className="absolute -inset-6 -z-0 rounded-[3rem] bg-accent/60 blur-2xl" />
 			<div className="relative grid gap-4 rounded-[2.25rem] border-8 border-foreground/90 bg-background p-4 shadow-2xl">
