@@ -28,7 +28,7 @@ test("a technician clocks time on site offline; the office sees the hours", asyn
 
 	await tech.clock.fastForward("01:30:00");
 	await tech.getByRole("button", { name: "Stop" }).click();
-	await expect(time).toContainText("1 h 30 in all");
+	await expect(time).toContainText("1 h 30 in total");
 
 	await tech.context().setOffline(false);
 	await tech.clock.fastForward("00:00:20");
@@ -36,7 +36,9 @@ test("a technician clocks time on site offline; the office sees the hours", asyn
 
 	await sync(office);
 	await open(office, title);
-	await expect(section(office, "Time on site")).toContainText("1 h 30 in all");
+	await expect(section(office, "Time on site")).toContainText(
+		"1 h 30 in total",
+	);
 	await expect(section(office, "Time on site")).toContainText(JUNIOR);
 
 	await office.goto("/#/overview");

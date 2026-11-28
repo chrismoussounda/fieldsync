@@ -39,7 +39,7 @@ test("the customer signs on the technician's phone, offline", async ({
 	await open(office, title);
 	const signed = section(office, "Customer signature");
 	await expect(signed).toContainText("Signed by Mr Kaya");
-	await expect(signed).toContainText(`with ${JUNIOR}`);
+	await expect(signed).toContainText(`collected by ${JUNIOR}`);
 	await expect
 		.poll(() =>
 			office
