@@ -8,7 +8,7 @@ test("speaks French first, then keeps the chosen language and theme", async ({
 	await expect(page.locator("html")).toHaveAttribute("lang", "fr");
 	await expect(
 		page.getByRole("heading", {
-			name: "Les interventions terrain, même sans réseau.",
+			name: "Vos interventions sur le terrain, même sans réseau.",
 		}),
 	).toBeVisible();
 	await page.getByRole("link", { name: "Se connecter" }).click();
